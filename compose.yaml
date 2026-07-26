@@ -1,0 +1,76 @@
+name: roms
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    command:
+      - --server-id=${DB_SERVER_ID:-1}
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --gtid-strict-mode=ON
+      - --log-slave-updates=ON
+      - --expire-logs-days=7
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-roms}
+      MARIADB_USER: ${DB_USER:-roms}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+
+  app:
+    image: ${ROMS_IMAGE:-roms:local}
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: true
+      DataProtection__KeysPath: /app/keys
+      ConnectionStrings__DefaultConnection: Server=db;Port=3306;Database=${DB_NAME:-roms};User=${DB_USER:-roms};Password=${DB_PASSWORD};SslMode=Preferred
+      Seed__AdminUsername: ${ADMIN_USERNAME:-admin}
+      Seed__AdminPassword: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      Seed__AdminDisplayName: ${ADMIN_DISPLAY_NAME:-ROMS Administrator}
+      Features__Inventory__Enabled: ${INVENTORY_ENABLED:-false}
+    volumes:
+      - data-protection-keys:/app/keys
+    networks: [backend, edge]
+
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    depends_on: [app]
+    environment:
+      ROMS_HOST: ${ROMS_HOST:-localhost}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [edge]
+
+  monitor:
+    image: twinproduction/gatus:v5.24.3
+    restart: unless-stopped
+    volumes:
+      - ./deploy/gatus.yaml:/config/config.yaml:ro
+      - monitor-data:/data
+    ports: ["127.0.0.1:8081:8080"]
+    networks: [backend]
+
+volumes:
+  mariadb-data:
+  caddy-data:
+  caddy-config:
+  monitor-data:
+  data-protection-keys:
+networks:
+  backend: { internal: true }
+  edge:

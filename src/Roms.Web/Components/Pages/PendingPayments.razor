@@ -1,0 +1,36 @@
+@page "/admin/payments"
+@attribute [Authorize(Roles = "Admin")]
+@inject IOrderService Orders
+@inject AuthenticationStateProvider Authentication
+@inject OrderEventBus Events
+@implements IDisposable
+
+<PageTitle>Pending Payments</PageTitle>
+<div class="page-heading"><div><h1>Pending payments</h1><p>Prepare the invoice from the served-order details, then confirm payment.</p></div><button class="btn btn-outline-primary touch-button" @onclick="Load">Refresh</button></div>
+@if (!string.IsNullOrEmpty(message)) { <div class="alert @(failed ? "alert-danger" : "alert-success")">@message</div> }
+@if (payments is null) { <p>Loading pending payments…</p> }
+else if (payments.Count == 0) { <div class="empty-state">No served orders are waiting for payment.</div> }
+else
+{
+    <div class="kds-grid">
+        @foreach (var order in payments)
+        {
+            <article class="payment-ticket">
+                <header><div><h2>Table @order.TableNumber</h2><small>Waiter: @order.WaiterName</small></div><div class="text-end"><strong>₱@order.Total.ToString("N2")</strong><small class="d-block">Served @Local(order.CompletedUtc).ToString("h:mm tt")</small></div></header>
+                <ul>@foreach(var item in order.Items.Where(x=>!x.IsRemoved)){<li><span>@item.Quantity × @item.Name</span><strong>₱@((item.Quantity*item.UnitPrice).ToString("N2"))</strong></li>}</ul>
+                <button class="btn btn-success btn-lg touch-button w-100" disabled="@busy" @onclick="()=>Confirm(order.Id)">Confirm payment received</button>
+            </article>
+        }
+    </div>
+}
+
+@code {
+    private static readonly TimeZoneInfo Manila=TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila");
+    private IReadOnlyList<OrderView>? payments;private string actor="unknown";private string? message;private bool failed,busy;
+    protected override async Task OnInitializedAsync(){var state=await Authentication.GetAuthenticationStateAsync();actor=state.User.Identity?.Name??"unknown";Events.Changed+=OnChanged;await Load();}
+    private async Task Load(){try{payments=await Orders.GetPendingPaymentsAsync();failed=false;}catch(Exception ex){message=ex.Message;failed=true;}}
+    private async Task Confirm(Guid id){if(busy)return;busy=true;message=null;try{await Orders.ConfirmPaymentAsync(id,actor);message="Payment confirmed. The order is now included in reports.";failed=false;await Load();}catch(Exception ex){message=ex.Message;failed=true;}finally{busy=false;}}
+    private void OnChanged(OrderEvent message)=>_=InvokeAsync(async()=>{await Load();StateHasChanged();});
+    private static DateTime Local(DateTime? utc)=>utc is null?DateTime.MinValue:TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc.Value,DateTimeKind.Utc),Manila);
+    public void Dispose()=>Events.Changed-=OnChanged;
+}

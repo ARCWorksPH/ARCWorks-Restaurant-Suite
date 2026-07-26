@@ -1,0 +1,318 @@
+namespace Roms.Domain;
+
+public enum UserRole { Admin, Waiter, Kitchen }
+public enum OrderStatus { Draft, New, Preparing, Ready, Completed, Cancelled }
+public enum TableStatus { Available, Occupied, Preparing, ReadyToServe, PendingPayment }
+public enum StockMovementType { Receipt, Consumption, Adjustment, Reversal }
+
+public sealed class StaffSchedule
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string UserId { get; set; } = "";
+    public DateTime ScheduledStartUtc { get; private set; }
+    public DateTime ScheduledEndUtc { get; private set; }
+    public string Notes { get; private set; } = "";
+    public string CreatedBy { get; set; } = "";
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedUtc { get; private set; } = DateTime.UtcNow;
+
+    public void SetSchedule(DateTime startUtc, DateTime endUtc, string? notes, DateTime utcNow)
+    {
+        if (endUtc <= startUtc) throw new DomainException("Scheduled end time must be after the start time.");
+        if (endUtc - startUtc > TimeSpan.FromHours(24)) throw new DomainException("A staff schedule cannot exceed 24 hours.");
+        ScheduledStartUtc = startUtc;
+        ScheduledEndUtc = endUtc;
+        Notes = notes?.Trim() ?? "";
+        UpdatedUtc = utcNow;
+    }
+}
+
+public sealed class AttendanceRecord
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string UserId { get; set; } = "";
+    public Guid? StaffScheduleId { get; set; }
+    public StaffSchedule? StaffSchedule { get; set; }
+    public DateTime ClockInUtc { get; private set; }
+    public DateTime? ClockOutUtc { get; private set; }
+    public string? AdjustedBy { get; private set; }
+    public DateTime? AdjustedUtc { get; private set; }
+    public string? AdjustmentReason { get; private set; }
+
+    public static AttendanceRecord ClockIn(string userId, Guid? scheduleId, DateTime utcNow) => new()
+        { UserId = userId, StaffScheduleId = scheduleId, ClockInUtc = utcNow };
+
+    public void ClockOut(DateTime utcNow)
+    {
+        if (ClockOutUtc is not null) throw new DomainException("This attendance record is already clocked out.");
+        if (utcNow <= ClockInUtc) throw new DomainException("Clock-out time must be after clock-in time.");
+        ClockOutUtc = utcNow;
+    }
+
+    public void Correct(DateTime clockInUtc, DateTime? clockOutUtc, string adminId, string reason, DateTime utcNow)
+    {
+        if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("A correction reason is required.");
+        if (clockOutUtc is not null && clockOutUtc <= clockInUtc) throw new DomainException("Clock-out time must be after clock-in time.");
+        ClockInUtc = clockInUtc;
+        ClockOutUtc = clockOutUtc;
+        AdjustedBy = adminId;
+        AdjustedUtc = utcNow;
+        AdjustmentReason = reason.Trim();
+    }
+}
+
+public sealed class RestaurantTable
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Number { get; set; } = "";
+    public bool IsActive { get; set; } = true;
+    public int SortOrder { get; set; }
+}
+
+public sealed class MenuCategory
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = "";
+    public int SortOrder { get; set; }
+    public bool IsActive { get; set; } = true;
+    public List<MenuItem> Items { get; set; } = [];
+}
+
+public sealed class MenuItem
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid CategoryId { get; set; }
+    public MenuCategory? Category { get; set; }
+    public string Name { get; set; } = "";
+    public string Description { get; set; } = "";
+    public decimal Price { get; set; }
+    public bool IsActive { get; set; } = true;
+    public bool IsAvailable { get; set; } = true;
+    public List<RecipeIngredient> RecipeIngredients { get; set; } = [];
+}
+
+public sealed class Order
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid TableId { get; set; }
+    public RestaurantTable? Table { get; set; }
+    public string WaiterId { get; set; } = "";
+    public OrderStatus Status { get; private set; } = OrderStatus.Draft;
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedUtc { get; private set; } = DateTime.UtcNow;
+    public DateTime? SubmittedUtc { get; private set; }
+    public DateTime? CompletedUtc { get; private set; }
+    public DateTime? PaymentConfirmedUtc { get; private set; }
+    public string? PaymentConfirmedBy { get; private set; }
+    public string? CancellationReason { get; private set; }
+    public int Revision { get; private set; } = 1;
+    public long Version { get; private set; }
+    public List<OrderItem> Items { get; set; } = [];
+    public List<OrderStatusHistory> StatusHistory { get; set; } = [];
+    public decimal Total => Items.Where(x => !x.IsRemoved).Sum(x => x.UnitPrice * x.Quantity);
+
+    public void AddItem(MenuItem menuItem, int quantity, string? notes, DateTime utcNow)
+    {
+        if (Status != OrderStatus.Draft) throw new DomainException("Only draft orders can be edited directly.");
+        AddItemCore(menuItem, quantity, notes, utcNow);
+    }
+
+    public void AmendAddItem(MenuItem menuItem, int quantity, string? notes, string actorId, string reason, DateTime utcNow)
+    {
+        EnsureAmendable(reason);
+        AddItemCore(menuItem, quantity, notes, utcNow);
+        RecordAmendment(actorId, reason, utcNow);
+    }
+
+    public void AmendRemoveItem(Guid itemId, string actorId, string reason, bool actorIsAdmin, DateTime utcNow)
+    {
+        EnsureAmendable(reason);
+        if (Status == OrderStatus.Preparing && !actorIsAdmin)
+            throw new DomainException("Only an administrator can remove an item after preparation begins.");
+        var item = Items.SingleOrDefault(x => x.Id == itemId && !x.IsRemoved) ?? throw new DomainException("Order item not found.");
+        item.IsRemoved = true;
+        RecordAmendment(actorId, reason, utcNow);
+    }
+
+    private void AddItemCore(MenuItem menuItem, int quantity, string? notes, DateTime utcNow)
+    {
+        if (!menuItem.IsActive || !menuItem.IsAvailable) throw new DomainException("This menu item is unavailable.");
+        if (quantity < 1 || quantity > 99) throw new DomainException("Quantity must be between 1 and 99.");
+
+        Items.Add(new OrderItem
+        {
+            OrderId = Id,
+            MenuItemId = menuItem.Id,
+            MenuItemName = menuItem.Name,
+            UnitPrice = menuItem.Price,
+            Quantity = quantity,
+            Notes = notes?.Trim() ?? ""
+        });
+        Touch(utcNow);
+    }
+
+    private void EnsureAmendable(string reason)
+    {
+        if (Status is not (OrderStatus.New or OrderStatus.Preparing))
+            throw new DomainException("Only New or Preparing orders can be amended.");
+        if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("An amendment reason is required.");
+    }
+
+    public void RemoveDraftItem(Guid itemId, DateTime utcNow)
+    {
+        if (Status != OrderStatus.Draft) throw new DomainException("Submitted items require an amendment.");
+        var item = Items.SingleOrDefault(x => x.Id == itemId) ?? throw new DomainException("Order item not found.");
+        Items.Remove(item);
+        Touch(utcNow);
+    }
+
+    public void Submit(DateTime utcNow)
+    {
+        if (Status != OrderStatus.Draft) throw new DomainException("Only a draft can be submitted.");
+        if (Items.Count == 0) throw new DomainException("Add at least one item before submitting.");
+        Status = OrderStatus.New;
+        SubmittedUtc = utcNow;
+        AddHistory(OrderStatus.Draft, OrderStatus.New, WaiterId, null, utcNow);
+    }
+
+    public void TransitionTo(OrderStatus next, string actorId, string? reason, DateTime utcNow)
+    {
+        if (next == OrderStatus.Cancelled)
+        {
+            if (Status is OrderStatus.Completed or OrderStatus.Cancelled) throw new DomainException("This order can no longer be cancelled.");
+            if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("A cancellation reason is required.");
+            var previous = Status;
+            Status = next;
+            CancellationReason = reason.Trim();
+            AddHistory(previous, next, actorId, CancellationReason, utcNow);
+            return;
+        }
+
+        var expected = Status switch
+        {
+            OrderStatus.New => OrderStatus.Preparing,
+            OrderStatus.Preparing => OrderStatus.Ready,
+            OrderStatus.Ready => OrderStatus.Completed,
+            _ => (OrderStatus?)null
+        };
+        if (expected != next) throw new DomainException($"Invalid transition from {Status} to {next}.");
+        var from = Status;
+        Status = next;
+        if (next == OrderStatus.Completed) CompletedUtc = utcNow;
+        AddHistory(from, next, actorId, reason, utcNow);
+    }
+
+    public void RecordAmendment(string actorId, string reason, DateTime utcNow)
+    {
+        if (Status is OrderStatus.Draft or OrderStatus.Completed or OrderStatus.Cancelled)
+            throw new DomainException("This order cannot be amended.");
+        if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("An amendment reason is required.");
+        Revision++;
+        UpdatedUtc = utcNow;
+        Version++;
+    }
+
+    public void ConfirmPayment(string actorId, DateTime utcNow)
+    {
+        if (Status != OrderStatus.Completed) throw new DomainException("Only a served order can have payment confirmed.");
+        if (PaymentConfirmedUtc is not null) throw new DomainException("Payment has already been confirmed for this order.");
+        PaymentConfirmedUtc = utcNow;
+        PaymentConfirmedBy = actorId;
+        Touch(utcNow);
+    }
+
+    private void AddHistory(OrderStatus from, OrderStatus to, string actorId, string? reason, DateTime utcNow)
+    {
+        StatusHistory.Add(new OrderStatusHistory
+        {
+            OrderId = Id, FromStatus = from, ToStatus = to, ActorId = actorId,
+            Reason = reason?.Trim(), OccurredUtc = utcNow
+        });
+        Touch(utcNow);
+    }
+
+    private void Touch(DateTime utcNow) { UpdatedUtc = utcNow; Version++; }
+}
+
+public sealed class OrderItem
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid OrderId { get; set; }
+    public Order? Order { get; set; }
+    public Guid MenuItemId { get; set; }
+    public string MenuItemName { get; set; } = "";
+    public decimal UnitPrice { get; set; }
+    public int Quantity { get; set; }
+    public string Notes { get; set; } = "";
+    public bool IsRemoved { get; set; }
+}
+
+public sealed class OrderStatusHistory
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid OrderId { get; set; }
+    public Order? Order { get; set; }
+    public OrderStatus FromStatus { get; set; }
+    public OrderStatus ToStatus { get; set; }
+    public string ActorId { get; set; } = "";
+    public string? Reason { get; set; }
+    public DateTime OccurredUtc { get; set; }
+}
+
+public sealed class AuditEntry
+{
+    public long Id { get; set; }
+    public string ActorId { get; set; } = "system";
+    public string Action { get; set; } = "";
+    public string EntityType { get; set; } = "";
+    public string EntityId { get; set; } = "";
+    public string? OldValuesJson { get; set; }
+    public string? NewValuesJson { get; set; }
+    public string? Reason { get; set; }
+    public DateTime OccurredUtc { get; set; } = DateTime.UtcNow;
+}
+
+public sealed class IdempotencyRecord
+{
+    public string Key { get; set; } = "";
+    public string Operation { get; set; } = "";
+    public Guid ResourceId { get; set; }
+    public DateTime CreatedUtc { get; set; }
+}
+
+public sealed class InventoryItem
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set; } = "";
+    public string Unit { get; set; } = "unit";
+    public decimal MinimumStock { get; set; }
+    public bool IsActive { get; set; } = true;
+    public List<StockMovement> Movements { get; set; } = [];
+    public decimal CurrentStock => Movements.Sum(x => x.QuantityDelta);
+}
+
+public sealed class RecipeIngredient
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid MenuItemId { get; set; }
+    public MenuItem? MenuItem { get; set; }
+    public Guid InventoryItemId { get; set; }
+    public InventoryItem? InventoryItem { get; set; }
+    public decimal Quantity { get; set; }
+}
+
+public sealed class StockMovement
+{
+    public long Id { get; set; }
+    public Guid InventoryItemId { get; set; }
+    public InventoryItem? InventoryItem { get; set; }
+    public StockMovementType Type { get; set; }
+    public decimal QuantityDelta { get; set; }
+    public string Reason { get; set; } = "";
+    public Guid? OrderId { get; set; }
+    public string IdempotencyKey { get; set; } = "";
+    public string ActorId { get; set; } = "system";
+    public DateTime OccurredUtc { get; set; }
+}
+
+public sealed class DomainException(string message) : InvalidOperationException(message);

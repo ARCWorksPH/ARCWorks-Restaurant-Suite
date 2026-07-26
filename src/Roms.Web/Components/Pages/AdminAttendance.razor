@@ -1,0 +1,61 @@
+@page "/admin/attendance"
+@attribute [Authorize(Roles = "Admin")]
+@inject IAttendanceService AttendanceService
+@inject AuthenticationStateProvider Authentication
+
+<PageTitle>Staff Schedule & Attendance</PageTitle>
+<div class="page-heading"><div><h1>Staff schedule & attendance</h1><p>Simple scheduling and time records. Times are shown in Asia/Manila.</p></div><div><a class="btn btn-outline-success touch-button me-2" href="@($"admin/attendance/export.csv?from={selectedDate:yyyy-MM-dd}")">Export CSV</a><button class="btn btn-outline-primary touch-button" @onclick="Load">Refresh</button></div></div>
+@if (!string.IsNullOrEmpty(message)) { <div class="alert @(failed ? "alert-danger" : "alert-success")">@message</div> }
+
+<section class="panel mb-4"><h2>Currently present (@(view?.Present.Count ?? 0))</h2>
+    @if (view is null) { <p>Loading…</p> }
+    else if (view.Present.Count == 0) { <div class="empty-state">No staff are currently clocked in.</div> }
+    else { <div class="admin-list">@foreach(var item in view.Present){<div><span><strong>@item.DisplayName</strong> · since @Local(item.ClockInUtc).ToString("MMM d, h:mm tt")</span><span>@item.Hours.ToString("N2") hr</span></div>}</div> }
+</section>
+
+<section class="panel mb-4"><h2>Add schedule</h2>
+    <div class="user-form">
+        <select class="form-select" @bind="scheduleUserId">@foreach(var staffMember in staff){<option value="@staffMember.Id">@staffMember.DisplayName (@staffMember.Username)</option>}</select>
+        <input class="form-control" type="datetime-local" @bind="scheduleStartLocal" />
+        <input class="form-control" type="datetime-local" @bind="scheduleEndLocal" />
+        <input class="form-control" placeholder="Notes (optional)" @bind="scheduleNotes" />
+        <button class="btn btn-primary touch-button" disabled="@(busy || staff.Count == 0)" @onclick="SaveSchedule">Add schedule</button>
+    </div>
+</section>
+
+<section class="panel mb-4"><div class="page-heading"><div><h2>Schedule and records</h2><p>Seven days beginning on the selected date.</p></div><input class="form-control" style="max-width:190px" type="date" @bind="selectedDate" @bind:after="Load" /></div>
+    <h3>Scheduled staff</h3>
+    @if(view is not null && view.Schedules.Count==0){<div class="empty-state">No staff schedules in this period.</div>}
+    else if(view is not null){<div class="table-responsive"><table class="table"><thead><tr><th>Staff</th><th>Start</th><th>End</th><th>Notes</th><th></th></tr></thead><tbody>@foreach(var item in view.Schedules){<tr><td>@item.DisplayName</td><td>@Local(item.ScheduledStartUtc).ToString("ddd MMM d, h:mm tt")</td><td>@Local(item.ScheduledEndUtc).ToString("ddd MMM d, h:mm tt")</td><td>@item.Notes</td><td><button class="btn btn-sm btn-outline-danger" disabled="@busy" @onclick="()=>DeleteSchedule(item.Id)">Delete</button></td></tr>}</tbody></table></div>}
+
+    <h3>Hours by staff</h3>
+    @if(view is not null && view.Records.Count==0){<div class="empty-state">No attendance records in this period.</div>}
+    else if(view is not null){<div class="metric-grid">@foreach(var group in view.Records.GroupBy(x=>x.DisplayName).OrderBy(x=>x.Key)){<div><span>@group.Key</span><strong>@group.Sum(x=>x.Hours).ToString("N2") hr</strong></div>}</div>
+    <div class="table-responsive"><table class="table"><thead><tr><th>Staff</th><th>Clock in</th><th>Clock out</th><th>Hours</th><th></th></tr></thead><tbody>@foreach(var item in view.Records){<tr><td>@item.DisplayName</td><td>@Local(item.ClockInUtc).ToString("MMM d, h:mm tt")</td><td>@(item.ClockOutUtc is null?"Present":Local(item.ClockOutUtc.Value).ToString("MMM d, h:mm tt"))</td><td>@item.Hours.ToString("N2")</td><td><button class="btn btn-sm btn-outline-secondary" @onclick="()=>BeginCorrection(item)">Correct</button></td></tr>}</tbody></table></div>}
+</section>
+
+@if(correctionId is not null)
+{
+    <section class="panel mb-4"><h2>Correct attendance</h2><p>Every correction is retained in the audit log.</p><div class="user-form">
+        <input class="form-control" type="datetime-local" @bind="correctionInLocal" />
+        <input class="form-control" type="datetime-local" @bind="correctionOutLocal" />
+        <input class="form-control" placeholder="Correction reason (required)" @bind="correctionReason" />
+        <button class="btn btn-primary touch-button" disabled="@busy" @onclick="SaveCorrection">Save correction</button>
+        <button class="btn btn-outline-secondary touch-button" @onclick="CancelCorrection">Cancel</button>
+    </div></section>
+}
+
+@code {
+    private static readonly TimeZoneInfo Manila=TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila");
+    private IReadOnlyList<StaffMemberView> staff=[];private AttendanceAdminView? view;private string actor="unknown",scheduleUserId="",scheduleNotes="",correctionReason="";private string? message;private bool failed,busy;private DateTime selectedDate=TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,Manila).Date;private DateTime scheduleStartLocal,scheduleEndLocal,correctionInLocal;private DateTime? correctionOutLocal;private Guid? correctionId;
+    protected override async Task OnInitializedAsync(){var state=await Authentication.GetAuthenticationStateAsync();actor=state.User.Identity?.Name??"unknown";staff=await AttendanceService.GetStaffAsync();scheduleUserId=staff.FirstOrDefault()?.Id??"";scheduleStartLocal=selectedDate.AddDays(1).AddHours(9);scheduleEndLocal=selectedDate.AddDays(1).AddHours(17);await Load();}
+    private async Task Load(){try{view=await AttendanceService.GetAdminViewAsync(ToUtc(selectedDate.Date),ToUtc(selectedDate.Date.AddDays(7)));message=null;failed=false;}catch(Exception ex){message=ex.Message;failed=true;}}
+    private Task SaveSchedule()=>Run(async()=>{await AttendanceService.SaveScheduleAsync(null,scheduleUserId,ToUtc(scheduleStartLocal),ToUtc(scheduleEndLocal),scheduleNotes,actor);scheduleNotes="";message="Schedule added.";});
+    private Task DeleteSchedule(Guid id)=>Run(async()=>{await AttendanceService.DeleteScheduleAsync(id,actor);message="Schedule deleted.";});
+    private void BeginCorrection(AttendanceRecordView item){correctionId=item.Id;correctionInLocal=Local(item.ClockInUtc);correctionOutLocal=item.ClockOutUtc is null?null:Local(item.ClockOutUtc.Value);correctionReason="";}
+    private void CancelCorrection(){correctionId=null;correctionReason="";}
+    private Task SaveCorrection()=>Run(async()=>{await AttendanceService.CorrectAsync(correctionId!.Value,ToUtc(correctionInLocal),correctionOutLocal is null?null:ToUtc(correctionOutLocal.Value),correctionReason,actor);correctionId=null;correctionReason="";message="Attendance corrected.";});
+    private async Task Run(Func<Task> action){if(busy)return;busy=true;message=null;try{await action();failed=false;await Load();}catch(Exception ex){message=ex.Message;failed=true;}finally{busy=false;}}
+    private static DateTime ToUtc(DateTime local)=>TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(local,DateTimeKind.Unspecified),Manila);
+    private static DateTime Local(DateTime utc)=>TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc,DateTimeKind.Utc),Manila);
+}

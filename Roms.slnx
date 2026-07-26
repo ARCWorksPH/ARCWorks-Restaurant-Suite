@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Roms.Application/Roms.Application.csproj" />
+    <Project Path="src/Roms.Domain/Roms.Domain.csproj" />
+    <Project Path="src/Roms.Infrastructure/Roms.Infrastructure.csproj" />
+    <Project Path="src/Roms.Web/Roms.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Roms.Domain.Tests/Roms.Domain.Tests.csproj" />
+    <Project Path="tests/Roms.IntegrationTests/Roms.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,14 @@
+.env
+.dotnet/
+.dotnet-home/
+.nuget-packages/
+.tools/
+.vs/
+**/bin/
+**/obj/
+backups/
+TestResults/
+.artifacts/
+**/DataProtection-Keys/
+*.user
+*.suo

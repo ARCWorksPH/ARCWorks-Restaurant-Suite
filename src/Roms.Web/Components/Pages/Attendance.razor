@@ -1,0 +1,47 @@
+@page "/attendance"
+@attribute [Authorize]
+@inject IAttendanceService AttendanceService
+@inject AuthenticationStateProvider Authentication
+
+<PageTitle>My Attendance</PageTitle>
+<div class="page-heading"><div><h1>My attendance</h1><p>Confirm your attendance and review your work schedule.</p></div><button class="btn btn-outline-primary touch-button" @onclick="Load">Refresh</button></div>
+@if (!string.IsNullOrEmpty(message)) { <div class="alert @(failed ? "alert-danger" : "alert-success")">@message</div> }
+@if (view is null) { <p>Loading attendance…</p> }
+else
+{
+    <section class="panel mb-4">
+        @if (view.OpenRecord is null)
+        {
+            <h2>You are not clocked in</h2><p>Clock in when you begin work. Closing the browser will not clock you out.</p>
+            <button class="btn btn-success btn-lg touch-button" disabled="@busy" @onclick="ClockIn">Clock in</button>
+        }
+        else
+        {
+            <h2 class="text-success">You are present</h2><p>Clocked in at <strong>@Local(view.OpenRecord.ClockInUtc).ToString("MMM d, h:mm tt")</strong> · @Duration(view.OpenRecord.Hours)</p>
+            <button class="btn btn-outline-danger btn-lg touch-button" disabled="@busy" @onclick="ClockOut">Clock out</button>
+        }
+    </section>
+
+    <section class="panel mb-4"><h2>Upcoming schedule</h2>
+        @if (view.Schedules.Count == 0) { <div class="empty-state">No schedule has been assigned for the next 14 days.</div> }
+        else { <div class="admin-list">@foreach (var item in view.Schedules) { <div><span><strong>@Local(item.ScheduledStartUtc).ToString("ddd, MMM d")</strong><br />@Local(item.ScheduledStartUtc).ToString("h:mm tt")–@Local(item.ScheduledEndUtc).ToString("h:mm tt") @if (!string.IsNullOrWhiteSpace(item.Notes)) { <small>· @item.Notes</small> }</span></div> }</div> }
+    </section>
+
+    <section class="panel"><h2>Recent time records</h2>
+        @if (view.Records.Count == 0) { <div class="empty-state">No attendance records yet.</div> }
+        else { <div class="table-responsive"><table class="table"><thead><tr><th>Date</th><th>Clock in</th><th>Clock out</th><th>Hours</th></tr></thead><tbody>@foreach (var item in view.Records) { <tr><td>@Local(item.ClockInUtc).ToString("MMM d")</td><td>@Local(item.ClockInUtc).ToString("h:mm tt")</td><td>@(item.ClockOutUtc is null ? "Present" : Local(item.ClockOutUtc.Value).ToString("h:mm tt"))</td><td>@item.Hours.ToString("N2")</td></tr> }</tbody></table></div> }
+    </section>
+}
+
+@code {
+    private static readonly TimeZoneInfo Manila = TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila");
+    private MyAttendanceView? view; private string actor="unknown"; private string? message; private bool failed,busy;
+    protected override async Task OnInitializedAsync(){var state=await Authentication.GetAuthenticationStateAsync();actor=state.User.Identity?.Name??"unknown";await Load();}
+    private async Task Load(){try{var today=TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,Manila).Date;view=await AttendanceService.GetMineAsync(actor,ToUtc(today.AddDays(-7)),ToUtc(today.AddDays(15)));failed=false;}catch(Exception ex){message=ex.Message;failed=true;}}
+    private Task ClockIn()=>Run(async()=>{await AttendanceService.ClockInAsync(actor);message="Clock-in recorded.";});
+    private Task ClockOut()=>Run(async()=>{await AttendanceService.ClockOutAsync(actor);message="Clock-out recorded.";});
+    private async Task Run(Func<Task> action){if(busy)return;busy=true;message=null;try{await action();failed=false;await Load();}catch(Exception ex){message=ex.Message;failed=true;}finally{busy=false;}}
+    private static DateTime ToUtc(DateTime local)=>TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(local,DateTimeKind.Unspecified),Manila);
+    private static DateTime Local(DateTime utc)=>TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc,DateTimeKind.Utc),Manila);
+    private static string Duration(decimal hours)=>hours<1?$"{Math.Max(0,(int)(hours*60))} min":$"{hours:N1} hr";
+}

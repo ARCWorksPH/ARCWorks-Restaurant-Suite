@@ -1,0 +1,11 @@
+.git
+.github
+.dotnet
+.dotnet-home
+.nuget-packages
+.tools
+**/bin
+**/obj
+backups
+tests
+*.md

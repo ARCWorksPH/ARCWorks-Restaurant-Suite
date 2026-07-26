@@ -1,0 +1,34 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject IConfiguration Configuration
+
+<div id="session-timeout-warning" class="session-warning" role="alertdialog" aria-modal="true" aria-labelledby="session-warning-title" hidden>
+    <div>
+        <strong id="session-warning-title">Your session is about to end</strong>
+        <p>For shared-device security, ROMS will log out in <span id="session-timeout-countdown">60</span> seconds. This will not clock you out.</p>
+        <button id="session-timeout-continue" type="button" class="btn btn-primary touch-button">Stay signed in</button>
+    </div>
+</div>
+<form id="session-timeout-form" action="Account/Logout" method="post" hidden>
+    <AntiforgeryToken />
+    <input type="hidden" name="ReturnUrl" value="Account/Login?reason=inactive" />
+</form>
+
+@code {
+    private bool started;
+    private int IdleMinutes => Math.Clamp(Configuration.GetValue("Session:IdleTimeoutMinutes", 30), 5, 720);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await JS.InvokeVoidAsync("romsSession.start", "session-timeout-form", IdleMinutes);
+        started = true;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (!started) return;
+        try { await JS.InvokeVoidAsync("romsSession.stop"); }
+        catch (JSDisconnectedException) { }
+    }
+}

@@ -1,0 +1,17 @@
+storage:
+  type: sqlite
+  path: /data/gatus.db
+endpoints:
+  - name: ROMS application
+    group: local-primary
+    url: http://app:8080/health
+    interval: 30s
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 1000"
+  - name: MariaDB TCP
+    group: local-primary
+    url: tcp://db:3306
+    interval: 30s
+    conditions:
+      - "[CONNECTED] == true"
