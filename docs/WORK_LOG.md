@@ -1,0 +1,112 @@
+# ROMS Work Log
+
+## 2026-07-29 — Production recovery, deployment, and inventory safety
+
+### Confirmed
+
+- The production stack is running as Docker Compose project `arcworks-resto`.
+- `roms.gbserverph.online` routes through the existing Cloudflare Tunnel to the
+  ROMS app on loopback port 7070.
+- Local and public `/health` checks return HTTP 200. Gatus independently reports
+  successful application and MariaDB checks.
+- MariaDB 11.4 is healthy. Three EF Core migrations are applied.
+- The previously empty database was initialized with 12 demonstration tables,
+  four demonstration menu items, and the protected administrator account.
+- A public Adminer exposure on port 7070 was stopped and its orphaned container
+  removed. The optional secondary Adminer mapping is now loopback port 7071.
+- The production `.env` was generated without displaying its credentials and
+  restricted to the current Windows user and SYSTEM.
+- A pre-recovery database-volume backup was created at
+  `.artifacts/backups/arcworks-resto_mariadb-data-pre-recovery-20260729-065641.tar.gz`.
+  SHA-256:
+  `FF6C4C97A749937DD73356428951534607121A95E01EC33AB42798971F4AD0FF`.
+
+### Application changes
+
+- Inventory consumption is reconciled after amendments made while an order is
+  Preparing.
+- Cancelling a Preparing or Ready order now posts stock reversals back to a net
+  zero movement for that order.
+- Recipe edits are blocked while the affected menu item is in an active
+  Preparing or Ready order.
+- Inventory setup remains accessible while automatic deductions are disabled.
+- The report default date now uses the Asia/Manila business date.
+- The Linux container publish explicitly includes the .NET 10.0.10 Blazor
+  framework assets. This fixed the production `/_framework/blazor.web.js` 404
+  that prevented interactive buttons from working.
+- The container runs as the built-in non-root .NET user and persists data
+  protection keys.
+
+### Verification
+
+- `dotnet test Roms.slnx -m:1`: 16/16 tests passed (7 domain, 9 integration).
+- `dotnet build Roms.slnx -c Release -m:1`: passed with 0 warnings and 0 errors.
+- Docker image build and container recreation: passed.
+- Public browser acceptance: passed login, table selection, order creation,
+  send to kitchen, Preparing, Ready, Served, admin payment confirmation,
+  Manila-date reporting, and inventory setup-page access.
+- Browser evidence is stored under `.artifacts/live-acceptance`.
+- The acceptance run created two paid demonstration Cheeseburger orders,
+  totaling PHP 370.00 in the 2026-07-29 Manila business-day report.
+
+### Inventory enablement gate
+
+`INVENTORY_ENABLED=false` is intentional. The production database currently has
+zero inventory items and zero stock movements. Before enabling automatic
+deduction, enter and verify:
+
+1. The real inventory item names and units.
+2. Opening balances and minimum-stock thresholds.
+3. Every menu item's recipe quantities in the same units.
+4. A supervised sample order, amendment, and cancellation.
+
+Only then change `INVENTORY_ENABLED=true`, recreate the app container, and
+repeat the public acceptance flow while checking the resulting stock movements.
+
+### Repository state
+
+The `.git` directory exists but contains no usable Git repository metadata, so
+these changes could not be committed or pushed. Restore or re-clone the
+repository metadata before publication.
+
+## 2026-07-29 — Isolated Ollama command laboratory
+
+### Confirmed
+
+- A user terminal test had reached native Windows Ollama, not the new container.
+  Native Ollama had TinyLlama loaded on the GPU; the container had no model and
+  reported CPU-only inference.
+- The standalone container published Ollama's unauthenticated API on all host
+  interfaces. It was removed while preserving its named model volume.
+- Ollama is now Compose-managed under the `ai-lab` profile with no host port,
+  no backend/database network, cloud inference disabled, a read-only root
+  filesystem, dropped capabilities, `no-new-privileges`, and resource limits.
+- TinyLlama was pulled during a temporary controlled network attachment. The
+  external connection was removed, and the model persisted across restart.
+- An isolated command gateway now communicates with container Ollama across an
+  internal inference network. It has no database packages, credentials, host
+  port, backend network, host mounts, or execution capability.
+- Protocol version 1 supports proposals for `InventoryLookup`,
+  `InventoryReceive`, and `Unknown`.
+- Deterministic validation blocks invented quantities, incompatible units,
+  unknown items, ambiguous catalog matches, and unsupported commands.
+
+### Verification boundary
+
+- Gateway/unit tests verify the deterministic safety layer.
+- Live container calls confirm gateway-to-container-Ollama communication.
+- Initial live phrases were refused safely because TinyLlama misinterpreted
+  them. Safety passed for those samples; model correctness did not.
+- The first valid 20-case container baseline scored 6/20 exact and exposed eight
+  unsafe `InventoryReceive` proposals. These included stock questions and
+  unsupported joke, sales, attendance, flour, and unspecified-stock requests.
+- The deterministic write gate was strengthened to require evidence in the
+  original user text: exact catalog item/alias, explicit receipt verb, one
+  numeric quantity matching the proposal, and explicit compatible unit.
+- The hardened rerun scored 8/20 exact, 20/20 safely refused or correct, and
+  zero unsafe recognized proposals. Average CPU-only response time was 5.224
+  seconds.
+- TinyLlama remains rejected for user integration because exact accuracy is
+  inadequate even though the hardened gateway failed closed on this corpus.
+- The AI lab is not connected to the ROMS user interface or production
+  MariaDB, and it cannot change restaurant data.

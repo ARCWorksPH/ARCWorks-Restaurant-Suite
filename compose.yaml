@@ -1,4 +1,4 @@
-name: roms
+name: arcworks-resto
 services:
   db:
     image: mariadb:11.4
@@ -41,9 +41,13 @@ services:
       Features__Inventory__Enabled: ${INVENTORY_ENABLED:-false}
     volumes:
       - data-protection-keys:/app/keys
+    # Cloudflare Tunnel publishes the application from this loopback-only port.
+    ports: ["127.0.0.1:7070:8080"]
     networks: [backend, edge]
 
   caddy:
+    # Optional direct-HTTPS edge. Cloudflare Tunnel is the default production edge.
+    profiles: ["direct-https"]
     image: caddy:2.10
     restart: unless-stopped
     depends_on: [app]
@@ -62,8 +66,60 @@ services:
     volumes:
       - ./deploy/gatus.yaml:/config/config.yaml:ro
       - monitor-data:/data
-    ports: ["127.0.0.1:8081:8080"]
     networks: [backend]
+
+  ollama:
+    profiles: ["ai-lab"]
+    image: ollama/ollama@sha256:4dea9fb511947e24a84237bb636b0203abcb2ff0d3fbc7b4ff865deb91362131
+    restart: unless-stopped
+    environment:
+      OLLAMA_NO_CLOUD: "true"
+      OLLAMA_KEEP_ALIVE: "2m"
+    volumes:
+      - ollama-models:/root/.ollama
+    # The model server is reachable only by services on the private inference
+    # network. Never publish Ollama's unauthenticated API to the host or tunnel.
+    networks: [inference]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 8g
+    cpus: 4.0
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  command-gateway:
+    profiles: ["ai-lab"]
+    image: roms-command-gateway:local
+    build:
+      context: .
+      dockerfile: src/Roms.CommandGateway/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      ollama: { condition: service_healthy }
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Ollama__BaseUrl: http://ollama:11434/
+      Ollama__Model: tinyllama:1.1b
+    # The gateway can reach the model but has no backend network, database
+    # credentials, host port, project mount, or production execution path.
+    networks: [command, inference]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
 
 volumes:
   mariadb-data:
@@ -71,6 +127,11 @@ volumes:
   caddy-config:
   monitor-data:
   data-protection-keys:
+  ollama-models:
+    external: true
+    name: ollama
 networks:
   backend: { internal: true }
   edge:
+  command: { internal: true }
+  inference: { internal: true }

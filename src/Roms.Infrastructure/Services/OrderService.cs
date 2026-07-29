@@ -120,6 +120,9 @@ public sealed class OrderService(
         await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
         var menuItem = await db.MenuItems.SingleAsync(x => x.Id == menuItemId, ct);
         order.AmendAddItem(menuItem, quantity, notes, actorId, reason, clock.UtcNow);
+        if (inventoryOptions.Value.Enabled && order.Status == OrderStatus.Preparing)
+            await ReconcileInventoryAsync(db, order, actorId, consume: true,
+                $"Order {order.Id} revision {order.Revision} added an item", $"revision:{order.Revision}", ct);
         db.AuditEntries.Add(Audit(actorId, "AmendAddOrderItem", order.Id, JsonSerializer.Serialize(new { menuItemId, quantity, notes, reason, order.Revision })));
         await db.SaveChangesAsync(ct);
         await Publish(order, "OrderAmended", ct);
@@ -132,6 +135,9 @@ public sealed class OrderService(
         await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
         var verifiedIsAdmin = await IsInRoleAsync(db, actorId, RomsRoles.Admin, ct);
         order.AmendRemoveItem(itemId, actorId, reason, verifiedIsAdmin, clock.UtcNow);
+        if (inventoryOptions.Value.Enabled && order.Status == OrderStatus.Preparing)
+            await ReconcileInventoryAsync(db, order, actorId, consume: true,
+                $"Order {order.Id} revision {order.Revision} removed an item", $"revision:{order.Revision}", ct);
         db.AuditEntries.Add(Audit(actorId, "AmendRemoveOrderItem", order.Id, JsonSerializer.Serialize(new { itemId, reason, order.Revision })));
         await db.SaveChangesAsync(ct);
         await Publish(order, "OrderAmended", ct);
@@ -175,8 +181,15 @@ public sealed class OrderService(
                 await EnsureKitchenOrAdminAsync(db, actorId, ct);
             order.TransitionTo(next, actorId, reason, clock.UtcNow);
 
-            if (next == OrderStatus.Preparing && inventoryOptions.Value.Enabled)
-                await DeductInventoryAsync(db, order, actorId, ct);
+            if (inventoryOptions.Value.Enabled)
+            {
+                if (next == OrderStatus.Preparing)
+                    await ReconcileInventoryAsync(db, order, actorId, consume: true,
+                        $"Order {order.Id} entered Preparing", "preparing", ct);
+                else if (next == OrderStatus.Cancelled && previous is OrderStatus.Preparing or OrderStatus.Ready)
+                    await ReconcileInventoryAsync(db, order, actorId, consume: false,
+                        $"Order {order.Id} was cancelled: {reason}", "cancelled", ct);
+            }
 
             db.AuditEntries.Add(Audit(actorId, next == OrderStatus.Cancelled ? "CancelOrder" : "ChangeOrderStatus", order.Id,
                 JsonSerializer.Serialize(new { from = previous, to = next, reason })));
@@ -200,17 +213,42 @@ public sealed class OrderService(
         await Publish(order, "PaymentConfirmed", ct);
     }
 
-    private async Task DeductInventoryAsync(RomsDbContext db, Order order, string actorId, CancellationToken ct)
+    private async Task ReconcileInventoryAsync(
+        RomsDbContext db,
+        Order order,
+        string actorId,
+        bool consume,
+        string reason,
+        string operation,
+        CancellationToken ct)
     {
-        var menuIds = order.Items.Where(x => !x.IsRemoved).Select(x => x.MenuItemId).Distinct().ToList();
-        var recipes = await db.RecipeIngredients.Where(x => menuIds.Contains(x.MenuItemId)).ToListAsync(ct);
-        foreach (var group in recipes.GroupBy(x => x.InventoryItemId))
+        var desired = new Dictionary<Guid, decimal>();
+        if (consume)
         {
-            var delta = -order.Items.Where(x => !x.IsRemoved).Join(group, i => i.MenuItemId, r => r.MenuItemId, (i, r) => i.Quantity * r.Quantity).Sum();
-            var key = $"order:{order.Id}:preparing:{group.Key}";
+            var activeItems = order.Items.Where(x => !x.IsRemoved).ToList();
+            var menuIds = activeItems.Select(x => x.MenuItemId).Distinct().ToList();
+            var recipes = await db.RecipeIngredients.Where(x => menuIds.Contains(x.MenuItemId)).ToListAsync(ct);
+            foreach (var group in recipes.GroupBy(x => x.InventoryItemId))
+                desired[group.Key] = -activeItems.Join(group, i => i.MenuItemId, r => r.MenuItemId,
+                    (i, r) => i.Quantity * r.Quantity).Sum();
+        }
+
+        var existing = await db.StockMovements.Where(x => x.OrderId == order.Id).ToListAsync(ct);
+        var inventoryItemIds = desired.Keys.Concat(existing.Select(x => x.InventoryItemId)).Distinct();
+        foreach (var inventoryItemId in inventoryItemIds)
+        {
+            var current = existing.Where(x => x.InventoryItemId == inventoryItemId).Sum(x => x.QuantityDelta);
+            var target = desired.GetValueOrDefault(inventoryItemId);
+            var delta = target - current;
+            if (delta == 0) continue;
+
+            var key = operation == "preparing"
+                ? $"order:{order.Id}:preparing:{inventoryItemId}"
+                : $"order:{order.Id}:{operation}:{inventoryItemId}";
             if (await db.StockMovements.AnyAsync(x => x.IdempotencyKey == key, ct)) continue;
-            db.StockMovements.Add(new StockMovement { InventoryItemId = group.Key, Type = StockMovementType.Consumption,
-                QuantityDelta = delta, Reason = $"Order {order.Id} entered Preparing", OrderId = order.Id,
+            db.StockMovements.Add(new StockMovement { InventoryItemId = inventoryItemId,
+                Type = delta < 0 ? StockMovementType.Consumption : StockMovementType.Reversal,
+                QuantityDelta = delta, Reason = reason, OrderId = order.Id,
                 IdempotencyKey = key, ActorId = actorId, OccurredUtc = clock.UtcNow });
         }
     }
