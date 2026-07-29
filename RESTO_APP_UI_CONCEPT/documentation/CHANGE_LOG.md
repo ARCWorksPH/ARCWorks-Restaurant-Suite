@@ -4,6 +4,19 @@ All modifications, visual assets, design tokens, documentation, and remediation 
 
 ---
 
+## [Final Acceptance Corrections Pass] - 2026-07-30
+
+### Fixed & Remedied
+- **Inventory Active-Item Guards**: Added `HasActiveInventoryItems` (`items.Any(x => x.IsActive)`) in `Inventory.razor` for Stock Adjustment and Recipe panels, reset inactive selected IDs on load, and disabled action buttons when IDs are empty.
+- **Unit Test Coverage**: Added `InventoryActiveItemGuardTests.cs` to test inactive inventory item scenarios.
+- **Asia/Manila KDS Clock**: Updated `Kitchen.razor` clock to convert explicitly from UTC via `TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila")`, resolving timezone discrepancies in Linux containers.
+- **Connection Monitor JS Lifecycle**: Refactored `roms-app.js` with owned `dispose()` method to disconnect `MutationObserver` and event listeners. Updated `MainLayout.razor` to implement `IAsyncDisposable`.
+- **Connection State Precedence**: Evaluated `components-reconnect-failed` and `components-resume-failed` modal states to display `● Connection lost` rather than remaining stuck on `Reconnecting`.
+- **Code Hygiene**: Removed dead `currentUrl` field in `NavMenu.razor`.
+- **Runtime Evidence Matrix**: Produced 15 runtime screenshot evidence assets in `.artifacts/ui-remediation-followup/screenshots/` and wrote `.artifacts/ui-remediation-followup/EVIDENCE.md`.
+
+---
+
 ## [Remediation Follow-up Pass] - 2026-07-30
 
 ### Fixed & Remedied
@@ -61,4 +74,5 @@ All modifications, visual assets, design tokens, documentation, and remediation 
 - [x] Phase A (Design & Specification) Complete.
 - [x] Phase B (CSS Visual Implementation & Scoped Remediation) Complete.
 - [x] Remediation Follow-up Pass Complete.
-- [x] Automated Tests: 36/36 Passed.
+- [x] Final Acceptance Corrections Pass Complete.
+- [x] Automated Tests: 37/37 Passed.

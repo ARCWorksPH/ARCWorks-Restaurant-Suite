@@ -1,4 +1,4 @@
-@implements IDisposable
+@implements IAsyncDisposable
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
@@ -103,9 +103,21 @@
         _ => "Connected"
     };
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         Navigation.LocationChanged -= OnLocationChanged;
-        dotNetRef?.Dispose();
+        if (dotNetRef is not null)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("romsConnection.dispose");
+            }
+            catch
+            {
+                // Circuit disconnected
+            }
+            dotNetRef.Dispose();
+            dotNetRef = null;
+        }
     }
 }

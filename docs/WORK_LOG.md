@@ -1,5 +1,27 @@
 # ROMS Work Log
 
+## 2026-07-30 — UI final acceptance corrections and runtime evidence verification
+
+### Corrections completed
+
+- Added `HasActiveInventoryItems` property in `Inventory.razor` for Stock Adjustment and Recipe panels, reset inactive selected IDs on load, and disabled action buttons when IDs are empty.
+- Added `InventoryActiveItemGuardTests.cs` unit test covering inactive inventory item scenarios.
+- Updated `Kitchen.razor` clock to convert explicitly from UTC via `TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila")`, resolving timezone discrepancies in Linux containers.
+- Refactored `roms-app.js` with owned `dispose()` method to disconnect `MutationObserver` and event listeners. Updated `MainLayout.razor` to implement `IAsyncDisposable`.
+- Evaluated `components-reconnect-failed` and `components-resume-failed` modal states to display `● Connection lost` rather than remaining stuck on `Reconnecting`.
+- Removed dead `currentUrl` field in `NavMenu.razor`.
+- Produced 15 runtime screenshot evidence assets in `.artifacts/ui-remediation-followup/screenshots/` and wrote `.artifacts/ui-remediation-followup/EVIDENCE.md`.
+- Wrote [RESTO_APP_UI_CONCEPT/documentation/ROMS UI Redesign Walkthrough.md](file:///d:/ARCWorks_Restaurant%20Suite/RESTO_APP_UI_CONCEPT/documentation/ROMS%20UI%20Redesign%20Walkthrough.md) with a section detailing *Why these corrections were repeated*.
+
+### Verification
+
+- `pwsh tools/Test-NoCommittedSeedPasswords.ps1`: passed.
+- `git diff --check`: passed (0 whitespace errors).
+- `dotnet build Roms.slnx --configuration Release -m:1`: 0 warnings, 0 errors.
+- `dotnet test Roms.slnx`: 37/37 passed (8 Domain, 9 Command Gateway, 2 E2E, 18 Integration).
+
+---
+
 ## 2026-07-30 — Remediation follow-up, connection monitoring, and role display
 
 ### Remediation follow-up completed

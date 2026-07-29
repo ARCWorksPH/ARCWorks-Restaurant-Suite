@@ -27,7 +27,7 @@
     </section>
     <section class="panel">
         <h2>Stock adjustment</h2>
-        @if (items.Count > 0)
+        @if (HasActiveInventoryItems)
         {
             <div class="user-form">
                 <select class="form-select" @bind="adjustItemId">
@@ -38,17 +38,17 @@
                 </select>
                 <input class="form-control" type="number" step="0.001" placeholder="Quantity + or -" @bind="adjustment" />
                 <input class="form-control" placeholder="Reason (required)" @bind="adjustmentReason" />
-                <button class="btn btn-primary touch-button" @onclick="Adjust">Post adjustment</button>
+                <button class="btn btn-primary touch-button" disabled="@(adjustItemId == Guid.Empty)" @onclick="Adjust">Post adjustment</button>
             </div>
         }
         else
         {
-            <p class="text-muted">No inventory items available to adjust. Configure inventory items first.</p>
+            <div class="empty-state py-3">No active inventory items are available. Activate or add an inventory item before posting adjustments.</div>
         }
     </section>
     <section class="panel">
         <h2>Recipe ingredient</h2>
-        @if (items.Count > 0 && menu.Count > 0)
+        @if (HasActiveInventoryItems && menu.Count > 0)
         {
             <div class="user-form">
                 <select class="form-select" @bind="recipeMenuId">
@@ -64,12 +64,16 @@
                     }
                 </select>
                 <input class="form-control" type="number" min="0.001" step="0.001" placeholder="Qty per menu item" @bind="recipeQuantity" />
-                <button class="btn btn-primary touch-button" @onclick="SaveRecipe">Save ingredient</button>
+                <button class="btn btn-primary touch-button" disabled="@(recipeInventoryId == Guid.Empty || recipeMenuId == Guid.Empty)" @onclick="SaveRecipe">Save ingredient</button>
             </div>
+        }
+        else if (!HasActiveInventoryItems)
+        {
+            <div class="empty-state py-3">No active inventory items are available for recipe configuration.</div>
         }
         else
         {
-            <p class="text-muted">No inventory items or menu items available for recipes. Configure inventory and menu items first.</p>
+            <div class="empty-state py-3">No menu items are available for recipe configuration.</div>
         }
     </section>
 </div>
@@ -94,11 +98,62 @@
 </section>
 
 @code {
-    private bool enabled, failed; private string actor="unknown", adjustmentReason=""; private string? message; private IReadOnlyList<InventoryBalance> balances=[]; private IReadOnlyList<InventoryItem> items=[]; private IReadOnlyList<MenuItemChoice> menu=[]; private InventoryItem newItem=new InventoryItem { Unit = "piece" }; private Guid adjustItemId, recipeMenuId, recipeInventoryId; private decimal adjustment, recipeQuantity=1;
-    protected override async Task OnInitializedAsync(){enabled=Configuration.GetValue<bool>("Features:Inventory:Enabled");var state=await Authentication.GetAuthenticationStateAsync();actor=state.User.Identity?.Name??"unknown";await Load();}
-    private async Task Load(){balances=await InventoryService.GetBalancesAsync();items=await InventoryService.GetItemsAsync();menu=await Orders.GetMenuAsync();if(adjustItemId==Guid.Empty)adjustItemId=items.FirstOrDefault(x=>x.IsActive)?.Id??Guid.Empty;if(recipeInventoryId==Guid.Empty)recipeInventoryId=adjustItemId;if(recipeMenuId==Guid.Empty)recipeMenuId=menu.FirstOrDefault()?.Id??Guid.Empty;}
-    private Task SaveItem()=>Run(async()=>{await InventoryService.SaveItemAsync(newItem,actor);newItem=new InventoryItem { Unit = "piece" };});
-    private Task Adjust()=>Run(async()=>{await InventoryService.AdjustAsync(adjustItemId,adjustment,adjustmentReason,actor,Guid.NewGuid().ToString("N"));adjustment=0;adjustmentReason="";});
-    private Task SaveRecipe()=>Run(()=>InventoryService.SetRecipeIngredientAsync(recipeMenuId,recipeInventoryId,recipeQuantity,actor));
-    private async Task Run(Func<Task> action){try{await action();message="Saved.";failed=false;await Load();}catch(Exception ex){message=ex.Message;failed=true;}}
+    private bool enabled, failed;
+    private string actor = "unknown", adjustmentReason = "";
+    private string? message;
+    private IReadOnlyList<InventoryBalance> balances = [];
+    private IReadOnlyList<InventoryItem> items = [];
+    private IReadOnlyList<MenuItemChoice> menu = [];
+    private InventoryItem newItem = new InventoryItem { Unit = "piece" };
+    private Guid adjustItemId, recipeMenuId, recipeInventoryId;
+    private decimal adjustment, recipeQuantity = 1;
+
+    private bool HasActiveInventoryItems => items.Any(x => x.IsActive);
+
+    protected override async Task OnInitializedAsync()
+    {
+        enabled = Configuration.GetValue<bool>("Features:Inventory:Enabled");
+        var state = await Authentication.GetAuthenticationStateAsync();
+        actor = state.User.Identity?.Name ?? "unknown";
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        balances = await InventoryService.GetBalancesAsync();
+        items = await InventoryService.GetItemsAsync();
+        menu = await Orders.GetMenuAsync();
+
+        var activeItems = items.Where(x => x.IsActive).ToList();
+        if (!activeItems.Any(x => x.Id == adjustItemId))
+            adjustItemId = activeItems.FirstOrDefault()?.Id ?? Guid.Empty;
+        if (!activeItems.Any(x => x.Id == recipeInventoryId))
+            recipeInventoryId = activeItems.FirstOrDefault()?.Id ?? Guid.Empty;
+        if (!menu.Any(x => x.Id == recipeMenuId))
+            recipeMenuId = menu.FirstOrDefault()?.Id ?? Guid.Empty;
+    }
+
+    private Task SaveItem() => Run(async () => {
+        if (string.IsNullOrWhiteSpace(newItem.Unit)) newItem.Unit = "piece";
+        await InventoryService.SaveItemAsync(newItem, actor);
+        newItem = new InventoryItem { Unit = "piece" };
+    });
+
+    private Task Adjust() => Run(async () => {
+        if (adjustItemId == Guid.Empty) return;
+        await InventoryService.AdjustAsync(adjustItemId, adjustment, adjustmentReason, actor, Guid.NewGuid().ToString("N"));
+        adjustment = 0;
+        adjustmentReason = "";
+    });
+
+    private Task SaveRecipe() => Run(() => {
+        if (recipeMenuId == Guid.Empty || recipeInventoryId == Guid.Empty) return Task.CompletedTask;
+        return InventoryService.SetRecipeIngredientAsync(recipeMenuId, recipeInventoryId, recipeQuantity, actor);
+    });
+
+    private async Task Run(Func<Task> action)
+    {
+        try { await action(); message = "Saved."; failed = false; await Load(); }
+        catch (Exception ex) { message = ex.Message; failed = true; }
+    }
 }

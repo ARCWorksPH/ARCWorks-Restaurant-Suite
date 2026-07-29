@@ -49,10 +49,12 @@
 </div>
 
 @code {
+    private static readonly TimeZoneInfo ManilaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila");
+
     private IReadOnlyList<OrderView> orders = [];
     private string actor = "unknown";
     private string? error;
-    private string currentTime = DateTime.Now.ToString("h:mm:ss tt");
+    private string currentTime = RestaurantTime();
     private System.Threading.Timer? clockTimer;
 
     protected override async Task OnInitializedAsync()
@@ -62,11 +64,14 @@
         Events.Changed += OnChanged;
         clockTimer = new System.Threading.Timer(_ =>
         {
-            currentTime = DateTime.Now.ToString("h:mm:ss tt");
+            currentTime = RestaurantTime();
             InvokeAsync(StateHasChanged);
         }, null, 1000, 1000);
         await Load();
     }
+
+    private static string RestaurantTime() =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ManilaTimeZone).ToString("h:mm:ss tt");
 
     private async Task Load()
     {

@@ -36,29 +36,67 @@
     };
 
     window.romsConnection = {
-        init: (dotNetRef) => {
+        ref: null,
+        onlineHandler: null,
+        offlineHandler: null,
+        observer: null,
+
+        init: function(dotNetRef) {
+            this.dispose();
+            this.ref = dotNetRef;
+
             const updateStatus = () => {
+                if (!this.ref) return;
                 const isOnline = navigator.onLine;
                 const modal = document.getElementById("components-reconnect-modal");
+                
                 let state = "Connected";
                 if (!isOnline) {
                     state = "Offline";
-                } else if (modal && (modal.classList.contains("components-reconnect-show") || modal.classList.contains("components-reconnect-paused") || modal.hasAttribute("open"))) {
-                    state = "Reconnecting";
+                } else if (modal) {
+                    if (modal.classList.contains("components-reconnect-failed") || modal.classList.contains("components-resume-failed")) {
+                        state = "Offline";
+                    } else if (modal.classList.contains("components-reconnect-show") || modal.classList.contains("components-reconnect-paused") || modal.classList.contains("components-reconnect-retrying") || modal.hasAttribute("open")) {
+                        state = "Reconnecting";
+                    }
                 }
-                dotNetRef.invokeMethodAsync("UpdateConnectionState", state).catch(() => {});
+                
+                try {
+                    this.ref.invokeMethodAsync("UpdateConnectionState", state).catch(() => {});
+                } catch (e) {
+                    // Ignore disposed handle
+                }
             };
 
-            window.addEventListener("online", updateStatus);
-            window.addEventListener("offline", updateStatus);
+            this.onlineHandler = updateStatus;
+            this.offlineHandler = updateStatus;
+
+            window.addEventListener("online", this.onlineHandler);
+            window.addEventListener("offline", this.offlineHandler);
 
             const modal = document.getElementById("components-reconnect-modal");
             if (modal) {
-                const observer = new MutationObserver(updateStatus);
-                observer.observe(modal, { attributes: true, attributeFilter: ["class", "open"] });
+                this.observer = new MutationObserver(updateStatus);
+                this.observer.observe(modal, { attributes: true, attributeFilter: ["class", "open"] });
             }
 
             updateStatus();
+        },
+
+        dispose: function() {
+            if (this.onlineHandler) {
+                window.removeEventListener("online", this.onlineHandler);
+                this.onlineHandler = null;
+            }
+            if (this.offlineHandler) {
+                window.removeEventListener("offline", this.offlineHandler);
+                this.offlineHandler = null;
+            }
+            if (this.observer) {
+                this.observer.disconnect();
+                this.observer = null;
+            }
+            this.ref = null;
         }
     };
 

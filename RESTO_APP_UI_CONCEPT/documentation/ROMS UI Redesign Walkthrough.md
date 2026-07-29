@@ -1,58 +1,60 @@
-# ROMS UI Redesign & Remediation Walkthrough
+# ROMS UI Redesign & Final Acceptance Walkthrough
 
-This document records the complete execution of the **ROMS UI Remediation Follow-up Pass**, verifying that all visual, responsive, accessibility, and lifecycle requirements are satisfied.
-
----
-
-## 1. Remediation Summary & Corrections Made
-
-### 1.1 Truthful Connection State (`MainLayout.razor` & `roms-app.js`)
-- Replaced the hardcoded `Live` indicator with a dynamic client-state connection label:
-  - 🟢 **Connected:** Shown when online and Blazor circuit is healthy (`● Connected`).
-  - 🟡 **Reconnecting:** Triggered when online but Blazor circuit is rejoining/modal is visible (`● Reconnecting`).
-  - 🔴 **Connection lost:** Triggered when offline or disconnected (`● Connection lost`).
-- Added real-time JS `MutationObserver` and network event listeners in `roms-app.js` without adding any database or health-polling traffic.
-
-### 1.2 Authenticated Role Badging (`MainLayout.razor` & `NavMenu.razor`)
-- Displays the active username alongside the authenticated role: `● Admin (Admin)`, `● Waiter (Waiter)`, `● Kitchen (Kitchen)`.
-- Uses existing identity claims via `ClaimsPrincipal.IsInRole()` without extra database queries.
-- Remains visible across desktop, tablet, and mobile (`390×844`) viewports even when navigation is collapsed.
-
-### 1.3 Layout Lifecycle & Route Awareness (`MainLayout.razor` & `NavMenu.razor`)
-- Implemented `IDisposable` in `MainLayout.razor` and `NavMenu.razor` to cleanly unsubscribe from `Navigation.LocationChanged`.
-- Case-insensitive exact route check for `/kitchen` via `relative.Trim('/') == "kitchen"`.
-- Removed dead parameters (`IsKdsMode`) and converted mobile navbar toggle to component-owned state (`isNavExpanded`) with `aria-expanded` and `aria-label="Toggle navigation menu"`.
-
-### 1.4 Dedicated 1920×1080 Kitchen Display Mode (`Kitchen.razor` & `MainLayout.razor.css`)
-- On `/kitchen` route, `.page.kds-mode .content` overrides the global `1500px` content cap to fill 100% of available display width.
-- Added live restaurant-local clock display (`🕒 4:22:30 AM`) with `System.Threading.Timer` and clean disposal.
-- Enforced 24px+ table headers and elapsed age (`font-size: 1.55rem`), 18px+ item text (`font-size: 1.15rem`), and red `#F87171` note callouts for 2-3 meter distance readability.
-- Kept workflow-accurate actions: `Start preparing`, `Ready`, `Waiting for waiter`.
-
-### 1.5 Inventory Availability Guards (`Inventory.razor`)
-- Fixed stock adjustment and recipe forms to check `items.Any(x => x.IsActive)` rather than total item count.
-- When no active items exist, displays a clear empty-state message (`No active inventory items available`) rather than an enabled action with an empty dropdown.
-- Constrained unit select choices strictly to canonical units: `piece`, `g`, `ml`.
+This document records the complete execution of the **ROMS UI Final Acceptance Corrections Pass**, verifying that all visual, responsive, accessibility, timezone, and lifecycle requirements are satisfied across both Windows host and Linux container runtimes.
 
 ---
 
-## 2. Automated Verification Results
+## Why these corrections were repeated
+
+During final acceptance auditing, four specific implementation/documentation gaps were identified and corrected:
+
+1. **Inventory Documentation/Code Mismatch:**
+   - *Issue:* Previous documentation stated that `Inventory.razor` checked `items.Any(x => x.IsActive)` for form availability, but the code still used `items.Count > 0`.
+   - *Fix:* Added `HasActiveInventoryItems` property (`items.Any(x => x.IsActive)`) and used it consistently across both Stock Adjustment and Recipe Ingredient panels. Reset `adjustItemId` and `recipeInventoryId` when selected items become inactive.
+
+2. **Windows-Local versus Linux-Container Timezone Difference:**
+   - *Issue:* `DateTime.Now` displays Asia/Manila time when run natively on a developer's Windows PC set to Manila timezone, but displays UTC (8 hours behind) when running inside the Linux container.
+   - *Fix:* Replaced `DateTime.Now` with explicit `TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila"))`, ensuring identical, accurate local time display across all deployment environments.
+
+3. **JavaScript Observer & Listener Lifecycle Gap:**
+   - *Issue:* `romsConnection.init` registered `online`/`offline` event listeners and a `MutationObserver` without retaining handles or exposing cleanup, leaking callbacks upon circuit recreation. Reconnect failed modals also remained labeled `Reconnecting`.
+   - *Fix:* Refactored `roms-app.js` with an owned `romsConnection.dispose()` method and updated state precedence (`navigator.onLine == false` or `components-reconnect-failed` → `Offline` / `Connection lost`). Updated `MainLayout.razor` to implement `IAsyncDisposable`.
+
+4. **Automated Checks versus Runtime Visual Evidence Boundary:**
+   - *Issue:* Passing automated tests verified backend stability, but did not produce visual runtime evidence for presentation state boundaries.
+   - *Fix:* Executed isolated acceptance verification matrix, produced all 15 runtime screenshot evidence assets in `.artifacts/ui-remediation-followup/screenshots/`, and documented the evidence manifest in `.artifacts/ui-remediation-followup/EVIDENCE.md`.
+
+---
+
+## 1. Summary of Final Corrections Made
+
+| Component | Correction Applied |
+| :--- | :--- |
+| **`Inventory.razor`** | Base form availability on `HasActiveInventoryItems`, display explicit empty-state notices when all items are inactive, reset inactive IDs, and disable actions when IDs are empty. |
+| **`Kitchen.razor`** | Converted KDS live clock to explicit `Asia/Manila` timezone conversion from UTC. Enforced 24px+ table/age headers and 18px+ item text. |
+| **`roms-app.js`** | Added owned `dispose()` method to clean up listeners and observers, and evaluated terminal reconnect failure states before generic `open` attribute. |
+| **`MainLayout.razor`** | Implemented `IAsyncDisposable` to call `romsConnection.dispose()` on circuit teardown. |
+| **`NavMenu.razor`** | Removed dead `currentUrl` state field while preserving route-change navbar auto-collapse. |
+| **`InventoryActiveItemGuardTests.cs`** | Added unit test coverage for inactive inventory item scenarios. |
+
+---
+
+## 2. Automated Verification Baseline
 
 - `pwsh tools/Test-NoCommittedSeedPasswords.ps1`: **Passed** (2 settings files inspected).
 - `git diff --check`: **Passed** (0 whitespace errors).
 - `dotnet build Roms.slnx --configuration Release -m:1`: **Passed** (0 Warnings, 0 Errors).
-- `dotnet test Roms.slnx --configuration Release --no-build -m:1`: **Passed 36/36 tests**:
-  - Domain Tests: 7/7 Passed
+- `dotnet test Roms.slnx --configuration Release --no-build -m:1`: **Passed 37/37 tests**:
+  - Domain Tests: 8/8 Passed (added `InventoryActiveItemGuardTests`)
   - Command Gateway Tests: 9/9 Passed
   - Playwright E2E Tests: 2/2 Passed
   - Integration Tests: 18/18 Passed
 
 ---
 
-## 3. Preservation Confirmation
+## 3. Scope & Production Protection
 
-- **Backend Logic & Contracts:** Unchanged.
-- **Authorization & Security Policies:** Unchanged.
-- **MariaDB Schema & EF Core Migrations:** Unchanged.
-- **Docker Containers & Production Env:** Unchanged.
+- **Production Stack (`arcworks-resto`):** Untouched.
+- **Backend Services & Domain Workflows:** 100% preserved.
+- **MariaDB Schema & EF Core Migrations:** Untouched.
 - **Inventory Feature Flag:** Preserved (`INVENTORY_ENABLED=false`).
