@@ -49,7 +49,7 @@
                 if (!this.ref) return;
                 const isOnline = navigator.onLine;
                 const modal = document.getElementById("components-reconnect-modal");
-                
+
                 let state = "Connected";
                 if (!isOnline) {
                     state = "Offline";
@@ -60,7 +60,7 @@
                         state = "Reconnecting";
                     }
                 }
-                
+
                 try {
                     this.ref.invokeMethodAsync("UpdateConnectionState", state).catch(() => {});
                 } catch (e) {

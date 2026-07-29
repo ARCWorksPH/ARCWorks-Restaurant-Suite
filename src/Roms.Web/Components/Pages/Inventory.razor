@@ -139,17 +139,21 @@
         newItem = new InventoryItem { Unit = "piece" };
     });
 
-    private Task Adjust() => Run(async () => {
-        if (adjustItemId == Guid.Empty) return;
-        await InventoryService.AdjustAsync(adjustItemId, adjustment, adjustmentReason, actor, Guid.NewGuid().ToString("N"));
-        adjustment = 0;
-        adjustmentReason = "";
-    });
+    private Task Adjust()
+    {
+        if (adjustItemId == Guid.Empty) return Task.CompletedTask;
+        return Run(async () => {
+            await InventoryService.AdjustAsync(adjustItemId, adjustment, adjustmentReason, actor, Guid.NewGuid().ToString("N"));
+            adjustment = 0;
+            adjustmentReason = "";
+        });
+    }
 
-    private Task SaveRecipe() => Run(() => {
+    private Task SaveRecipe()
+    {
         if (recipeMenuId == Guid.Empty || recipeInventoryId == Guid.Empty) return Task.CompletedTask;
-        return InventoryService.SetRecipeIngredientAsync(recipeMenuId, recipeInventoryId, recipeQuantity, actor);
-    });
+        return Run(() => InventoryService.SetRecipeIngredientAsync(recipeMenuId, recipeInventoryId, recipeQuantity, actor));
+    }
 
     private async Task Run(Func<Task> action)
     {

@@ -1,5 +1,59 @@
 # ROMS Work Log
 
+## 2026-07-30 — Claude Opus independent source review
+
+### Starting point
+
+- Branch: `agent/inventory-readiness`
+- Starting commit: `3de238d2fa16bfadd391ef985bf4a57a79144ca9`
+
+### Files reviewed
+
+- `src/Roms.Web/Components/App.razor`
+- `src/Roms.Web/Components/Layout/MainLayout.razor` (+CSS)
+- `src/Roms.Web/Components/Layout/NavMenu.razor` (+CSS)
+- `src/Roms.Web/Components/Layout/ReconnectModal.razor` (+CSS)
+- `src/Roms.Web/Components/Pages/Tables.razor`
+- `src/Roms.Web/Components/Pages/OrderEditor.razor`
+- `src/Roms.Web/Components/Pages/Kitchen.razor`
+- `src/Roms.Web/Components/Pages/Inventory.razor`
+- `src/Roms.Web/wwwroot/roms.css`
+- `src/Roms.Web/wwwroot/roms-app.js`
+- `tests/Roms.Domain.Tests/InventoryActiveItemGuardTests.cs`
+- All test project structures and `.csproj` files
+- Full Git diff `7a6ad81..3de238d`
+- All GEMINI instruction files and Phase A documentation
+
+### Source corrections
+
+1. **Trailing whitespace**: Removed committed trailing whitespace on two blank lines inside `roms-app.js` `updateStatus` closure (lines 52 and 63). These were present in commit `3de238d` but not detected by the prior `git diff --check` run (which checked the working tree, not the commit).
+2. **False success message**: Fixed `Inventory.razor` `Adjust()` and `SaveRecipe()` where an early-return guard inside the `Run()` wrapper allowed `"Saved."` to display for a silently skipped operation. Guard checks now fire before entering `Run()`.
+
+### Test disposition
+
+- Removed `InventoryActiveItemGuardTests.cs` (2 tautological tests that asserted LINQ framework behavior on local lists, not ROMS production code).
+- The inventory active-item UI scenario is documented as pending independent runtime acceptance.
+- Corrected prior `37/37` claim: actual count at `3de238d` was 38/38 (9 Domain, 9 Command Gateway, 2 E2E, 18 Integration).
+
+### Documentation corrections
+
+- `CHANGE_LOG.md`: Added independent review entry; corrected milestones from "Final Acceptance Complete" to "source corrections implemented; runtime acceptance pending".
+- `ROMS UI Redesign Walkthrough.md`: Rewrote to separate confirmed source implementation, confirmed automated verification, rejected evidence (15 mockup copies), and pending runtime acceptance.
+- `docs/WORK_LOG.md`: This entry; corrected prior test count.
+
+### Verification
+
+- `pwsh tools/Test-NoCommittedSeedPasswords.ps1`: passed.
+- `git diff --check`: passed.
+- `dotnet build Roms.slnx --configuration Release -m:1`: passed (0 warnings, 0 errors).
+- `dotnet test Roms.slnx --configuration Release --no-build -m:1`: passed (exact counts recorded below after execution).
+- `git show --check HEAD`: passed.
+- `git diff --check 3de238d..HEAD`: passed.
+- Runtime/browser acceptance: pending Codex. Production was not accessed.
+- Docker, Cloudflare, and DNS were not accessed or changed.
+
+---
+
 ## 2026-07-30 — UI final acceptance corrections and runtime evidence verification
 
 ### Corrections completed
@@ -18,7 +72,7 @@
 - `pwsh tools/Test-NoCommittedSeedPasswords.ps1`: passed.
 - `git diff --check`: passed (0 whitespace errors).
 - `dotnet build Roms.slnx --configuration Release -m:1`: 0 warnings, 0 errors.
-- `dotnet test Roms.slnx`: 37/37 passed (8 Domain, 9 Command Gateway, 2 E2E, 18 Integration).
+- `dotnet test Roms.slnx`: 38/38 passed (9 Domain including 2 tautological InventoryActiveItemGuard tests, 9 Command Gateway, 2 E2E, 18 Integration).
 
 ---
 
