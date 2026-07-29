@@ -23,16 +23,44 @@
             }
         },
         prompt: async () => {
-        if (!window.isSecureContext) {
-            showInstallRequirement("Installation is blocked because this public address is not HTTPS.");
-        } else if (installPrompt) {
-            await installPrompt.prompt();
-            await installPrompt.userChoice;
-            installPrompt = undefined;
-        } else {
-            showInstallRequirement("The browser has not made installation available yet. Use Chrome or Edge, interact with ROMS for a moment, then try again or use the browser menu.");
+            if (!window.isSecureContext) {
+                showInstallRequirement("Installation is blocked because this public address is not HTTPS.");
+            } else if (installPrompt) {
+                await installPrompt.prompt();
+                await installPrompt.userChoice;
+                installPrompt = undefined;
+            } else {
+                showInstallRequirement("The browser has not made installation available yet. Use Chrome or Edge, interact with ROMS for a moment, then try again or use the browser menu.");
+            }
         }
-    }};
+    };
+
+    window.romsConnection = {
+        init: (dotNetRef) => {
+            const updateStatus = () => {
+                const isOnline = navigator.onLine;
+                const modal = document.getElementById("components-reconnect-modal");
+                let state = "Connected";
+                if (!isOnline) {
+                    state = "Offline";
+                } else if (modal && (modal.classList.contains("components-reconnect-show") || modal.classList.contains("components-reconnect-paused") || modal.hasAttribute("open"))) {
+                    state = "Reconnecting";
+                }
+                dotNetRef.invokeMethodAsync("UpdateConnectionState", state).catch(() => {});
+            };
+
+            window.addEventListener("online", updateStatus);
+            window.addEventListener("offline", updateStatus);
+
+            const modal = document.getElementById("components-reconnect-modal");
+            if (modal) {
+                const observer = new MutationObserver(updateStatus);
+                observer.observe(modal, { attributes: true, attributeFilter: ["class", "open"] });
+            }
+
+            updateStatus();
+        }
+    };
 
     const clearTimers = () => { clearTimeout(idleTimer); clearTimeout(warningTimer); clearInterval(countdownTimer); };
     const hideWarning = () => { const warning = document.getElementById("session-timeout-warning"); if (warning) warning.hidden = true; };

@@ -6,16 +6,41 @@
 @implements IDisposable
 
 <PageTitle>Kitchen Display</PageTitle>
-<div class="page-heading"><div><h1>Kitchen Display</h1><p>Oldest incoming orders appear first.</p></div><button class="btn btn-outline-primary touch-button" @onclick="Load">Refresh</button></div>
+<div class="page-heading">
+    <div>
+        <h1>Kitchen Display</h1>
+        <p>Oldest incoming orders appear first.</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <div class="kds-live-clock">🕒 @currentTime</div>
+        <button class="btn btn-outline-primary touch-button" @onclick="Load">Refresh</button>
+    </div>
+</div>
+
 @if (!string.IsNullOrEmpty(error)) { <div class="alert alert-danger">@error</div> }
 @if (orders.Count == 0) { <div class="empty-state">No active kitchen orders.</div> }
 <div class="kds-grid">
 @foreach (var item in orders)
 {
     <article class="kds-ticket status-@item.Status.ToString().ToLowerInvariant()">
-        <header><div><strong>Table @item.TableNumber</strong><small>Waiter: @item.WaiterName</small><small>#@item.Id.ToString()[..8] · rev @item.Revision</small></div><span>@Elapsed(item.SubmittedUtc)</span></header>
+        <header>
+            <div>
+                <strong>Table @item.TableNumber</strong>
+                <small>Waiter: @item.WaiterName</small>
+                <small>#@item.Id.ToString()[..8] · rev @item.Revision</small>
+            </div>
+            <span>@Elapsed(item.SubmittedUtc)</span>
+        </header>
         <div class="status-pill status-@item.Status.ToString().ToLowerInvariant()">@item.Status</div>
-        <ul>@foreach (var line in item.Items.Where(x => !x.IsRemoved)) { <li><strong>@line.Quantity × @line.Name</strong>@if (!string.IsNullOrWhiteSpace(line.Notes)) { <em>@line.Notes</em> }</li> }</ul>
+        <ul>
+            @foreach (var line in item.Items.Where(x => !x.IsRemoved))
+            {
+                <li>
+                    <strong>@line.Quantity × @line.Name</strong>
+                    @if (!string.IsNullOrWhiteSpace(line.Notes)) { <em>@line.Notes</em> }
+                </li>
+            }
+        </ul>
         @if (item.Status == OrderStatus.New) { <button class="btn btn-warning btn-lg touch-button w-100" @onclick="() => Move(item.Id, OrderStatus.Preparing)">Start preparing</button> }
         else if (item.Status == OrderStatus.Preparing) { <button class="btn btn-success btn-lg touch-button w-100" @onclick="() => Move(item.Id, OrderStatus.Ready)">Ready</button> }
         else { <div class="ready-callout">Waiting for waiter</div> }
@@ -24,11 +49,49 @@
 </div>
 
 @code {
-    private IReadOnlyList<OrderView> orders = []; private string actor = "unknown"; private string? error;
-    protected override async Task OnInitializedAsync() { var state = await Authentication.GetAuthenticationStateAsync(); actor = state.User.Identity?.Name ?? "unknown"; Events.Changed += OnChanged; await Load(); }
-    private async Task Load() { try { orders = await Orders.GetKitchenOrdersAsync(); error = null; } catch (Exception ex) { error = ex.Message; } }
-    private async Task Move(Guid id, OrderStatus next) { try { await Orders.TransitionAsync(id, next, actor); await Load(); } catch (Exception ex) { error = ex.Message; } }
+    private IReadOnlyList<OrderView> orders = [];
+    private string actor = "unknown";
+    private string? error;
+    private string currentTime = DateTime.Now.ToString("h:mm:ss tt");
+    private System.Threading.Timer? clockTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Authentication.GetAuthenticationStateAsync();
+        actor = state.User.Identity?.Name ?? "unknown";
+        Events.Changed += OnChanged;
+        clockTimer = new System.Threading.Timer(_ =>
+        {
+            currentTime = DateTime.Now.ToString("h:mm:ss tt");
+            InvokeAsync(StateHasChanged);
+        }, null, 1000, 1000);
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        try { orders = await Orders.GetKitchenOrdersAsync(); error = null; }
+        catch (Exception ex) { error = ex.Message; }
+    }
+
+    private async Task Move(Guid id, OrderStatus next)
+    {
+        try { await Orders.TransitionAsync(id, next, actor); await Load(); }
+        catch (Exception ex) { error = ex.Message; }
+    }
+
     private void OnChanged(OrderEvent message) => _ = InvokeAsync(async () => { await Load(); StateHasChanged(); });
-    private static string Elapsed(DateTime? utc) { if (utc is null) return "Draft"; var mins = Math.Max(0, (int)(DateTime.UtcNow - utc.Value).TotalMinutes); return mins < 1 ? "Just now" : $"{mins} min"; }
-    public void Dispose() => Events.Changed -= OnChanged;
+
+    private static string Elapsed(DateTime? utc)
+    {
+        if (utc is null) return "Draft";
+        var mins = Math.Max(0, (int)(DateTime.UtcNow - utc.Value).TotalMinutes);
+        return mins < 1 ? "Just now" : $"{mins} min";
+    }
+
+    public void Dispose()
+    {
+        Events.Changed -= OnChanged;
+        clockTimer?.Dispose();
+    }
 }

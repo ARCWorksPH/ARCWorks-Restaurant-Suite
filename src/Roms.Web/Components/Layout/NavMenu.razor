@@ -4,13 +4,13 @@
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">ROMS</a>
-        <button class="navbar-toggler" type="button" aria-label="Toggle navigation menu" onclick="document.querySelector('.nav-scrollable').classList.toggle('show')">
+        <button class="navbar-toggler" type="button" aria-label="Toggle navigation menu" aria-expanded="@isNavExpanded" @onclick="ToggleNav">
             <span class="navbar-toggler-icon"></span>
         </button>
     </div>
 </div>
 
-<div class="nav-scrollable" onclick="document.querySelector('.nav-scrollable').classList.remove('show')">
+<div class="nav-scrollable @(isNavExpanded ? "show" : "")" @onclick="CollapseNav">
     <nav class="nav flex-column">
         <div class="nav-item px-3"><NavLink class="nav-link" href="" Match="NavLinkMatch.All"><span class="nav-icon">⌂</span> <span class="nav-text">Dashboard</span></NavLink></div>
         <AuthorizeView><div class="nav-item px-3"><NavLink class="nav-link" href="attendance"><span class="nav-icon">◷</span> <span class="nav-text">My Attendance</span></NavLink></div></AuthorizeView>
@@ -27,7 +27,7 @@
         </AuthorizeView>
         <AuthorizeView>
             <Authorized>
-                <div class="nav-item px-3 nav-user-item"><span class="nav-user-label">● @context.User.Identity?.Name</span></div>
+                <div class="nav-item px-3 nav-user-item"><span class="nav-user-label">● @context.User.Identity?.Name (@GetRole(context.User))</span></div>
                 <div class="nav-item px-3"><form action="Account/ClockOutAndLogout" method="post"><AntiforgeryToken /><button type="submit" class="nav-link nav-clockout"><span class="nav-icon">⇥</span> <span class="nav-text">Clock Out + Log Out</span></button></form></div>
                 <div class="nav-item px-3"><form action="Account/Logout" method="post"><AntiforgeryToken /><input type="hidden" name="ReturnUrl" value="Account/Login" /><button type="submit" class="nav-link nav-session-logout"><span class="nav-icon">🚪</span> <span class="nav-text">Log Out Only</span></button></form></div>
             </Authorized>
@@ -37,9 +37,32 @@
 </div>
 
 @code {
-    [Parameter] public bool IsKdsMode { get; set; }
+    private bool isNavExpanded;
     private string? currentUrl;
-    protected override void OnInitialized() { currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri); NavigationManager.LocationChanged += OnLocationChanged; }
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) { currentUrl = NavigationManager.ToBaseRelativePath(e.Location); StateHasChanged(); }
+
+    protected override void OnInitialized()
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void ToggleNav() => isNavExpanded = !isNavExpanded;
+    private void CollapseNav() => isNavExpanded = false;
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        isNavExpanded = false;
+        StateHasChanged();
+    }
+
+    private static string GetRole(System.Security.Claims.ClaimsPrincipal user)
+    {
+        if (user.IsInRole(RomsRoles.Admin)) return "Admin";
+        if (user.IsInRole(RomsRoles.Waiter)) return "Waiter";
+        if (user.IsInRole(RomsRoles.Kitchen)) return "Kitchen";
+        return "Staff";
+    }
+
     public void Dispose() => NavigationManager.LocationChanged -= OnLocationChanged;
 }

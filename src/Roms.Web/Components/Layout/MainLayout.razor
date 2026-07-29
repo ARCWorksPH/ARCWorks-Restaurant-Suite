@@ -1,5 +1,7 @@
+@implements IDisposable
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <AuthorizeView>
     <Authorized><SessionTimeout /></Authorized>
@@ -7,19 +9,19 @@
 
 <div class="page @(isKitchenPage ? "kds-mode" : "")">
     <div class="sidebar">
-        <NavMenu IsKdsMode="@isKitchenPage" />
+        <NavMenu />
     </div>
 
     <main>
         <div class="top-row px-4">
             <div class="d-flex align-items-center gap-3">
-                <strong>ROMS</strong>
-                <span class="connection-indicator">● Live</span>
+                <strong class="roms-brand-title">ROMS</strong>
+                <span class="connection-indicator status-@connectionState.ToLowerInvariant()">● @GetConnectionLabel(connectionState)</span>
             </div>
             <div class="d-flex align-items-center gap-3">
                 <AuthorizeView>
                     <Authorized>
-                        <span class="user-info">● @context.User.Identity?.Name</span>
+                        <span class="user-badge">● @context.User.Identity?.Name (@GetRole(context.User))</span>
                     </Authorized>
                 </AuthorizeView>
             </div>
@@ -39,11 +41,29 @@
 
 @code {
     private bool isKitchenPage;
+    private string connectionState = "Connected";
+    private DotNetObjectReference<MainLayout>? dotNetRef;
 
     protected override void OnInitialized()
     {
         UpdatePageType(Navigation.Uri);
         Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                dotNetRef = DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("romsConnection.init", dotNetRef);
+            }
+            catch
+            {
+                // Prerendering or JS fallback
+            }
+        }
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -54,7 +74,38 @@
 
     private void UpdatePageType(string uri)
     {
-        var relative = Navigation.ToBaseRelativePath(uri);
-        isKitchenPage = relative.StartsWith("kitchen", StringComparison.OrdinalIgnoreCase);
+        var relative = Navigation.ToBaseRelativePath(uri).Trim('/');
+        isKitchenPage = string.Equals(relative, "kitchen", StringComparison.OrdinalIgnoreCase);
+    }
+
+    [JSInvokable]
+    public void UpdateConnectionState(string state)
+    {
+        if (connectionState != state)
+        {
+            connectionState = state;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private static string GetRole(System.Security.Claims.ClaimsPrincipal user)
+    {
+        if (user.IsInRole(RomsRoles.Admin)) return "Admin";
+        if (user.IsInRole(RomsRoles.Waiter)) return "Waiter";
+        if (user.IsInRole(RomsRoles.Kitchen)) return "Kitchen";
+        return "Staff";
+    }
+
+    private static string GetConnectionLabel(string state) => state switch
+    {
+        "Reconnecting" => "Reconnecting",
+        "Offline" => "Connection lost",
+        _ => "Connected"
+    };
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+        dotNetRef?.Dispose();
     }
 }

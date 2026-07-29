@@ -1,5 +1,26 @@
 # ROMS Work Log
 
+## 2026-07-30 — Remediation follow-up, connection monitoring, and role display
+
+### Remediation follow-up completed
+
+- Replaced hardcoded `Live` indicator with a dynamic client-state connection monitor in `MainLayout.razor` and `roms-app.js` displaying `Connected`, `Reconnecting`, or `Connection lost` without adding database polling.
+- Enhanced header and sidebar user badges to display active ROMS role (`Admin`, `Waiter`, `Kitchen`).
+- Implemented `IDisposable` in `MainLayout.razor` and `NavMenu.razor` to cleanly unsubscribe from `Navigation.LocationChanged` and avoid duplicate event subscriptions.
+- Overrode 1500px content cap on `/kitchen` to expand KDS ticket grid across 100% of available screen canvas, added live restaurant clock (`🕒`), and enforced 24px+ table headers and 18px+ item text.
+- Based `Inventory.razor` stock adjustment and recipe forms on active inventory items (`items.Any(x => x.IsActive)`) with explicit empty-state notices.
+- Converted mobile navbar toggle to component-owned state with `aria-expanded` and `aria-label="Toggle navigation menu"`.
+- Wrote [RESTO_APP_UI_CONCEPT/documentation/ROMS UI Redesign Walkthrough.md](file:///d:/ARCWorks_Restaurant%20Suite/RESTO_APP_UI_CONCEPT/documentation/ROMS%20UI%20Redesign%20Walkthrough.md) and updated `CHANGE_LOG.md`.
+
+### Verification
+
+- `pwsh tools/Test-NoCommittedSeedPasswords.ps1`: passed.
+- `git diff --check`: passed (0 whitespace errors).
+- `dotnet build Roms.slnx --configuration Release -m:1`: 0 warnings, 0 errors.
+- `dotnet test Roms.slnx`: 36/36 passed (7 Domain, 9 Command Gateway, 2 E2E, 18 Integration).
+
+---
+
 ## 2026-07-30 — Contributor UI guide and documentation handoff
 
 ### Added

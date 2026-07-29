@@ -31,7 +31,7 @@ main {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-.top-row strong {
+.top-row .roms-brand-title {
     font-size: 1.25rem;
     font-weight: 800;
     letter-spacing: 0.05em;
@@ -40,10 +40,27 @@ main {
     -webkit-text-fill-color: transparent;
 }
 
-.user-info {
+.user-badge {
     font-size: 0.9rem;
     color: var(--roms-primary, #2DD4BF);
     font-weight: 700;
+}
+
+.connection-indicator {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.connection-indicator.status-connected {
+    color: var(--roms-primary, #2DD4BF);
+}
+
+.connection-indicator.status-reconnecting {
+    color: var(--roms-status-preparing, #F59E0B);
+}
+
+.connection-indicator.status-offline {
+    color: var(--roms-danger, #F87171);
 }
 
 @media (min-width: 641px) {
@@ -62,6 +79,13 @@ main {
     .page.kds-mode .sidebar {
         width: 60px;
         overflow: hidden;
+    }
+
+    .page.kds-mode .content {
+        max-width: none !important;
+        width: 100% !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
     }
 
     .top-row {

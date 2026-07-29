@@ -4,6 +4,19 @@ All modifications, visual assets, design tokens, documentation, and remediation 
 
 ---
 
+## [Remediation Follow-up Pass] - 2026-07-30
+
+### Fixed & Remedied
+- **Truthful Connection State**: Added client-side JS connection monitor (`roms-app.js` + `MainLayout.razor`) that dynamically displays `Connected`, `Reconnecting`, or `Connection lost` without database polling.
+- **Authenticated Role Badging**: Enhanced header and sidebar to display username and active ROMS role (`Admin`, `Waiter`, `Kitchen`).
+- **Layout Lifecycle & Route Awareness**: Added `IDisposable` to `MainLayout.razor` and `NavMenu.razor` to cleanly unsubscribe from `Navigation.LocationChanged`. Fixed case-insensitive exact matching for `/kitchen`.
+- **Dedicated 1920x1080 KDS Display**: Overrode 1500px content cap on `/kitchen` to use full canvas, added live restaurant clock display (`🕒`), and enforced 24px+ table headers and 18px+ item text.
+- **Inventory Active Item Guards**: Base form availability in `Inventory.razor` on active inventory items (`items.Any(x => x.IsActive)`) and added explicit empty state callouts.
+- **Mobile Navbar Accessibility**: Converted mobile nav toggle to component-owned state with `aria-expanded` and `aria-label="Toggle navigation menu"`.
+- **Documentation**: Created `ROMS UI Redesign Walkthrough.md` and updated `CONTRIBUTOR_UI_GUIDE.md`.
+
+---
+
 ## [Documentation & Contributor Guide] - 2026-07-30
 
 ### Added
@@ -47,5 +60,5 @@ All modifications, visual assets, design tokens, documentation, and remediation 
 ### Milestones
 - [x] Phase A (Design & Specification) Complete.
 - [x] Phase B (CSS Visual Implementation & Scoped Remediation) Complete.
-- [x] Contributor UI Guide Created (`CONTRIBUTOR_UI_GUIDE.md`).
+- [x] Remediation Follow-up Pass Complete.
 - [x] Automated Tests: 36/36 Passed.
