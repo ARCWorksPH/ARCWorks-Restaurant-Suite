@@ -2,36 +2,42 @@
 @inject NavigationManager NavigationManager
 
 <div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid"><a class="navbar-brand" href="">ROMS</a></div>
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">ROMS</a>
+        <button class="navbar-toggler" type="button" aria-label="Toggle navigation menu" onclick="document.querySelector('.nav-scrollable').classList.toggle('show')">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
 </div>
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+
+<div class="nav-scrollable" onclick="document.querySelector('.nav-scrollable').classList.remove('show')">
     <nav class="nav flex-column">
-        <div class="nav-item px-3"><NavLink class="nav-link" href="" Match="NavLinkMatch.All">⌂ Dashboard</NavLink></div>
-        <AuthorizeView><div class="nav-item px-3"><NavLink class="nav-link" href="attendance">◷ My Attendance</NavLink></div></AuthorizeView>
-        <div class="nav-item px-3 install-nav-item"><NavLink class="nav-link" href="install">⬇ Install ROMS</NavLink></div>
-        <AuthorizeView Policy="WaiterOrAdmin"><div class="nav-item px-3"><NavLink class="nav-link" href="tables">▦ Tables & Orders</NavLink></div></AuthorizeView>
-        <AuthorizeView Policy="KitchenOrAdmin"><div class="nav-item px-3"><NavLink class="nav-link" href="kitchen">▤ Kitchen Display</NavLink></div></AuthorizeView>
+        <div class="nav-item px-3"><NavLink class="nav-link" href="" Match="NavLinkMatch.All"><span class="nav-icon">⌂</span> <span class="nav-text">Dashboard</span></NavLink></div>
+        <AuthorizeView><div class="nav-item px-3"><NavLink class="nav-link" href="attendance"><span class="nav-icon">◷</span> <span class="nav-text">My Attendance</span></NavLink></div></AuthorizeView>
+        <div class="nav-item px-3 install-nav-item"><NavLink class="nav-link" href="install"><span class="nav-icon">⬇</span> <span class="nav-text">Install ROMS</span></NavLink></div>
+        <AuthorizeView Policy="WaiterOrAdmin"><div class="nav-item px-3"><NavLink class="nav-link" href="tables"><span class="nav-icon">▦</span> <span class="nav-text">Tables & Orders</span></NavLink></div></AuthorizeView>
+        <AuthorizeView Policy="KitchenOrAdmin"><div class="nav-item px-3"><NavLink class="nav-link" href="kitchen"><span class="nav-icon">▤</span> <span class="nav-text">Kitchen Display</span></NavLink></div></AuthorizeView>
         <AuthorizeView Roles="Admin">
-            <div class="nav-item px-3"><NavLink class="nav-link" href="admin/catalog">☰ Menu & Tables</NavLink></div>
-            <div class="nav-item px-3"><NavLink class="nav-link" href="admin/users">♙ Users</NavLink></div>
-            <div class="nav-item px-3"><NavLink class="nav-link" href="admin/attendance">◴ Staff Schedule</NavLink></div>
-            <div class="nav-item px-3"><NavLink class="nav-link" href="admin/payments">₱ Pending Payments</NavLink></div>
-            <div class="nav-item px-3"><NavLink class="nav-link" href="reports">◫ Reports</NavLink></div>
-            <div class="nav-item px-3"><NavLink class="nav-link" href="inventory">▥ Inventory</NavLink></div>
+            <div class="nav-item px-3"><NavLink class="nav-link" href="admin/catalog"><span class="nav-icon">☰</span> <span class="nav-text">Menu & Tables</span></NavLink></div>
+            <div class="nav-item px-3"><NavLink class="nav-link" href="admin/users"><span class="nav-icon">♙</span> <span class="nav-text">Users</span></NavLink></div>
+            <div class="nav-item px-3"><NavLink class="nav-link" href="admin/attendance"><span class="nav-icon">◴</span> <span class="nav-text">Staff Schedule</span></NavLink></div>
+            <div class="nav-item px-3"><NavLink class="nav-link" href="admin/payments"><span class="nav-icon">₱</span> <span class="nav-text">Pending Payments</span></NavLink></div>
+            <div class="nav-item px-3"><NavLink class="nav-link" href="reports"><span class="nav-icon">◫</span> <span class="nav-text">Reports</span></NavLink></div>
+            <div class="nav-item px-3"><NavLink class="nav-link" href="inventory"><span class="nav-icon">▥</span> <span class="nav-text">Inventory</span></NavLink></div>
         </AuthorizeView>
         <AuthorizeView>
             <Authorized>
-                <div class="nav-item px-3"><NavLink class="nav-link" href="Account/Manage">● @context.User.Identity?.Name</NavLink></div>
-                <div class="nav-item px-3"><form action="Account/ClockOutAndLogout" method="post"><AntiforgeryToken /><button type="submit" class="nav-link nav-clockout">⇥ Clock Out + Log Out</button></form></div>
-                <div class="nav-item px-3"><form action="Account/Logout" method="post"><AntiforgeryToken /><input type="hidden" name="ReturnUrl" value="Account/Login" /><button type="submit" class="nav-link nav-session-logout">Log Out Only</button></form></div>
+                <div class="nav-item px-3 nav-user-item"><span class="nav-user-label">● @context.User.Identity?.Name</span></div>
+                <div class="nav-item px-3"><form action="Account/ClockOutAndLogout" method="post"><AntiforgeryToken /><button type="submit" class="nav-link nav-clockout"><span class="nav-icon">⇥</span> <span class="nav-text">Clock Out + Log Out</span></button></form></div>
+                <div class="nav-item px-3"><form action="Account/Logout" method="post"><AntiforgeryToken /><input type="hidden" name="ReturnUrl" value="Account/Login" /><button type="submit" class="nav-link nav-session-logout"><span class="nav-icon">🚪</span> <span class="nav-text">Log Out Only</span></button></form></div>
             </Authorized>
-            <NotAuthorized><div class="nav-item px-3"><NavLink class="nav-link" href="Account/Login">● Staff Login</NavLink></div></NotAuthorized>
+            <NotAuthorized><div class="nav-item px-3"><NavLink class="nav-link" href="Account/Login"><span class="nav-icon">●</span> <span class="nav-text">Staff Login</span></NavLink></div></NotAuthorized>
         </AuthorizeView>
     </nav>
 </div>
 
 @code {
+    [Parameter] public bool IsKdsMode { get; set; }
     private string? currentUrl;
     protected override void OnInitialized() { currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri); NavigationManager.LocationChanged += OnLocationChanged; }
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e) { currentUrl = NavigationManager.ToBaseRelativePath(e.Location); StateHasChanged(); }

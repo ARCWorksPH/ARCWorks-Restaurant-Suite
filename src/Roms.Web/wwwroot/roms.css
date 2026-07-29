@@ -36,6 +36,22 @@ html, body {
     min-height: 100vh;
 }
 
+/* Accessibility: Global Focus Ring */
+*:focus-visible {
+    outline: 3px solid var(--roms-focus) !important;
+    outline-offset: 2px !important;
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
 /* Typography & General */
 h1 {
     font-size: clamp(1.7rem, 4vw, 2.2rem);
@@ -66,88 +82,6 @@ h3 {
     margin: 0 auto;
     padding: 1.25rem;
     padding-bottom: 4rem;
-}
-
-/* Page Header & Navigation Bar */
-.top-row {
-    background-color: var(--roms-surface);
-    border-bottom: 1px solid var(--roms-border);
-    color: var(--roms-text);
-    padding: 0.8rem 1.25rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    backdrop-filter: blur(8px);
-}
-
-.top-row strong {
-    font-weight: 700;
-    font-size: 1.1rem;
-    background: var(--roms-gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.connection-indicator {
-    color: var(--roms-primary);
-    font-size: 0.85rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-
-.connection-indicator::before {
-    content: "";
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: var(--roms-primary);
-    box-shadow: 0 0 8px var(--roms-primary);
-}
-
-/* Sidebar & NavMenu */
-.sidebar {
-    background-color: var(--roms-surface) !important;
-    border-right: 1px solid var(--roms-border);
-}
-
-.nav-link {
-    color: var(--roms-text-muted) !important;
-    font-weight: 600;
-    padding: 0.75rem 1rem !important;
-    border-radius: 10px;
-    margin-bottom: 0.25rem;
-    transition: all 150ms ease-in-out;
-}
-
-.nav-link:hover {
-    color: var(--roms-text) !important;
-    background-color: var(--roms-surface-soft) !important;
-}
-
-.nav-link.active {
-    background: var(--roms-gradient-primary) !important;
-    color: #FFFFFF !important;
-    font-weight: 700;
-    box-shadow: var(--roms-glow-primary);
-}
-
-.nav-clockout, .nav-session-logout {
-    background: transparent;
-    border: none;
-    width: 100%;
-    text-align: left;
-    cursor: pointer;
-}
-
-.nav-clockout {
-    color: var(--roms-danger) !important;
-}
-
-.nav-clockout:hover {
-    background-color: rgba(248, 113, 113, 0.15) !important;
 }
 
 /* Touch Buttons & Controls */
@@ -282,7 +216,7 @@ h3 {
     transform: translateY(-2px);
 }
 
-/* Tables Surface (Concept 1 Neo-Glass + Bento) */
+/* Tables Surface */
 .table-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 }
@@ -371,7 +305,7 @@ h3 {
     color: var(--roms-status-pending-payment);
 }
 
-/* Order Editor Layout (Concept 2 Bento) */
+/* Order Editor Layout */
 .order-layout {
     display: grid;
     grid-template-columns: minmax(300px, 0.9fr) minmax(360px, 1.1fr);
@@ -503,13 +437,15 @@ h3 {
     color: var(--roms-text-disabled) !important;
 }
 
-/* Kitchen Display System (Concept 3 Tactile Sci-Fi) */
+/* Dedicated Kitchen Display System (Stage 3 & 1920x1080 optimized) */
 .kds-grid {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
     align-items: start;
+    gap: 1.5rem;
 }
 
 .kds-ticket {
+    min-width: 300px;
     background-color: var(--roms-surface);
     border: 2px solid var(--roms-border-strong);
     border-radius: 14px;
@@ -533,30 +469,31 @@ h3 {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    font-size: 1.25rem;
     border-bottom: 1px solid var(--roms-border);
     padding-bottom: 0.75rem;
     margin-bottom: 0.85rem;
 }
 
 .kds-ticket header strong {
-    font-size: 1.35rem;
+    font-size: 1.5rem; /* Minimum 24px per Stage 3 */
+    font-weight: 750;
     color: var(--roms-text);
 }
 
 .kds-ticket header small {
     display: block;
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     color: var(--roms-text-muted);
 }
 
 .kds-ticket header span {
-    font-size: 1.2rem;
+    font-size: 1.4rem; /* Minimum 24px per Stage 3 */
     font-weight: 800;
     color: var(--roms-status-preparing);
     background-color: var(--roms-surface-soft);
-    padding: 0.3rem 0.6rem;
+    padding: 0.3rem 0.75rem;
     border-radius: 8px;
+    border: 1px solid var(--roms-border);
 }
 
 .kds-ticket ul {
@@ -567,8 +504,8 @@ h3 {
 
 .kds-ticket li {
     border-bottom: 1px solid var(--roms-border);
-    padding: 0.65rem 0;
-    font-size: 1.1rem;
+    padding: 0.75rem 0;
+    font-size: 1.15rem; /* Minimum 18px per Stage 3 */
 }
 
 .kds-ticket li strong {
@@ -577,11 +514,11 @@ h3 {
 
 .kds-ticket em {
     display: block;
-    color: var(--roms-danger);
+    color: var(--roms-danger); /* Red text highlight readable at 2-3m */
     font-style: normal;
-    font-size: 0.9rem;
-    font-weight: 650;
-    margin-top: 0.2rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-top: 0.3rem;
 }
 
 .ready-callout {

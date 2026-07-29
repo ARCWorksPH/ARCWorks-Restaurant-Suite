@@ -1,16 +1,29 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
 
 <AuthorizeView>
     <Authorized><SessionTimeout /></Authorized>
 </AuthorizeView>
 
-<div class="page">
+<div class="page @(isKitchenPage ? "kds-mode" : "")">
     <div class="sidebar">
-        <NavMenu />
+        <NavMenu IsKdsMode="@isKitchenPage" />
     </div>
 
     <main>
-        <div class="top-row px-4"><strong>Restaurant Order Management</strong><span class="connection-indicator">● Live</span></div>
+        <div class="top-row px-4">
+            <div class="d-flex align-items-center gap-3">
+                <strong>ROMS</strong>
+                <span class="connection-indicator">● Live</span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <AuthorizeView>
+                    <Authorized>
+                        <span class="user-info">● @context.User.Identity?.Name</span>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        </div>
 
         <article class="content px-4">
             @Body
@@ -23,3 +36,25 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private bool isKitchenPage;
+
+    protected override void OnInitialized()
+    {
+        UpdatePageType(Navigation.Uri);
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        UpdatePageType(e.Location);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdatePageType(string uri)
+    {
+        var relative = Navigation.ToBaseRelativePath(uri);
+        isKitchenPage = relative.StartsWith("kitchen", StringComparison.OrdinalIgnoreCase);
+    }
+}

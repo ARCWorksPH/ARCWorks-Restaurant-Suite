@@ -1,6 +1,17 @@
 # ROMS UI Concept & Implementation Change Log
 
-All modifications, visual assets, design tokens, and documentation produced for the ROMS UI redesign are tracked below.
+All modifications, visual assets, design tokens, documentation, and remediation passes produced for the ROMS UI redesign are tracked below.
+
+---
+
+## [Remediation Pass] - 2026-07-30
+
+### Fixed & Remedied
+- **Blazor CSS Isolation Overrides**: Corrected `MainLayout.razor.css` and `NavMenu.razor.css` at their source to remove legacy blue-purple sidebar gradients and bright white top bar, applying the approved dark matte graphite theme (`#0F141B`/`#171E27`).
+- **Dedicated Kitchen Display Mode (1920x1080)**: Added route-aware `kds-mode` styling to collapse the 250px sidebar on `/kitchen`, expanding ticket canvas with 24px+ table headers, 18px+ item lines, and red `#F87171` notes readable at 2-3 meters.
+- **Mobile Navigation (`390x844`)**: Updated mobile header to preserve ROMS brand, live connection indicator, and user/role badges when collapsed, providing 48px aria-labeled toggle buttons.
+- **Inventory Canonical Units**: Constrained `Inventory.razor` unit inputs strictly to `<select>` with `piece`, `g`, `ml` choices and added empty state notices for stock adjustment and recipe mapping.
+- **Accessibility & Theme Continuity**: Added global `:focus-visible` rings (`3px solid #38BDF8`), `prefers-reduced-motion` media queries, and dark theme variables to `ReconnectModal.razor.css` and `#blazor-error-ui`.
 
 ---
 
@@ -17,14 +28,15 @@ All modifications, visual assets, design tokens, and documentation produced for 
   - `RESTO_APP_UI_CONCEPT/documentation/`
   - `RESTO_APP_UI_CONCEPT/specifications/`
 - **High-Fidelity Mockups Generated & Saved to `RESTO_APP_UI_CONCEPT/mockups/`**:
-  - `resto_phase_a_tables_mockup` (Tables status grid in Neo-Glass / Soft Bento style)
-  - `resto_phase_a_order_editor_mockup` (3-zone Bento Order Editor)
-  - `resto_phase_a_kds_1080p_mockup` (1920x1080 Tactile Sci-Fi Kitchen Display)
-  - `resto_phase_a_inventory_mockup` (Admin Inventory & Stock Balance panels)
-  - `resto_phase_a_component_sheet_mockup` (Component State Sheet)
+  - `resto_phase_a_tables_mockup`
+  - `resto_phase_a_order_editor_mockup`
+  - `resto_phase_a_kds_1080p_mockup`
+  - `resto_phase_a_inventory_mockup`
+  - `resto_phase_a_component_sheet_mockup`
 - **Design Tokens Specified**: Defined master CSS variables (`--roms-bg`, `--roms-surface`, `--roms-primary`, `--roms-secondary`, status state mapping) in [PHASE_A_DESIGN_SPECIFICATION.md](file:///d:/ARCWorks_Restaurant%20Suite/RESTO_APP_UI_CONCEPT/documentation/PHASE_A_DESIGN_SPECIFICATION.md).
 - **Future Backend Proposals Documented**: Explicitly separated out non-existent backend features (per-item kitchen states, supplier POs, guest feedback) to preserve existing C# backend contracts.
 
 ### Milestones
 - [x] Phase A (Design & Specification) Complete.
-- [ ] Phase B (CSS Visual Implementation) Pending User Approval.
+- [x] Phase B (CSS Visual Implementation & Scoped Remediation) Complete.
+- [x] Automated Tests: 36/36 Passed.
