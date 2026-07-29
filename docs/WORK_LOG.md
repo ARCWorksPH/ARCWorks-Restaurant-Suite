@@ -1,5 +1,25 @@
 # ROMS Work Log
 
+## 2026-07-29 — UI Concept exploration, design specification, and Concept 1 Neo-Glass visual theme implementation
+
+### Confirmed & Implemented
+
+- Audited current ROMS styling and created 3 distinct UI concept mockups for user evaluation: Concept 1 "Neo-Glass & Glow", Concept 2 "Soft Neo-Bento", and Concept 3 "Tactile Sci-Fi".
+- User approved **Concept 1: Neo-Glass & Glow accents** integrated within the **Concept 2: Soft Neo-Bento** operational shell.
+- Established design tokens and archived all Phase A specifications & lossless high-fidelity renders in `RESTO_APP_UI_CONCEPT`:
+  - `RESTO_APP_UI_CONCEPT/documentation/PHASE_A_DESIGN_SPECIFICATION.md`
+  - `RESTO_APP_UI_CONCEPT/documentation/CHANGE_LOG.md`
+  - `RESTO_APP_UI_CONCEPT/mockups/` (`resto_phase_a_tables_mockup`, `resto_phase_a_order_editor_mockup`, `resto_phase_a_kds_1080p_mockup`, `resto_phase_a_inventory_mockup`, `resto_phase_a_component_sheet_mockup`).
+- Updated `src/Roms.Web/wwwroot/roms.css` to implement the dark slate canvas (`#0F141B`), bento surface cards (`#171E27`), elevated cards (`#1E2733`), glowing status pills, high-contrast typography, and 48px+ touch targets.
+- Preserved all existing C# backend contracts, EF Core entities, authorization policies, SignalR realtime hubs, and idempotency guarantees.
+
+### Verification completed
+
+- `dotnet build Roms.slnx`: Succeeded (0 Warnings, 0 Errors).
+- `dotnet test Roms.slnx -m:1`: Passed 36/36 tests (7 Domain, 9 Command Gateway, 2 E2E Playwright, 18 Integration).
+
+---
+
 ## 2026-07-29 — Production recovery, deployment, and inventory safety
 
 ### Confirmed
