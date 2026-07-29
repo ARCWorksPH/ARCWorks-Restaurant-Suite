@@ -1,5 +1,33 @@
 # ROMS Work Log
 
+## 2026-07-30 — Contributor UI guide and documentation handoff
+
+### Added
+
+- Added [RESTO_APP_UI_CONCEPT/documentation/CONTRIBUTOR_UI_GUIDE.md](file:///d:/ARCWorks_Restaurant%20Suite/RESTO_APP_UI_CONCEPT/documentation/CONTRIBUTOR_UI_GUIDE.md) providing developers and future contributors with complete architectural guidelines for Blazor CSS isolation, master CSS variables, touch ergonomics, 1920x1080 KDS layout rules, and pre-commit verification workflows.
+- Updated [RESTO_APP_UI_CONCEPT/documentation/CHANGE_LOG.md](file:///d:/ARCWorks_Restaurant%20Suite/RESTO_APP_UI_CONCEPT/documentation/CHANGE_LOG.md) to record the developer handoff documentation.
+
+---
+
+## 2026-07-30 — Blazor CSS isolation remediation, KDS mode, and mobile accessibility
+
+### Remediation completed
+
+- Corrected `MainLayout.razor.css` and `NavMenu.razor.css` at their source to remove legacy blue-purple sidebar gradients and bright white top row, ensuring the approved dark matte graphite theme (`#0F141B`/`#171E27`) renders consistently.
+- Added route-aware `kds-mode` styling to collapse the 250px navigation sidebar on `/kitchen`, expanding ticket canvas with 24px+ table headers, 18px+ item lines, and red `#F87171` notes readable at 2-3 meters.
+- Updated mobile shell (`390x844`) to preserve ROMS brand, live connection indicator, and user/role badges when collapsed, providing 48px aria-labeled toggle buttons.
+- Constrained `Inventory.razor` unit inputs strictly to `<select>` with `piece`, `g`, `ml` choices and added empty state notices for stock adjustment and recipe mapping.
+- Added global `:focus-visible` rings (`3px solid #38BDF8`), `prefers-reduced-motion` media queries, and dark theme variables to `ReconnectModal.razor.css` and `#blazor-error-ui`.
+
+### Verification
+
+- `pwsh tools/Test-NoCommittedSeedPasswords.ps1`: passed.
+- `git diff --check`: passed.
+- `dotnet build Roms.slnx --configuration Release -m:1`: 0 warnings, 0 errors.
+- `dotnet test Roms.slnx`: 36/36 passed.
+
+---
+
 ## 2026-07-29 — UI Concept exploration, design specification, and Concept 1 Neo-Glass visual theme implementation
 
 ### Confirmed & Implemented

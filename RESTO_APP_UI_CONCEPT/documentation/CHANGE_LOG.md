@@ -4,6 +4,14 @@ All modifications, visual assets, design tokens, documentation, and remediation 
 
 ---
 
+## [Documentation & Contributor Guide] - 2026-07-30
+
+### Added
+- **Contributor & Developer UI Guide**: Created [CONTRIBUTOR_UI_GUIDE.md](file:///d:/ARCWorks_Restaurant%20Suite/RESTO_APP_UI_CONCEPT/documentation/CONTRIBUTOR_UI_GUIDE.md) detailing the hybrid Concept 1 Neo-Glass + Concept 2 Soft Bento design system, Blazor CSS isolation rules (`.razor.css` vs `roms.css`), master CSS tokens, touch target ergonomics, 1920x1080 KDS layout rules, and pre-commit verification workflows.
+- **Updated Work Log**: Documented contributor build guides and documentation workflows in [docs/WORK_LOG.md](file:///d:/ARCWorks_Restaurant%20Suite/docs/WORK_LOG.md).
+
+---
+
 ## [Remediation Pass] - 2026-07-30
 
 ### Fixed & Remedied
@@ -39,4 +47,5 @@ All modifications, visual assets, design tokens, documentation, and remediation 
 ### Milestones
 - [x] Phase A (Design & Specification) Complete.
 - [x] Phase B (CSS Visual Implementation & Scoped Remediation) Complete.
+- [x] Contributor UI Guide Created (`CONTRIBUTOR_UI_GUIDE.md`).
 - [x] Automated Tests: 36/36 Passed.
