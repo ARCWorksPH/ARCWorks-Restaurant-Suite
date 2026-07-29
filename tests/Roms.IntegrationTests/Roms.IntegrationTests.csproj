@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Roms.Infrastructure\Roms.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Roms.Web\Roms.Web.csproj" />
+    <ProjectReference Include="..\..\tools\Roms.ProvisionalImport\Roms.ProvisionalImport.csproj" />
   </ItemGroup>
 
 </Project>

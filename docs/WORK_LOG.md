@@ -158,3 +158,31 @@ repository metadata before publication.
   Inventory remains disabled pending restaurant confirmation and implementation
   of the approved zero-stock, override, alert, and reconciliation policy.
 - Detailed disposition: `docs/INVENTORY_DATA_ASSESSMENT_2026-07-29.md`.
+
+## 2026-07-29 — Provisional restaurant-data sandbox importer
+
+### Implemented
+
+- Added a separate `Roms.ProvisionalImport` command-line utility. It is not
+  exposed through the ROMS web application.
+- Preview mode validates the source JSON without connecting to a database.
+- Apply mode requires an explicit confirmation, a local connection, a database
+  name containing `sandbox`, a valid source hash and dataset, and an empty
+  operational database.
+- Imports are atomic and run through the MariaDB execution strategy with a fresh
+  context per retry.
+- Opening quantities become `Receipt` movements marked `UNVERIFIED`, and the
+  source SHA-256 plus imported counts are recorded in the audit log.
+- Fields outside the Phase 1 model are reported as intentionally unmapped.
+
+### Dataset acceptance evidence
+
+- Source SHA-256:
+  `027C1B5522801D7CDB9DD1F3C4367A87B496F48914A7A3A87FF842EC9A72C222`.
+- Read-only preview passed with no errors.
+- A disposable MariaDB 11.4 acceptance import created and reconciled exactly:
+  35 inventory items, 10 menu categories, 24 menu items, 75 recipe rows,
+  35 opening-balance movements, and one import audit record.
+- The disposable database container was removed after verification.
+- Production ROMS, production MariaDB, the inventory feature flag, and the AI
+  lab were not changed.
