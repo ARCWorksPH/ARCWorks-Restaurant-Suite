@@ -110,3 +110,51 @@ repository metadata before publication.
   inadequate even though the hardened gateway failed closed on this corpus.
 - The AI lab is not connected to the ROMS user interface or production
   MariaDB, and it cannot change restaurant data.
+
+## 2026-07-29 — Inventory readiness and production-provider testing
+
+### Test infrastructure
+
+- Normalized the Playwright NUnit project under `tests/Roms.E2ETests` and added
+  it to the solution.
+- Retained `Microsoft.AspNetCore.Mvc.Testing` in the xUnit integration project
+  and removed the mistakenly mixed NUnit Playwright package.
+- Added disposable MariaDB 11.4 databases with Testcontainers. These tests do
+  not connect to the production database.
+- Added CI browser installation so the real Playwright suite can run in GitHub
+  Actions.
+
+### Confirmed defects found and fixed
+
+- The Oracle MySQL EF provider could not translate the in-memory-tested
+  collection-parameter recipe lookup. The lookup now uses provider-safe scalar
+  queries and is covered against real MariaDB.
+- A SignalR publishing failure after a successful database commit previously
+  surfaced as an operation failure, inviting unsafe retries. Post-commit event
+  publishing is now best-effort and logs delivery failure while preserving the
+  authoritative committed result.
+
+### Verification completed
+
+- Real MariaDB migrations and decimal inventory precision.
+- Simultaneous duplicate Preparing transitions consume stock exactly once.
+- Separate orders can consume the same ingredient concurrently without lost
+  stock movements.
+- An amendment racing with the Preparing transition always leaves stock
+  consumption aligned with the final active order quantity.
+- A simulated SignalR outage after commit does not misreport the committed
+  transition as failed.
+- A real Chromium test starts an isolated ROMS instance, migrates a disposable
+  MariaDB database, authenticates a seeded administrator, reaches the
+  attendance page, and verifies admin navigation.
+
+### Restaurant dataset assessment
+
+- The supplied package is structurally consistent: 35 inventory items, 24 menu
+  items, and 75 valid recipe relationships using `piece`, `g`, and `ml`.
+- The package describes itself as scraped/sample/generated data. It is approved
+  for sandbox testing only, not production opening balances or recipes.
+- The proposed strict negative-stock policy exceeds current ROMS controls.
+  Inventory remains disabled pending restaurant confirmation and implementation
+  of the approved zero-stock, override, alert, and reconciliation policy.
+- Detailed disposition: `docs/INVENTORY_DATA_ASSESSMENT_2026-07-29.md`.

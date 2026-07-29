@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Roms.Application;
 using Roms.Domain;
@@ -13,7 +14,8 @@ public sealed class OrderService(
     IDbContextFactory<RomsDbContext> factory,
     IClock clock,
     IOrderEventPublisher publisher,
-    IOptions<InventoryOptions> inventoryOptions) : IOrderService
+    IOptions<InventoryOptions> inventoryOptions,
+    ILogger<OrderService> logger) : IOrderService
 {
     private static readonly OrderStatus[] ActiveStatuses = [OrderStatus.Draft, OrderStatus.New, OrderStatus.Preparing, OrderStatus.Ready];
 
@@ -227,7 +229,13 @@ public sealed class OrderService(
         {
             var activeItems = order.Items.Where(x => !x.IsRemoved).ToList();
             var menuIds = activeItems.Select(x => x.MenuItemId).Distinct().ToList();
-            var recipes = await db.RecipeIngredients.Where(x => menuIds.Contains(x.MenuItemId)).ToListAsync(ct);
+            var recipes = new List<RecipeIngredient>();
+            foreach (var menuId in menuIds)
+            {
+                recipes.AddRange(await db.RecipeIngredients
+                    .Where(x => x.MenuItemId == menuId)
+                    .ToListAsync(ct));
+            }
             foreach (var group in recipes.GroupBy(x => x.InventoryItemId))
                 desired[group.Key] = -activeItems.Join(group, i => i.MenuItemId, r => r.MenuItemId,
                     (i, r) => i.Quantity * r.Quantity).Sum();
@@ -256,8 +264,23 @@ public sealed class OrderService(
     private AuditEntry Audit(string actor, string action, Guid id, string? values) => new()
         { ActorId = actor, Action = action, EntityType = nameof(Order), EntityId = id.ToString(), NewValuesJson = values, OccurredUtc = clock.UtcNow };
 
-    private Task Publish(Order order, string kind, CancellationToken ct) =>
-        publisher.PublishAsync(new OrderEvent(order.Id, order.Revision, order.Version, clock.UtcNow, kind), ct);
+    private async Task Publish(Order order, string kind, CancellationToken ct)
+    {
+        try
+        {
+            await publisher.PublishAsync(
+                new OrderEvent(order.Id, order.Revision, order.Version, clock.UtcNow, kind),
+                ct);
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(
+                exception,
+                "Order event {EventKind} for order {OrderId} could not be delivered after the state was committed. Clients must reload authoritative state.",
+                kind,
+                order.Id);
+        }
+    }
 
     private static TableStatus ToTableStatus(Order? order) => order?.Status switch
     {

@@ -10,5 +10,6 @@
     <Project Path="tests/Roms.Domain.Tests/Roms.Domain.Tests.csproj" />
     <Project Path="tests/Roms.CommandGateway.Tests/Roms.CommandGateway.Tests.csproj" />
     <Project Path="tests/Roms.IntegrationTests/Roms.IntegrationTests.csproj" />
+    <Project Path="tests/Roms.E2ETests/Roms.E2ETests.csproj" />
   </Folder>
 </Solution>

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging.Abstractions;
 using Roms.Application;
 using Roms.Domain;
 using Roms.Infrastructure.Persistence;
@@ -203,7 +204,12 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
-    private OrderService CreateService(bool inventory = false) => new(new TestFactory(options), new FixedClock(), new NoOpPublisher(), Options.Create(new InventoryOptions { Enabled = inventory }));
+    private OrderService CreateService(bool inventory = false) => new(
+        new TestFactory(options),
+        new FixedClock(),
+        new NoOpPublisher(),
+        Options.Create(new InventoryOptions { Enabled = inventory }),
+        NullLogger<OrderService>.Instance);
 
     private sealed class TestFactory(DbContextOptions<RomsDbContext> options) : IDbContextFactory<RomsDbContext>
     { public RomsDbContext CreateDbContext() => new(options); public Task<RomsDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) => Task.FromResult(new RomsDbContext(options)); }

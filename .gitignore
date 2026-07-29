@@ -11,6 +11,7 @@
 backups/
 TestResults/
 .artifacts/
+/Resto_Data/
 Docker/
 **/DataProtection-Keys/
 *.user
