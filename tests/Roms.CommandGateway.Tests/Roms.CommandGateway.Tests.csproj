@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -15,16 +15,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.10" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Roms.Infrastructure\Roms.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\src\Roms.Web\Roms.Web.csproj" />
+    <ProjectReference Include="..\..\src\Roms.Application\Roms.Application.csproj" />
+    <ProjectReference Include="..\..\src\Roms.CommandGateway\Roms.CommandGateway.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="TestData\command-corpus.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

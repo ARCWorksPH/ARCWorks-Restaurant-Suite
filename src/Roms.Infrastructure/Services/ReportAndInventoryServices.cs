@@ -54,6 +54,11 @@ public sealed class InventoryService(IDbContextFactory<RomsDbContext> factory, I
         await using var db = await factory.CreateDbContextAsync(ct);
         if (!await db.MenuItems.AnyAsync(x => x.Id == menuItemId, ct) || !await db.InventoryItems.AnyAsync(x => x.Id == inventoryItemId && x.IsActive, ct))
             throw new DomainException("Menu or inventory item not found.");
+        var usedByActivePreparation = await db.Orders.AnyAsync(order =>
+            (order.Status == OrderStatus.Preparing || order.Status == OrderStatus.Ready) &&
+            order.Items.Any(item => !item.IsRemoved && item.MenuItemId == menuItemId), ct);
+        if (usedByActivePreparation)
+            throw new DomainException("This recipe cannot change while an active order is being prepared.");
         var recipe = await db.RecipeIngredients.SingleOrDefaultAsync(x => x.MenuItemId == menuItemId && x.InventoryItemId == inventoryItemId, ct);
         if (recipe is null) db.RecipeIngredients.Add(new RecipeIngredient { MenuItemId = menuItemId, InventoryItemId = inventoryItemId, Quantity = quantity });
         else recipe.Quantity = quantity;

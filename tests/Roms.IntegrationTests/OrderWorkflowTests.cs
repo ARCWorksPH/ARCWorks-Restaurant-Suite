@@ -97,6 +97,64 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Cancelling_a_prepared_order_reverses_its_inventory_consumption()
+    {
+        await using (var setup = new RomsDbContext(options))
+        {
+            var menu = await setup.MenuItems.SingleAsync();
+            menu.RecipeIngredients.Add(new RecipeIngredient
+                { InventoryItem = new InventoryItem { Name = "Patty", Unit = "piece" }, Quantity = 1m });
+            await setup.SaveChangesAsync();
+        }
+        await using var db = new RomsDbContext(options);
+        var service = CreateService(inventory: true);
+        var table = await db.RestaurantTables.SingleAsync();
+        var menuItem = await db.MenuItems.SingleAsync();
+        var id = await service.GetOrCreateDraftAsync(table.Id, "waiter");
+        await service.AddItemAsync(id, menuItem.Id, 2, null, "waiter");
+        await service.SubmitAsync(id, "cancel-stock", "waiter");
+        await service.TransitionAsync(id, OrderStatus.Preparing, "kitchen");
+        await service.TransitionAsync(id, OrderStatus.Cancelled, "admin", "Customer left");
+
+        var movements = await db.StockMovements.OrderBy(x => x.Id).ToListAsync();
+        Assert.Equal(2, movements.Count);
+        Assert.Equal(StockMovementType.Consumption, movements[0].Type);
+        Assert.Equal(StockMovementType.Reversal, movements[1].Type);
+        Assert.Equal(0m, movements.Sum(x => x.QuantityDelta));
+    }
+
+    [Fact]
+    public async Task Preparing_order_amendments_reconcile_inventory_to_active_items()
+    {
+        await using (var setup = new RomsDbContext(options))
+        {
+            var menu = await setup.MenuItems.SingleAsync();
+            menu.RecipeIngredients.Add(new RecipeIngredient
+                { InventoryItem = new InventoryItem { Name = "Patty", Unit = "piece" }, Quantity = 1m });
+            await setup.SaveChangesAsync();
+        }
+        await using var db = new RomsDbContext(options);
+        var service = CreateService(inventory: true);
+        var table = await db.RestaurantTables.SingleAsync();
+        var menuItem = await db.MenuItems.SingleAsync();
+        var id = await service.GetOrCreateDraftAsync(table.Id, "waiter");
+        await service.AddItemAsync(id, menuItem.Id, 2, null, "waiter");
+        await service.SubmitAsync(id, "amend-stock", "waiter");
+        await service.TransitionAsync(id, OrderStatus.Preparing, "kitchen");
+
+        await service.AmendAddItemAsync(id, menuItem.Id, 1, null, "Extra burger", "waiter");
+        var addedItemId = (await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == id))
+            .Items.Single(x => x.Quantity == 1).Id;
+        Assert.Equal(-3m, (await db.StockMovements.ToListAsync()).Sum(x => x.QuantityDelta));
+
+        await service.AmendRemoveItemAsync(id, addedItemId, "Admin-approved correction", "admin");
+        var movements = await db.StockMovements.OrderBy(x => x.Id).ToListAsync();
+        Assert.Equal(3, movements.Count);
+        Assert.Equal(-2m, movements.Sum(x => x.QuantityDelta));
+        Assert.Equal(StockMovementType.Reversal, movements[^1].Type);
+    }
+
+    [Fact]
     public async Task Kitchen_and_waiter_complete_the_full_serving_workflow()
     {
         await using var db = new RomsDbContext(options);

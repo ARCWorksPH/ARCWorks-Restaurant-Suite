@@ -3,12 +3,15 @@
 .dotnet-home/
 .nuget-packages/
 .tools/
+.agents/
+.codex/
 .vs/
 **/bin/
 **/obj/
 backups/
 TestResults/
 .artifacts/
+Docker/
 **/DataProtection-Keys/
 *.user
 *.suo

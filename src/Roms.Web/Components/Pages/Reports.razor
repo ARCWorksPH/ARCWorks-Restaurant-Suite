@@ -5,4 +5,29 @@
 <div class="page-heading"><div><h1>Confirmed payment reports</h1><p>Only orders whose payment was confirmed by Admin are included.</p></div><div class="input-row"><input class="form-control" type="date" @bind="from" /><input class="form-control" type="date" @bind="to" /><button class="btn btn-primary touch-button" @onclick="Load">Apply</button></div></div>
 @if (!string.IsNullOrEmpty(error)) { <div class="alert alert-danger">@error</div> }
 @if (report is not null) { <div class="metric-grid"><div><span>Confirmed payment value</span><strong>₱@report.CompletedOrderValue.ToString("N2")</strong></div><div><span>Paid orders</span><strong>@report.OrderCount</strong></div><div><span>Average paid order</span><strong>₱@report.AverageOrderValue.ToString("N2")</strong></div></div><section class="panel"><h2>Best-selling paid items</h2><table class="table"><thead><tr><th>Item</th><th>Quantity</th><th>Value</th></tr></thead><tbody>@foreach (var item in report.BestSellers) { <tr><td>@item.Name</td><td>@item.Quantity</td><td>₱@item.Value.ToString("N2")</td></tr> }</tbody></table></section> }
-@code { private DateTime from=DateTime.Today,to=DateTime.Today; private DashboardReport? report; private string? error; protected override async Task OnInitializedAsync()=>await Load(); private async Task Load(){try{var zone=TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila");var start=TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(from.Date,DateTimeKind.Unspecified),zone);var end=TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(to.Date.AddDays(1),DateTimeKind.Unspecified),zone);report=await ReportService.GetDashboardAsync(start,end);error=null;}catch(Exception ex){error=ex.Message;}} }
+@code {
+    private static readonly TimeZoneInfo BusinessTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila");
+    private DateTime from = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, BusinessTimeZone).Date;
+    private DateTime to = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, BusinessTimeZone).Date;
+    private DashboardReport? report;
+    private string? error;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        try
+        {
+            var start = TimeZoneInfo.ConvertTimeToUtc(
+                DateTime.SpecifyKind(from.Date, DateTimeKind.Unspecified), BusinessTimeZone);
+            var end = TimeZoneInfo.ConvertTimeToUtc(
+                DateTime.SpecifyKind(to.Date.AddDays(1), DateTimeKind.Unspecified), BusinessTimeZone);
+            report = await ReportService.GetDashboardAsync(start, end);
+            error = null;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+}
