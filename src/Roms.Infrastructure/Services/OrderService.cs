@@ -130,17 +130,31 @@ public sealed class OrderService(
         await Publish(order, "OrderAmended", ct);
     }
 
-    public async Task AmendRemoveItemAsync(Guid orderId, Guid itemId, string reason, string actorId, CancellationToken ct = default)
+    public async Task AmendRemoveItemAsync(
+        Guid orderId,
+        Guid itemId,
+        string reason,
+        string actorId,
+        CancellationToken ct = default,
+        InventoryDisposition? inventoryDisposition = null)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == orderId, ct);
         await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
         var verifiedIsAdmin = await IsInRoleAsync(db, actorId, RomsRoles.Admin, ct);
-        order.AmendRemoveItem(itemId, actorId, reason, verifiedIsAdmin, clock.UtcNow);
+        order.AmendRemoveItem(itemId, actorId, reason, verifiedIsAdmin, inventoryDisposition, clock.UtcNow);
+        var effectiveDisposition = order.Items.Single(x => x.Id == itemId).RemovalInventoryDisposition;
         if (inventoryOptions.Value.Enabled && order.Status == OrderStatus.Preparing)
             await ReconcileInventoryAsync(db, order, actorId, consume: true,
                 $"Order {order.Id} revision {order.Revision} removed an item", $"revision:{order.Revision}", ct);
-        db.AuditEntries.Add(Audit(actorId, "AmendRemoveOrderItem", order.Id, JsonSerializer.Serialize(new { itemId, reason, order.Revision })));
+        db.AuditEntries.Add(Audit(actorId, "AmendRemoveOrderItem", order.Id,
+            JsonSerializer.Serialize(new
+            {
+                itemId,
+                reason,
+                inventoryDisposition = effectiveDisposition?.ToString(),
+                order.Revision
+            })));
         await db.SaveChangesAsync(ct);
         await Publish(order, "OrderAmended", ct);
     }
@@ -161,7 +175,13 @@ public sealed class OrderService(
         return order.Id;
     }
 
-    public async Task TransitionAsync(Guid orderId, OrderStatus next, string actorId, string? reason = null, CancellationToken ct = default)
+    public async Task TransitionAsync(
+        Guid orderId,
+        OrderStatus next,
+        string actorId,
+        string? reason = null,
+        CancellationToken ct = default,
+        InventoryDisposition? inventoryDisposition = null)
     {
         await using var strategyContext = await factory.CreateDbContextAsync(ct);
         var strategy = strategyContext.Database.CreateExecutionStrategy();
@@ -181,20 +201,28 @@ public sealed class OrderService(
                 await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
             else
                 await EnsureKitchenOrAdminAsync(db, actorId, ct);
-            order.TransitionTo(next, actorId, reason, clock.UtcNow);
+            order.TransitionTo(next, actorId, reason, clock.UtcNow, inventoryDisposition);
 
             if (inventoryOptions.Value.Enabled)
             {
                 if (next == OrderStatus.Preparing)
                     await ReconcileInventoryAsync(db, order, actorId, consume: true,
                         $"Order {order.Id} entered Preparing", "preparing", ct);
-                else if (next == OrderStatus.Cancelled && previous is OrderStatus.Preparing or OrderStatus.Ready)
+                else if (next == OrderStatus.Cancelled &&
+                         previous is OrderStatus.Preparing or OrderStatus.Ready &&
+                         order.CancellationInventoryDisposition == InventoryDisposition.ReturnToStock)
                     await ReconcileInventoryAsync(db, order, actorId, consume: false,
                         $"Order {order.Id} was cancelled: {reason}", "cancelled", ct);
             }
 
             db.AuditEntries.Add(Audit(actorId, next == OrderStatus.Cancelled ? "CancelOrder" : "ChangeOrderStatus", order.Id,
-                JsonSerializer.Serialize(new { from = previous, to = next, reason })));
+                JsonSerializer.Serialize(new
+                {
+                    from = previous,
+                    to = next,
+                    reason,
+                    inventoryDisposition = order.CancellationInventoryDisposition?.ToString()
+                })));
             await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
             changedOrder = order;
@@ -227,8 +255,11 @@ public sealed class OrderService(
         var desired = new Dictionary<Guid, decimal>();
         if (consume)
         {
-            var activeItems = order.Items.Where(x => !x.IsRemoved).ToList();
-            var menuIds = activeItems.Select(x => x.MenuItemId).Distinct().ToList();
+            var consumedItems = order.Items
+                .Where(x => !x.IsRemoved ||
+                            x.RemovalInventoryDisposition == InventoryDisposition.ConsumedAsWasteOrStaffMeal)
+                .ToList();
+            var menuIds = consumedItems.Select(x => x.MenuItemId).Distinct().ToList();
             var recipes = new List<RecipeIngredient>();
             foreach (var menuId in menuIds)
             {
@@ -237,7 +268,7 @@ public sealed class OrderService(
                     .ToListAsync(ct));
             }
             foreach (var group in recipes.GroupBy(x => x.InventoryItemId))
-                desired[group.Key] = -activeItems.Join(group, i => i.MenuItemId, r => r.MenuItemId,
+                desired[group.Key] = -consumedItems.Join(group, i => i.MenuItemId, r => r.MenuItemId,
                     (i, r) => i.Quantity * r.Quantity).Sum();
         }
 
@@ -336,5 +367,14 @@ public sealed class OrderService(
     private static OrderView Map(Order x, IReadOnlyDictionary<string, string> waiterNames) => new(
         x.Id, x.TableId, x.Table?.Number ?? "?", x.WaiterId, WaiterName(x.WaiterId, waiterNames), x.Status,
         x.CreatedUtc, x.SubmittedUtc, x.CompletedUtc, x.PaymentConfirmedUtc, x.Revision, x.Version, x.Total,
-        x.Items.OrderBy(i => i.MenuItemName).Select(i => new OrderItemView(i.Id, i.MenuItemName, i.UnitPrice, i.Quantity, i.Notes, i.IsRemoved)).ToList());
+        x.CancellationReason,
+        x.CancellationInventoryDisposition,
+        x.Items.OrderBy(i => i.MenuItemName).Select(i => new OrderItemView(
+            i.Id,
+            i.MenuItemName,
+            i.UnitPrice,
+            i.Quantity,
+            i.Notes,
+            i.IsRemoved,
+            i.RemovalInventoryDisposition)).ToList());
 }

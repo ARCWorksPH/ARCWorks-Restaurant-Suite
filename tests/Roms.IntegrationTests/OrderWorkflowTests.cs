@@ -115,13 +115,56 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
         await service.AddItemAsync(id, menuItem.Id, 2, null, "waiter");
         await service.SubmitAsync(id, "cancel-stock", "waiter");
         await service.TransitionAsync(id, OrderStatus.Preparing, "kitchen");
-        await service.TransitionAsync(id, OrderStatus.Cancelled, "admin", "Customer left");
+        await service.TransitionAsync(
+            id,
+            OrderStatus.Cancelled,
+            "admin",
+            "Customer left",
+            inventoryDisposition: InventoryDisposition.ReturnToStock);
 
         var movements = await db.StockMovements.OrderBy(x => x.Id).ToListAsync();
         Assert.Equal(2, movements.Count);
         Assert.Equal(StockMovementType.Consumption, movements[0].Type);
         Assert.Equal(StockMovementType.Reversal, movements[1].Type);
         Assert.Equal(0m, movements.Sum(x => x.QuantityDelta));
+    }
+
+    [Fact]
+    public async Task Cancelling_a_prepared_order_as_waste_preserves_consumption_and_audits_disposition()
+    {
+        await using (var setup = new RomsDbContext(options))
+        {
+            var menu = await setup.MenuItems.SingleAsync();
+            menu.RecipeIngredients.Add(new RecipeIngredient
+                { InventoryItem = new InventoryItem { Name = "Patty", Unit = "piece" }, Quantity = 1m });
+            await setup.SaveChangesAsync();
+        }
+        await using var db = new RomsDbContext(options);
+        var service = CreateService(inventory: true);
+        var table = await db.RestaurantTables.SingleAsync();
+        var menuItem = await db.MenuItems.SingleAsync();
+        var id = await service.GetOrCreateDraftAsync(table.Id, "waiter");
+        await service.AddItemAsync(id, menuItem.Id, 2, null, "waiter");
+        await service.SubmitAsync(id, "waste-stock", "waiter");
+        await service.TransitionAsync(id, OrderStatus.Preparing, "kitchen");
+        await service.TransitionAsync(
+            id,
+            OrderStatus.Cancelled,
+            "admin",
+            "Converted to staff meal",
+            inventoryDisposition: InventoryDisposition.ConsumedAsWasteOrStaffMeal);
+
+        var order = await db.Orders.SingleAsync(x => x.Id == id);
+        var movements = await db.StockMovements.ToListAsync();
+        var audit = await db.AuditEntries.OrderByDescending(x => x.Id)
+            .FirstAsync(x => x.Action == "CancelOrder");
+
+        Assert.Equal(-2m, movements.Sum(x => x.QuantityDelta));
+        Assert.Single(movements);
+        Assert.Equal(
+            InventoryDisposition.ConsumedAsWasteOrStaffMeal,
+            order.CancellationInventoryDisposition);
+        Assert.Contains("ConsumedAsWasteOrStaffMeal", audit.NewValuesJson, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -148,11 +191,62 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
             .Items.Single(x => x.Quantity == 1).Id;
         Assert.Equal(-3m, (await db.StockMovements.ToListAsync()).Sum(x => x.QuantityDelta));
 
-        await service.AmendRemoveItemAsync(id, addedItemId, "Admin-approved correction", "admin");
+        await service.AmendRemoveItemAsync(
+            id,
+            addedItemId,
+            "Admin-approved correction",
+            "admin",
+            inventoryDisposition: InventoryDisposition.ReturnToStock);
         var movements = await db.StockMovements.OrderBy(x => x.Id).ToListAsync();
         Assert.Equal(3, movements.Count);
         Assert.Equal(-2m, movements.Sum(x => x.QuantityDelta));
         Assert.Equal(StockMovementType.Reversal, movements[^1].Type);
+    }
+
+    [Fact]
+    public async Task Prepared_item_removed_as_waste_stays_consumed_after_a_later_amendment()
+    {
+        await using (var setup = new RomsDbContext(options))
+        {
+            var menu = await setup.MenuItems.SingleAsync();
+            menu.RecipeIngredients.Add(new RecipeIngredient
+                { InventoryItem = new InventoryItem { Name = "Patty", Unit = "piece" }, Quantity = 1m });
+            await setup.SaveChangesAsync();
+        }
+        await using var db = new RomsDbContext(options);
+        var service = CreateService(inventory: true);
+        var table = await db.RestaurantTables.SingleAsync();
+        var menuItem = await db.MenuItems.SingleAsync();
+        var id = await service.GetOrCreateDraftAsync(table.Id, "waiter");
+        await service.AddItemAsync(id, menuItem.Id, 1, null, "waiter");
+        await service.SubmitAsync(id, "waste-amendment", "waiter");
+        await service.TransitionAsync(id, OrderStatus.Preparing, "kitchen");
+
+        var originalItemId = (await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == id))
+            .Items.Single().Id;
+        await service.AmendRemoveItemAsync(
+            id,
+            originalItemId,
+            "Dish dropped after preparation",
+            "admin",
+            inventoryDisposition: InventoryDisposition.ConsumedAsWasteOrStaffMeal);
+        await service.AmendAddItemAsync(
+            id,
+            menuItem.Id,
+            1,
+            null,
+            "Replacement dish",
+            "waiter");
+
+        db.ChangeTracker.Clear();
+        var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == id);
+        var movements = await db.StockMovements.OrderBy(x => x.Id).ToListAsync();
+
+        Assert.Equal(-2m, movements.Sum(x => x.QuantityDelta));
+        Assert.Equal(
+            InventoryDisposition.ConsumedAsWasteOrStaffMeal,
+            order.Items.Single(x => x.Id == originalItemId).RemovalInventoryDisposition);
+        Assert.All(movements, movement => Assert.Equal(StockMovementType.Consumption, movement.Type));
     }
 
     [Fact]
@@ -199,7 +293,12 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
         await service.TransitionAsync(id, OrderStatus.Preparing, "kitchen");
 
         await Assert.ThrowsAsync<DomainException>(() => service.TransitionAsync(id, OrderStatus.Cancelled, "waiter", "Customer request"));
-        await service.TransitionAsync(id, OrderStatus.Cancelled, "admin", "Approved customer request");
+        await service.TransitionAsync(
+            id,
+            OrderStatus.Cancelled,
+            "admin",
+            "Approved customer request",
+            inventoryDisposition: InventoryDisposition.ReturnToStock);
         Assert.Equal(OrderStatus.Cancelled, (await db.Orders.SingleAsync()).Status);
     }
 

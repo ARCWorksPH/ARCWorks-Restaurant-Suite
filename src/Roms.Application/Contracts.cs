@@ -17,10 +17,13 @@ public interface IOrderEventPublisher { Task PublishAsync(OrderEvent message, Ca
 public sealed record TableCard(Guid Id, string Number, TableStatus Status, Guid? ActiveOrderId, decimal Total,
     string? WaiterId, string? WaiterName);
 public sealed record MenuItemChoice(Guid Id, string Name, string Category, decimal Price, string Description);
-public sealed record OrderItemView(Guid Id, string Name, decimal UnitPrice, int Quantity, string Notes, bool IsRemoved);
+public sealed record OrderItemView(Guid Id, string Name, decimal UnitPrice, int Quantity, string Notes, bool IsRemoved,
+    InventoryDisposition? RemovalInventoryDisposition);
 public sealed record OrderView(Guid Id, Guid TableId, string TableNumber, string WaiterId, string WaiterName, OrderStatus Status,
     DateTime CreatedUtc, DateTime? SubmittedUtc, DateTime? CompletedUtc, DateTime? PaymentConfirmedUtc,
-    int Revision, long Version, decimal Total, IReadOnlyList<OrderItemView> Items);
+    int Revision, long Version, decimal Total, string? CancellationReason,
+    InventoryDisposition? CancellationInventoryDisposition,
+    IReadOnlyList<OrderItemView> Items);
 public sealed record DashboardReport(decimal CompletedOrderValue, int OrderCount, decimal AverageOrderValue,
     IReadOnlyList<BestSeller> BestSellers);
 public sealed record BestSeller(string Name, int Quantity, decimal Value);
@@ -47,9 +50,11 @@ public interface IOrderService
     Task AddItemAsync(Guid orderId, Guid menuItemId, int quantity, string? notes, string actorId, CancellationToken cancellationToken = default);
     Task RemoveDraftItemAsync(Guid orderId, Guid itemId, string actorId, CancellationToken cancellationToken = default);
     Task AmendAddItemAsync(Guid orderId, Guid menuItemId, int quantity, string? notes, string reason, string actorId, CancellationToken cancellationToken = default);
-    Task AmendRemoveItemAsync(Guid orderId, Guid itemId, string reason, string actorId, CancellationToken cancellationToken = default);
+    Task AmendRemoveItemAsync(Guid orderId, Guid itemId, string reason, string actorId,
+        CancellationToken cancellationToken = default, InventoryDisposition? inventoryDisposition = null);
     Task<Guid> SubmitAsync(Guid orderId, string idempotencyKey, string actorId, CancellationToken cancellationToken = default);
-    Task TransitionAsync(Guid orderId, OrderStatus next, string actorId, string? reason = null, CancellationToken cancellationToken = default);
+    Task TransitionAsync(Guid orderId, OrderStatus next, string actorId, string? reason = null,
+        CancellationToken cancellationToken = default, InventoryDisposition? inventoryDisposition = null);
     Task ConfirmPaymentAsync(Guid orderId, string adminId, CancellationToken cancellationToken = default);
 }
 

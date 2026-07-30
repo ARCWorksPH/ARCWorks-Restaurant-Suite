@@ -345,6 +345,10 @@ namespace Roms.Infrastructure.Persistence.Migrations
                     b.Property<string>("CancellationReason")
                         .HasColumnType("longtext");
 
+                    b.Property<string>("CancellationInventoryDisposition")
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
                     b.Property<DateTime?>("CompletedUtc")
                         .HasColumnType("datetime(6)");
 
@@ -413,6 +417,10 @@ namespace Roms.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("char(36)");
+
+                    b.Property<string>("RemovalInventoryDisposition")
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");

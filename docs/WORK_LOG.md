@@ -1,5 +1,57 @@
 # ROMS Work Log
 
+## 2026-07-30 — Inventory disposition and reversal milestone
+
+### Business gap resolved
+
+- The existing ledger already consumed recipes at `Preparing`, reversed prepared cancellations, and reconciled preparation-time amendments.
+- The remaining defect was that every prepared cancellation or removed item was treated as restockable.
+- The supplied restaurant scenarios include food that was already prepared and then wasted or converted to a staff meal. Returning those ingredients to stock would overstate inventory.
+
+### Implementation
+
+- Added explicit `ReturnToStock` and `ConsumedAsWasteOrStaffMeal` inventory dispositions.
+- Preparing/Ready cancellations now require an explicit disposition and retain the cancellation reason.
+- Preparing item removals now require an administrator, reason, and explicit disposition.
+- Return-to-stock operations append compensating `Reversal` movements.
+- Waste/staff-meal operations retain the original recipe consumption.
+- Later amendments preserve prior waste consumption rather than accidentally reversing it.
+- Persisted disposition is displayed on cancelled orders and written as human-readable audit data.
+- Added migration `20260730105000_AddInventoryDispositions`.
+- Added the authoritative rule matrix in `docs/INVENTORY_REVERSAL_RULES.md`.
+
+### Verification
+
+- Seed-password security guard: passed.
+- `git diff --check`: passed.
+- Release build: 0 warnings, 0 errors.
+- Automated tests: 40/40 passed:
+  - Domain: 8/8.
+  - Command Gateway: 9/9.
+  - Playwright E2E: 2/2.
+  - Integration: 21/21.
+- Real MariaDB verified migration persistence for the waste/staff-meal disposition without false restocking.
+- Real-browser workflow passed: create table order, submit, start preparation, cancel as staff meal, and verify the displayed persisted outcome.
+- Provisional Bob Marlin JSON preview: valid with 0 errors.
+- Full disposable MariaDB import:
+  - 35 inventory items.
+  - 10 menu categories.
+  - 24 menu items.
+  - 75 recipe ingredients.
+  - 35 opening balances.
+  - 4 migrations.
+- The import sandbox was destroyed after verification.
+
+### Safety boundary
+
+- The active application remained healthy on port 7070.
+- The active MariaDB container and volume were not modified.
+- `Features__Inventory__Enabled=false` remains active.
+- The provisional dataset remains unverified and sandbox-only.
+- Negative-stock override, waste approvals/costing, and multi-user acceptance remain later gates.
+
+---
+
 ## 2026-07-30 — Codex final runtime acceptance and UI remediation
 
 ### Corrections completed

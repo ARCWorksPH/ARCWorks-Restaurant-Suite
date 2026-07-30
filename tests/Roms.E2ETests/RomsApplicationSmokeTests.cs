@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
+using Roms.Domain;
 using Testcontainers.MariaDb;
 
 namespace Roms.E2ETests;
@@ -93,6 +94,33 @@ public sealed class RomsApplicationSmokeTests : PageTest
                 Assert.That(compactLabelBox!.Width, Is.LessThanOrEqualTo(1));
                 Assert.That(compactLabelBox.Height, Is.LessThanOrEqualTo(1));
             });
+
+            await Page.GotoAsync($"{baseAddress}/tables");
+            await Page.GetByRole(AriaRole.Button, new()
+            {
+                NameRegex = new Regex("^Table 1 Available$")
+            }).ClickAsync();
+            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Table 1" }))
+                .ToBeVisibleAsync();
+            var orderUrl = Page.Url;
+            await Page.Locator(".menu-card").Filter(new() { HasText = "Cheeseburger" }).ClickAsync();
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Send to kitchen" }).ClickAsync();
+
+            await Page.GotoAsync($"{baseAddress}/kitchen");
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Start preparing" }).ClickAsync();
+            await Page.GotoAsync(orderUrl);
+
+            await Expect(Page.GetByLabel("Inventory disposition for cancellation"))
+                .ToBeVisibleAsync();
+            await Page.GetByPlaceholder("Cancellation reason (required)")
+                .FillAsync("Converted to staff meal");
+            await Page.GetByLabel("Inventory disposition for cancellation")
+                .SelectOptionAsync(InventoryDisposition.ConsumedAsWasteOrStaffMeal.ToString());
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Cancel order" }).ClickAsync();
+            await Expect(Page.GetByText("Order cancelled."))
+                .ToBeVisibleAsync();
+            await Expect(Page.GetByText("ingredients retained as consumed waste or staff meal"))
+                .ToBeVisibleAsync();
         }
         finally
         {
@@ -129,7 +157,7 @@ public sealed class RomsApplicationSmokeTests : PageTest
         startInfo.Environment["Features__Inventory__Enabled"] = "false";
         startInfo.Environment["Seed__AdminUsername"] = username;
         startInfo.Environment["Seed__AdminPassword"] = password;
-        startInfo.Environment["Seed__DemoData"] = "false";
+        startInfo.Environment["Seed__DemoData"] = "true";
 
         var process = new Process { StartInfo = startInfo };
         process.OutputDataReceived += (_, args) =>

@@ -85,6 +85,33 @@ public sealed class MariaDbOrderConcurrencyTests(MariaDbFixture fixture)
     }
 
     [Fact]
+    public async Task Waste_disposition_persists_in_MariaDb_without_restocking_consumed_ingredients()
+    {
+        await using var database = await fixture.CreateDatabaseAsync();
+        var scenario = await SeedScenarioAsync(database, orderCount: 1);
+        var service = CreateService(database);
+
+        await service.TransitionAsync(scenario.OrderIds[0], OrderStatus.Preparing, "kitchen");
+        await service.TransitionAsync(
+            scenario.OrderIds[0],
+            OrderStatus.Cancelled,
+            "admin",
+            "Converted to staff meal",
+            inventoryDisposition: InventoryDisposition.ConsumedAsWasteOrStaffMeal);
+
+        await using var db = database.CreateContext();
+        var order = await db.Orders.SingleAsync();
+        var movements = await db.StockMovements.ToListAsync();
+
+        Assert.Equal(OrderStatus.Cancelled, order.Status);
+        Assert.Equal(
+            InventoryDisposition.ConsumedAsWasteOrStaffMeal,
+            order.CancellationInventoryDisposition);
+        Assert.Single(movements);
+        Assert.Equal(-2m, movements.Sum(x => x.QuantityDelta));
+    }
+
+    [Fact]
     public async Task Amendment_racing_with_preparing_keeps_consumption_aligned_with_active_items()
     {
         await using var database = await fixture.CreateDatabaseAsync();
@@ -167,6 +194,10 @@ public sealed class MariaDbOrderConcurrencyTests(MariaDbFixture fixture)
         {
             NormalizedName = RomsRoles.Kitchen.ToUpperInvariant()
         };
+        var adminRole = new IdentityRole(RomsRoles.Admin)
+        {
+            NormalizedName = RomsRoles.Admin.ToUpperInvariant()
+        };
         var waiter = new ApplicationUser
         {
             UserName = "waiter",
@@ -179,15 +210,27 @@ public sealed class MariaDbOrderConcurrencyTests(MariaDbFixture fixture)
             NormalizedUserName = "KITCHEN",
             DisplayName = "Kitchen One"
         };
+        var admin = new ApplicationUser
+        {
+            UserName = "admin",
+            NormalizedUserName = "ADMIN",
+            DisplayName = "Administrator"
+        };
         db.MenuCategories.Add(category);
         db.RestaurantTables.AddRange(tables);
-        db.Roles.Add(kitchenRole);
-        db.Users.AddRange(waiter, kitchen);
-        db.UserRoles.Add(new IdentityUserRole<string>
-        {
-            UserId = kitchen.Id,
-            RoleId = kitchenRole.Id
-        });
+        db.Roles.AddRange(kitchenRole, adminRole);
+        db.Users.AddRange(waiter, kitchen, admin);
+        db.UserRoles.AddRange(
+            new IdentityUserRole<string>
+            {
+                UserId = kitchen.Id,
+                RoleId = kitchenRole.Id
+            },
+            new IdentityUserRole<string>
+            {
+                UserId = admin.Id,
+                RoleId = adminRole.Id
+            });
         await db.SaveChangesAsync();
 
         var service = CreateService(database);
