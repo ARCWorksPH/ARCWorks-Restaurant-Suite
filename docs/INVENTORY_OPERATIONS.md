@@ -95,6 +95,13 @@ deliveries and count sheets.
 These controls are ready for disposable and supervised testing. They do not
 authorize production inventory activation.
 
+The administrator Inventory page now exposes a database-backed activation
+preflight. Its nine technical checks cover active items, unique names,
+canonical units, witnessed counts, non-negative balances, complete/valid
+recipes, active recipe references, and pending loss reviews. Restaurant
+approval, external-audit acceptance, and the supervised pilot remain visibly
+manual gates. See `docs/EXTERNAL_AUDIT_HANDOFF_2026-07-30.md`.
+
 Before setting `Features:Inventory:Enabled=true`, obtain restaurant approval
 for:
 

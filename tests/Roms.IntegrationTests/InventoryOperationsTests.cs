@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Roms.Application;
 using Roms.Domain;
 using Roms.Infrastructure.Identity;
@@ -153,6 +154,127 @@ public sealed class InventoryOperationsTests(MariaDbFixture fixture)
         await using var db = database.CreateContext();
         Assert.Empty(await db.StockMovements.ToListAsync());
         Assert.Empty(await db.InventoryCountRecords.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Readiness_preflight_reports_proven_technical_checks_and_manual_gates()
+    {
+        await using var database = await fixture.CreateDatabaseAsync();
+        var scenario = await SeedAsync(database);
+        await using (var db = database.CreateContext())
+        {
+            var category = new MenuCategory { Name = "Mains" };
+            var menuItem = new MenuItem
+            {
+                Category = category,
+                Name = "Fried rice",
+                Price = 120m
+            };
+            menuItem.RecipeIngredients.Add(new RecipeIngredient
+            {
+                InventoryItemId = scenario.ItemId,
+                Quantity = 10m
+            });
+            db.MenuItems.Add(menuItem);
+            await db.SaveChangesAsync();
+        }
+        var service = new InventoryService(
+            database.CreateFactory(),
+            new FixedClock(),
+            inventoryOptions: Options.Create(new InventoryOptions { Enabled = false }));
+        await service.ReceiveAsync(
+            scenario.ItemId, 100m, "OPENING-STOCK", null,
+            scenario.AdminUsername, "readiness-receipt");
+        await service.ReconcileCountAsync(
+            scenario.ItemId, 100m, "Witnessed opening count",
+            scenario.AdminUsername, "readiness-count");
+
+        var report = await service.EvaluateReadinessAsync(scenario.AdminUsername);
+
+        Assert.True(report.TechnicalChecksPassed);
+        Assert.False(report.InventoryEnabled);
+        Assert.Equal(9, report.Checks.Count(x => x.Status == InventoryReadinessStatus.Pass));
+        Assert.Equal(3, report.Checks.Count(x => x.Status == InventoryReadinessStatus.Manual));
+        Assert.DoesNotContain(report.Checks, x => x.Status == InventoryReadinessStatus.Blocked);
+    }
+
+    [Fact]
+    public async Task Readiness_preflight_exposes_data_blockers_and_requires_admin()
+    {
+        await using var database = await fixture.CreateDatabaseAsync();
+        var scenario = await SeedAsync(database);
+        await using (var db = database.CreateContext())
+        {
+            var item = await db.InventoryItems.SingleAsync();
+            item.Unit = "kg";
+            var category = new MenuCategory { Name = "Mains" };
+            var inactiveItem = new InventoryItem
+            {
+                Name = "Retired oil",
+                Unit = "ml",
+                IsActive = false
+            };
+            db.InventoryItems.AddRange(
+                inactiveItem,
+                new InventoryItem { Name = item.Name.ToUpperInvariant(), Unit = "ml" });
+            db.MenuItems.Add(new MenuItem
+            {
+                Category = category,
+                Name = "Unmapped special",
+                Price = 99m
+            });
+            var invalidRecipeMenu = new MenuItem
+            {
+                Category = category,
+                Name = "Invalid recipe special",
+                Price = 109m
+            };
+            invalidRecipeMenu.RecipeIngredients.Add(new RecipeIngredient
+            {
+                InventoryItem = inactiveItem,
+                Quantity = 1m
+            });
+            invalidRecipeMenu.RecipeIngredients.Add(new RecipeIngredient
+            {
+                InventoryItemId = scenario.ItemId,
+                Quantity = 0m
+            });
+            db.MenuItems.Add(invalidRecipeMenu);
+            db.StockMovements.Add(new StockMovement
+            {
+                InventoryItemId = scenario.ItemId,
+                Type = StockMovementType.Adjustment,
+                QuantityDelta = -1m,
+                Reason = "Hostile test fixture",
+                ActorId = scenario.AdminUsername,
+                IdempotencyKey = "readiness-negative",
+                OccurredUtc = new FixedClock().UtcNow
+            });
+            db.InventoryLossRequests.Add(InventoryLossRequest.Report(
+                scenario.ItemId,
+                InventoryLossType.Waste,
+                0.25m,
+                "Pending review fixture",
+                scenario.WaiterUsername,
+                "readiness-pending-loss",
+                new FixedClock().UtcNow));
+            await db.SaveChangesAsync();
+        }
+        var service = new InventoryService(database.CreateFactory(), new FixedClock());
+
+        var report = await service.EvaluateReadinessAsync(scenario.AdminUsername);
+
+        Assert.False(report.TechnicalChecksPassed);
+        Assert.Contains(report.Checks, x => x.Code == "INV-002" && x.Status == InventoryReadinessStatus.Blocked);
+        Assert.Contains(report.Checks, x => x.Code == "INV-003" && x.Status == InventoryReadinessStatus.Blocked);
+        Assert.Contains(report.Checks, x => x.Code == "INV-004" && x.Status == InventoryReadinessStatus.Blocked);
+        Assert.Contains(report.Checks, x => x.Code == "INV-005" && x.Status == InventoryReadinessStatus.Blocked);
+        Assert.Contains(report.Checks, x => x.Code == "REC-001" && x.Status == InventoryReadinessStatus.Blocked);
+        Assert.Contains(report.Checks, x => x.Code == "REC-002" && x.Status == InventoryReadinessStatus.Blocked);
+        Assert.Contains(report.Checks, x => x.Code == "REC-003" && x.Status == InventoryReadinessStatus.Blocked);
+        Assert.Contains(report.Checks, x => x.Code == "LOSS-001" && x.Status == InventoryReadinessStatus.Blocked);
+        await Assert.ThrowsAsync<DomainException>(() =>
+            service.EvaluateReadinessAsync(scenario.WaiterUsername));
     }
 
     private static async Task<Scenario> SeedAsync(MariaDbTestDatabase database)

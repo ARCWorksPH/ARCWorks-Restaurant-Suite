@@ -2,6 +2,7 @@ using System.Data;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MySql.Data.MySqlClient;
 using Roms.Application;
 using Roms.Domain;
@@ -28,8 +29,12 @@ public sealed class ReportService(IDbContextFactory<RomsDbContext> factory) : IR
 public sealed class InventoryService(
     IDbContextFactory<RomsDbContext> factory,
     IClock clock,
-    ILogger<InventoryService>? logger = null) : IInventoryService
+    ILogger<InventoryService>? logger = null,
+    IOptions<InventoryOptions>? inventoryOptions = null) : IInventoryService
 {
+    private static readonly HashSet<string> SupportedUnits =
+        new(StringComparer.OrdinalIgnoreCase) { "piece", "g", "ml" };
+
     public async Task<IReadOnlyList<InventoryBalance>> GetBalancesAsync(CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
@@ -77,6 +82,141 @@ public sealed class InventoryService(
         else recipe.Quantity = quantity;
         db.AuditEntries.Add(new AuditEntry { ActorId = actorId, Action = "SetRecipeIngredient", EntityType = nameof(RecipeIngredient), EntityId = $"{menuItemId}:{inventoryItemId}", Reason = $"Quantity {quantity}", OccurredUtc = clock.UtcNow });
         await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<InventoryReadinessReport> EvaluateReadinessAsync(
+        string adminId,
+        CancellationToken ct = default)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await EnsureAdminAsync(db, adminId, ct);
+
+        var activeItems = await db.InventoryItems.AsNoTracking()
+            .Where(x => x.IsActive)
+            .Select(x => new
+            {
+                x.Id,
+                x.Name,
+                x.Unit,
+                Balance = x.Movements.Sum(movement => movement.QuantityDelta)
+            })
+            .ToListAsync(ct);
+        var countedItemIds = await db.InventoryCountRecords.AsNoTracking()
+            .Select(x => x.InventoryItemId)
+            .Distinct()
+            .ToListAsync(ct);
+        var activeMenuItems = await db.MenuItems.AsNoTracking()
+            .Where(x => x.IsActive && x.IsAvailable)
+            .Select(x => new
+            {
+                x.Id,
+                x.Name,
+                Recipes = x.RecipeIngredients.Select(recipe => new
+                {
+                    recipe.InventoryItemId,
+                    recipe.Quantity,
+                    InventoryItemActive = recipe.InventoryItem != null && recipe.InventoryItem.IsActive
+                }).ToList()
+            })
+            .ToListAsync(ct);
+        var pendingLosses = await db.InventoryLossRequests.AsNoTracking()
+            .CountAsync(x => x.Status == InventoryLossStatus.Pending, ct);
+
+        var duplicateNames = activeItems
+            .GroupBy(x => x.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .OrderBy(x => x)
+            .ToList();
+        var unsupportedUnits = activeItems
+            .Where(x => !SupportedUnits.Contains(x.Unit.Trim()))
+            .Select(x => $"{x.Name} ({x.Unit})")
+            .OrderBy(x => x)
+            .ToList();
+        var uncountedItems = activeItems
+            .Where(x => !countedItemIds.Contains(x.Id))
+            .Select(x => x.Name)
+            .OrderBy(x => x)
+            .ToList();
+        var negativeBalances = activeItems
+            .Where(x => x.Balance < 0)
+            .Select(x => $"{x.Name} ({x.Balance:0.###} {x.Unit})")
+            .OrderBy(x => x)
+            .ToList();
+        var missingRecipes = activeMenuItems
+            .Where(x => x.Recipes.Count == 0)
+            .Select(x => x.Name)
+            .OrderBy(x => x)
+            .ToList();
+        var invalidRecipes = activeMenuItems
+            .SelectMany(menu => menu.Recipes.Select(recipe => new { Menu = menu.Name, Recipe = recipe }))
+            .Where(x => x.Recipe.Quantity <= 0 || x.Recipe.Quantity > 99_999_999_999.999m)
+            .Select(x => x.Menu)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToList();
+        var inactiveRecipeReferences = activeMenuItems
+            .SelectMany(menu => menu.Recipes.Select(recipe => new { Menu = menu.Name, Recipe = recipe }))
+            .Where(x => !x.Recipe.InventoryItemActive)
+            .Select(x => x.Menu)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToList();
+
+        var checks = new List<InventoryReadinessCheck>
+        {
+            Check("INV-001", "Active inventory catalog exists", activeItems.Count > 0,
+                activeItems.Count > 0
+                    ? $"{activeItems.Count} active inventory item(s) found."
+                    : "No active inventory items are configured."),
+            Check("INV-002", "Active inventory names are unique", duplicateNames.Count == 0,
+                duplicateNames.Count == 0
+                    ? "No duplicate active item names found."
+                    : $"Duplicate names: {ListEvidence(duplicateNames)}."),
+            Check("INV-003", "Inventory units use the supported canonical set", unsupportedUnits.Count == 0,
+                unsupportedUnits.Count == 0
+                    ? "All active items use piece, g, or ml."
+                    : $"Unsupported units: {ListEvidence(unsupportedUnits)}."),
+            Check("INV-004", "Every active item has a witnessed opening count", uncountedItems.Count == 0,
+                uncountedItems.Count == 0
+                    ? "Every active item has at least one durable physical-count record."
+                    : $"Missing physical counts: {ListEvidence(uncountedItems)}."),
+            Check("INV-005", "Current inventory balances are non-negative", negativeBalances.Count == 0,
+                negativeBalances.Count == 0
+                    ? "No active item has a negative ledger balance."
+                    : $"Negative balances: {ListEvidence(negativeBalances)}."),
+            Check("REC-001", "Active and available menu items have recipes", activeMenuItems.Count > 0 && missingRecipes.Count == 0,
+                activeMenuItems.Count == 0
+                    ? "No active and available menu items were found."
+                    : missingRecipes.Count == 0
+                        ? $"All {activeMenuItems.Count} active and available menu item(s) have recipe ingredients."
+                        : $"Missing recipes: {ListEvidence(missingRecipes)}."),
+            Check("REC-002", "Recipe quantities are valid", invalidRecipes.Count == 0,
+                invalidRecipes.Count == 0
+                    ? "All configured recipe quantities are positive and within the database range."
+                    : $"Invalid recipe quantities affect: {ListEvidence(invalidRecipes)}."),
+            Check("REC-003", "Recipes reference active inventory items", inactiveRecipeReferences.Count == 0,
+                inactiveRecipeReferences.Count == 0
+                    ? "All active menu recipes reference active inventory items."
+                    : $"Inactive inventory references affect: {ListEvidence(inactiveRecipeReferences)}."),
+            Check("LOSS-001", "No waste or spoilage reports await review", pendingLosses == 0,
+                pendingLosses == 0
+                    ? "No pending inventory loss requests."
+                    : $"{pendingLosses} loss request(s) still require an administrator decision."),
+            Manual("MAN-001", "Restaurant data-owner sign-off",
+                "A restaurant representative must confirm item names, canonical units, opening counts, minimum levels, and recipe quantities."),
+            Manual("MAN-002", "Independent external audit acceptance",
+                "The external reviewer must accept the evidence and record any required remediation."),
+            Manual("MAN-003", "Supervised multi-device pilot and rollback approval",
+                "Run the waiter-kitchen-cashier pilot against a backed-up disposable environment before changing the deployment flag.")
+        };
+
+        return new InventoryReadinessReport(
+            clock.UtcNow,
+            inventoryOptions?.Value.Enabled ?? false,
+            activeItems.Count,
+            activeMenuItems.Count,
+            checks);
     }
 
     public async Task ReceiveAsync(
@@ -197,6 +337,19 @@ public sealed class InventoryService(
             logger?.LogWarning(exception, "Physical count for item {InventoryItemId} hit a transient database conflict.", itemId);
             throw RetryableInventoryConflict();
         }
+    }
+
+    private static InventoryReadinessCheck Check(string code, string name, bool passed, string evidence) =>
+        new(code, name, passed ? InventoryReadinessStatus.Pass : InventoryReadinessStatus.Blocked, evidence);
+
+    private static InventoryReadinessCheck Manual(string code, string name, string evidence) =>
+        new(code, name, InventoryReadinessStatus.Manual, evidence);
+
+    private static string ListEvidence(IReadOnlyList<string> values)
+    {
+        const int visibleLimit = 5;
+        var visible = string.Join(", ", values.Take(visibleLimit));
+        return values.Count <= visibleLimit ? visible : $"{visible}, and {values.Count - visibleLimit} more";
     }
 
     public async Task AdjustAsync(

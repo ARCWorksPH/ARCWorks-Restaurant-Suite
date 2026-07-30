@@ -1,5 +1,55 @@
 # ROMS Work Log
 
+## 2026-07-30 — Inventory activation preflight and external-audit handoff
+
+### Implemented
+
+- Added an administrator-only, read-only inventory activation preflight based
+  on current MariaDB state.
+- Added nine blocking technical checks for catalog existence, duplicate names,
+  canonical units, durable physical counts, negative balances, recipe
+  completeness, recipe quantity validity, active ingredient references, and
+  pending waste/spoilage reviews.
+- Added three permanently explicit manual gates: restaurant data-owner
+  confirmation, independent audit acceptance, and supervised multi-device
+  pilot/rollback approval.
+- Displayed pass, blocker, and manual-gate evidence on the Inventory page.
+- Deliberately did not add an in-app feature-flag switch; activation remains a
+  supervised deployment action.
+- Prepared `docs/EXTERNAL_AUDIT_HANDOFF_2026-07-30.md` with reviewer questions,
+  reproduction commands, exclusions, and a required decision format.
+
+### Verification
+
+- Release build: 0 warnings and 0 errors.
+- Automated tests: 60/60 passed:
+  - Domain: 11/11.
+  - Command Gateway: 9/9.
+  - Playwright E2E: 3/3.
+  - Integration: 37/37.
+- Real MariaDB verified a fully passing technical preflight, every defined
+  hostile-data blocker, and administrator-only access.
+- Real Chromium verified the mobile administrator checklist, manual gates, and
+  live recalculation after a physical count.
+- Production Dockerfile build passed as `roms:external-audit-preflight`.
+- One pre-existing KDS compact-sidebar assertion was intermittent during the
+  first full run. The test now waits for the rendered sidebar before measuring
+  it; the focused rerun and complete 3/3 browser suite passed.
+
+### Safety boundary
+
+- AI code, containers, networks, command protocol, and model were not changed.
+- The active app/database were not migrated, rebuilt, restarted, or used for
+  this acceptance.
+- The unchanged active app returned HTTP 200, active MariaDB remained healthy,
+  and the effective inventory flag remained false.
+- The active deployment must remain at
+  `Features__Inventory__Enabled=false`.
+- Technical preflight success does not represent restaurant confirmation,
+  external-audit acceptance, human beta acceptance, or production readiness.
+
+---
+
 ## 2026-07-30 — Structured receiving and physical-count reconciliation
 
 ### Implemented

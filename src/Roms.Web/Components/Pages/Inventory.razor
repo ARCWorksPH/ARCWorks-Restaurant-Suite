@@ -11,6 +11,34 @@
     <div class="alert alert-warning"><strong>Automatic stock deduction is paused.</strong> Configure and verify stock units, opening balances, and recipes here before enabling <code>Features:Inventory:Enabled</code>.</div>
 }
 @if (!string.IsNullOrWhiteSpace(message)) { <div class="alert @(failed ? "alert-danger" : "alert-success")">@message</div> }
+@if (isAdmin && readiness is not null)
+{
+    <section class="panel mb-4" aria-labelledby="inventory-readiness-heading">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <h2 id="inventory-readiness-heading">Inventory activation preflight</h2>
+                <p class="mb-1">Technical evidence for the external audit. This checklist cannot enable inventory or replace the three human approvals.</p>
+                <small>Evaluated @readiness.EvaluatedUtc.ToLocalTime().ToString("g") · feature flag @(readiness.InventoryEnabled ? "enabled" : "disabled")</small>
+            </div>
+            <span class="status-pill @(readiness.TechnicalChecksPassed ? "status-approved" : "status-rejected")">
+                @(readiness.TechnicalChecksPassed ? "Technical checks passed" : $"{readiness.BlockingIssueCount} blocker(s)")
+            </span>
+        </div>
+        <div class="admin-list mt-3">
+            @foreach (var check in readiness.Checks)
+            {
+                <div>
+                    <span>
+                        <strong>@check.Code · @check.Name</strong>
+                        <small>@check.Evidence</small>
+                    </span>
+                    <span class="status-pill @ReadinessClass(check.Status)">@ReadinessLabel(check.Status)</span>
+                </div>
+            }
+        </div>
+        <p class="mt-3 mb-0"><strong>Guardrail:</strong> changing <code>Features:Inventory:Enabled</code> remains a supervised deployment action after audit acceptance, backup verification, and pilot approval.</p>
+    </section>
+}
 @if (isAdmin)
 {
 <div class="admin-grid">
@@ -281,6 +309,7 @@
     private IReadOnlyList<InventoryLossRequestView> lossRequests = [];
     private IReadOnlyList<StockMovementView> movements = [];
     private IReadOnlyList<InventoryCountView> counts = [];
+    private InventoryReadinessReport? readiness;
     private Guid adjustItemId, recipeMenuId, recipeInventoryId, lossItemId, receiveItemId, countItemId;
     private decimal adjustment, recipeQuantity = 1, lossQuantity = 1, newMinimumStock;
     private decimal receivedQuantity = 1, countedQuantity;
@@ -305,6 +334,8 @@
         lossRequests = await InventoryService.GetLossRequestsAsync();
         movements = await InventoryService.GetRecentMovementsAsync();
         counts = await InventoryService.GetRecentCountsAsync();
+        if (isAdmin)
+            readiness = await InventoryService.EvaluateReadinessAsync(actor);
 
         var activeItems = items.Where(x => x.IsActive).ToList();
         if (!activeItems.Any(x => x.Id == adjustItemId))
@@ -414,6 +445,18 @@
     private string ReviewReason(Guid requestId) => reviewReasons.GetValueOrDefault(requestId, "");
     private void SetReviewReason(Guid requestId, string? value) => reviewReasons[requestId] = value ?? "";
     private static string Signed(decimal value) => value >= 0 ? $"+{value:N3}" : value.ToString("N3");
+    private static string ReadinessClass(InventoryReadinessStatus status) => status switch
+    {
+        InventoryReadinessStatus.Pass => "status-approved",
+        InventoryReadinessStatus.Blocked => "status-rejected",
+        _ => "status-pending"
+    };
+    private static string ReadinessLabel(InventoryReadinessStatus status) => status switch
+    {
+        InventoryReadinessStatus.Pass => "Pass",
+        InventoryReadinessStatus.Blocked => "Blocked",
+        _ => "Manual gate"
+    };
 
     private async Task Run(Func<Task> action)
     {

@@ -64,6 +64,22 @@ public sealed record InventoryLossRequestView(
     string? ReviewedBy,
     DateTime? ReviewedUtc,
     string? ReviewReason);
+public enum InventoryReadinessStatus { Pass, Blocked, Manual }
+public sealed record InventoryReadinessCheck(
+    string Code,
+    string Name,
+    InventoryReadinessStatus Status,
+    string Evidence);
+public sealed record InventoryReadinessReport(
+    DateTime EvaluatedUtc,
+    bool InventoryEnabled,
+    int ActiveInventoryItemCount,
+    int ActiveMenuItemCount,
+    IReadOnlyList<InventoryReadinessCheck> Checks)
+{
+    public bool TechnicalChecksPassed => Checks.All(x => x.Status != InventoryReadinessStatus.Blocked);
+    public int BlockingIssueCount => Checks.Count(x => x.Status == InventoryReadinessStatus.Blocked);
+}
 public sealed record StaffMemberView(string Id, string Username, string DisplayName);
 public sealed record StaffScheduleView(Guid Id, string UserId, string Username, string DisplayName,
     DateTime ScheduledStartUtc, DateTime ScheduledEndUtc, string Notes);
@@ -128,6 +144,8 @@ public interface IInventoryService
     Task<Guid> ReportLossAsync(Guid itemId, InventoryLossType type, decimal quantity, string reason, string actorId,
         string idempotencyKey, CancellationToken cancellationToken = default);
     Task ReviewLossAsync(Guid requestId, bool approve, string? reviewReason, string adminId,
+        CancellationToken cancellationToken = default);
+    Task<InventoryReadinessReport> EvaluateReadinessAsync(string adminId,
         CancellationToken cancellationToken = default);
 }
 

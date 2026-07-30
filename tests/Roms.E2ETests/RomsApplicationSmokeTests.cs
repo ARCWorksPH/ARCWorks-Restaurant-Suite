@@ -63,6 +63,14 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Page.GotoAsync($"{baseAddress}/inventory");
             await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Inventory", Exact = true }))
                 .ToBeVisibleAsync();
+            var preflightPanel = Page.Locator("section.panel").Filter(new()
+            {
+                Has = Page.GetByRole(AriaRole.Heading, new() { Name = "Inventory activation preflight" })
+            });
+            await Expect(preflightPanel).ToBeVisibleAsync();
+            await Expect(preflightPanel.GetByText("blocker(s)")).ToBeVisibleAsync();
+            await Expect(preflightPanel.GetByText("External audit acceptance")).ToBeVisibleAsync();
+            await Expect(preflightPanel.GetByText("Manual gate")).ToHaveCountAsync(3);
             var connectionIndicator = Page.Locator("#roms-connection-indicator");
             await Expect(connectionIndicator).ToContainTextAsync("Connected");
             await Page.GetByPlaceholder("Name", new() { Exact = true })
@@ -99,6 +107,10 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Page.GetByRole(AriaRole.Button, new() { Name = "Reconcile count" }).ClickAsync();
             await Expect(Page.GetByText("Test milk: 7.500 piece counted")).ToBeVisibleAsync();
             await Expect(balancesPanel.GetByText("7.500 piece", new() { Exact = true })).ToBeVisibleAsync();
+            await Expect(preflightPanel.GetByText("Every active item has a witnessed opening count"))
+                .ToBeVisibleAsync();
+            await Expect(preflightPanel.GetByText("Pass", new() { Exact = true }))
+                .ToHaveCountAsync(8);
 
             var navigationToggle = Page.GetByRole(AriaRole.Button, new() { Name = "Toggle navigation menu" });
             await Expect(navigationToggle).ToHaveAttributeAsync("aria-expanded", "false");
@@ -124,11 +136,15 @@ public sealed class RomsApplicationSmokeTests : PageTest
                 .ToBeVisibleAsync();
             await Expect(Page.Locator(".page")).ToHaveClassAsync(new Regex("\\bkds-mode\\b"));
 
-            var sidebarBox = await Page.Locator(".sidebar").BoundingBoxAsync();
+            var sidebar = Page.Locator(".sidebar");
+            await Expect(sidebar).ToBeVisibleAsync();
+            var sidebarBox = await sidebar.BoundingBoxAsync();
             Assert.That(sidebarBox, Is.Not.Null);
             Assert.That(sidebarBox!.Width, Is.InRange(70, 74));
 
-            var compactLabelBox = await Page.Locator(".sidebar .nav-text").First.BoundingBoxAsync();
+            var compactLabel = sidebar.Locator(".nav-text").First;
+            await Expect(compactLabel).ToBeAttachedAsync();
+            var compactLabelBox = await compactLabel.BoundingBoxAsync();
             Assert.That(compactLabelBox, Is.Not.Null);
             Assert.Multiple(() =>
             {
