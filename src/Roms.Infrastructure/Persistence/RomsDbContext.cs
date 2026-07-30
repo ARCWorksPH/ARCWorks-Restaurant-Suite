@@ -19,6 +19,7 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<InventoryCountRecord> InventoryCountRecords => Set<InventoryCountRecord>();
     public DbSet<InventoryLossRequest> InventoryLossRequests => Set<InventoryLossRequest>();
     public DbSet<StaffSchedule> StaffSchedules => Set<StaffSchedule>();
     public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
@@ -98,6 +99,18 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
             e.Property(x => x.IdempotencyKey).HasMaxLength(150);
             e.HasIndex(x => x.IdempotencyKey).IsUnique();
             e.HasIndex(x => new { x.InventoryItemId, x.OccurredUtc });
+        });
+        builder.Entity<InventoryCountRecord>(e =>
+        {
+            e.Property(x => x.LedgerQuantity).HasPrecision(14, 3);
+            e.Property(x => x.CountedQuantity).HasPrecision(14, 3);
+            e.Property(x => x.Variance).HasPrecision(14, 3);
+            e.Property(x => x.Reason).HasMaxLength(500);
+            e.Property(x => x.CountedBy).HasMaxLength(256);
+            e.Property(x => x.IdempotencyKey).HasMaxLength(150);
+            e.HasIndex(x => x.IdempotencyKey).IsUnique();
+            e.HasIndex(x => new { x.InventoryItemId, x.CountedUtc });
+            e.HasOne(x => x.InventoryItem).WithMany().HasForeignKey(x => x.InventoryItemId).OnDelete(DeleteBehavior.Restrict);
         });
         builder.Entity<InventoryLossRequest>(e =>
         {

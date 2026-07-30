@@ -1,6 +1,8 @@
 using System.Data;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using MySql.Data.MySqlClient;
 using Roms.Application;
 using Roms.Domain;
 using Roms.Infrastructure.Persistence;
@@ -23,7 +25,10 @@ public sealed class ReportService(IDbContextFactory<RomsDbContext> factory) : IR
     }
 }
 
-public sealed class InventoryService(IDbContextFactory<RomsDbContext> factory, IClock clock) : IInventoryService
+public sealed class InventoryService(
+    IDbContextFactory<RomsDbContext> factory,
+    IClock clock,
+    ILogger<InventoryService>? logger = null) : IInventoryService
 {
     public async Task<IReadOnlyList<InventoryBalance>> GetBalancesAsync(CancellationToken ct = default)
     {
@@ -72,6 +77,126 @@ public sealed class InventoryService(IDbContextFactory<RomsDbContext> factory, I
         else recipe.Quantity = quantity;
         db.AuditEntries.Add(new AuditEntry { ActorId = actorId, Action = "SetRecipeIngredient", EntityType = nameof(RecipeIngredient), EntityId = $"{menuItemId}:{inventoryItemId}", Reason = $"Quantity {quantity}", OccurredUtc = clock.UtcNow });
         await db.SaveChangesAsync(ct);
+    }
+
+    public async Task ReceiveAsync(
+        Guid itemId,
+        decimal quantity,
+        string deliveryReference,
+        string? note,
+        string actorId,
+        string idempotencyKey,
+        CancellationToken ct = default)
+    {
+        if (quantity <= 0) throw new DomainException("Received quantity must be greater than zero.");
+        if (quantity > 99_999_999_999.999m) throw new DomainException("Received quantity is too large.");
+        if (string.IsNullOrWhiteSpace(deliveryReference)) throw new DomainException("A delivery reference is required.");
+        if (deliveryReference.Trim().Length > 120) throw new DomainException("Delivery reference cannot exceed 120 characters.");
+        if ((note?.Trim().Length ?? 0) > 350) throw new DomainException("Delivery note cannot exceed 350 characters.");
+        ValidateKey(idempotencyKey, "receipt");
+
+        try
+        {
+            await using var db = await factory.CreateDbContextAsync(ct);
+            await EnsureAdminAsync(db, actorId, ct);
+            if (await db.StockMovements.AnyAsync(x => x.IdempotencyKey == idempotencyKey, ct)) return;
+            var item = await db.InventoryItems.SingleOrDefaultAsync(x => x.Id == itemId && x.IsActive, ct)
+                ?? throw new DomainException("Inventory item not found.");
+            var reference = deliveryReference.Trim();
+            var cleanNote = note?.Trim();
+            var reason = string.IsNullOrWhiteSpace(cleanNote)
+                ? $"Delivery {reference}"
+                : $"Delivery {reference}: {cleanNote}";
+            db.StockMovements.Add(new StockMovement
+            {
+                InventoryItemId = itemId,
+                QuantityDelta = quantity,
+                Type = StockMovementType.Receipt,
+                Reason = reason,
+                ActorId = actorId,
+                IdempotencyKey = idempotencyKey,
+                OccurredUtc = clock.UtcNow
+            });
+            db.AuditEntries.Add(Audit(actorId, "ReceiveInventory", nameof(InventoryItem), item.Id,
+                reference, JsonSerializer.Serialize(new { Quantity = quantity, item.Unit, Note = cleanNote })));
+            await db.SaveChangesAsync(ct);
+        }
+        catch (Exception exception) when (IsTransientTransactionConflict(exception))
+        {
+            logger?.LogWarning(exception, "Inventory receipt for item {InventoryItemId} hit a transient database conflict.", itemId);
+            throw RetryableInventoryConflict();
+        }
+        catch (DbUpdateException exception) when (IsDuplicateKey(exception))
+        {
+            await using var verificationDb = await factory.CreateDbContextAsync(ct);
+            if (await verificationDb.StockMovements.AnyAsync(x => x.IdempotencyKey == idempotencyKey, ct))
+                return;
+            throw;
+        }
+    }
+
+    public async Task<Guid> ReconcileCountAsync(
+        Guid itemId,
+        decimal countedQuantity,
+        string reason,
+        string actorId,
+        string idempotencyKey,
+        CancellationToken ct = default)
+    {
+        ValidateKey(idempotencyKey, "physical-count");
+        try
+        {
+            await using var strategyContext = await factory.CreateDbContextAsync(ct);
+            var strategy = strategyContext.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
+            {
+                await using var db = await factory.CreateDbContextAsync(ct);
+                await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+                await EnsureAdminAsync(db, actorId, ct);
+                var existing = await db.InventoryCountRecords.AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, ct);
+                if (existing is not null) return existing.Id;
+                var item = await db.InventoryItems.SingleOrDefaultAsync(x => x.Id == itemId && x.IsActive, ct)
+                    ?? throw new DomainException("Inventory item not found.");
+                var ledgerQuantity = await db.StockMovements
+                    .Where(x => x.InventoryItemId == itemId)
+                    .SumAsync(x => x.QuantityDelta, ct);
+                var count = InventoryCountRecord.Record(
+                    itemId, ledgerQuantity, countedQuantity, reason, actorId, idempotencyKey, clock.UtcNow);
+                db.InventoryCountRecords.Add(count);
+                if (count.Variance != 0)
+                {
+                    db.StockMovements.Add(new StockMovement
+                    {
+                        InventoryItemId = itemId,
+                        QuantityDelta = count.Variance,
+                        Type = StockMovementType.Adjustment,
+                        Reason = $"Physical count: {count.Reason}",
+                        ActorId = actorId,
+                        IdempotencyKey = $"count:{count.Id}:variance",
+                        OccurredUtc = clock.UtcNow
+                    });
+                }
+                db.AuditEntries.Add(Audit(actorId, "ReconcileInventoryCount", nameof(InventoryCountRecord), count.Id,
+                    count.Reason, JsonSerializer.Serialize(new
+                    {
+                        count.InventoryItemId,
+                        item.Name,
+                        item.Unit,
+                        count.LedgerQuantity,
+                        count.CountedQuantity,
+                        count.Variance
+                    })));
+                await db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+                return count.Id;
+            });
+        }
+        catch (Exception exception) when (IsTransientTransactionConflict(exception))
+        {
+            logger?.LogWarning(exception, "Physical count for item {InventoryItemId} hit a transient database conflict.", itemId);
+            throw RetryableInventoryConflict();
+        }
     }
 
     public async Task AdjustAsync(
@@ -152,6 +277,55 @@ public sealed class InventoryService(IDbContextFactory<RomsDbContext> factory, I
                 x.ReviewedBy,
                 x.ReviewedUtc,
                 x.ReviewReason))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<StockMovementView>> GetRecentMovementsAsync(
+        int take = 50,
+        CancellationToken ct = default)
+    {
+        if (take is < 1 or > 200) throw new DomainException("Movement history limit must be between 1 and 200.");
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.StockMovements.AsNoTracking()
+            .Include(x => x.InventoryItem)
+            .OrderByDescending(x => x.OccurredUtc)
+            .ThenByDescending(x => x.Id)
+            .Take(take)
+            .Select(x => new StockMovementView(
+                x.Id,
+                x.InventoryItemId,
+                x.InventoryItem!.Name,
+                x.InventoryItem.Unit,
+                x.Type,
+                x.QuantityDelta,
+                x.Reason,
+                x.ActorId,
+                x.OccurredUtc))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<InventoryCountView>> GetRecentCountsAsync(
+        int take = 25,
+        CancellationToken ct = default)
+    {
+        if (take is < 1 or > 200) throw new DomainException("Count history limit must be between 1 and 200.");
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.InventoryCountRecords.AsNoTracking()
+            .Include(x => x.InventoryItem)
+            .OrderByDescending(x => x.CountedUtc)
+            .ThenByDescending(x => x.Id)
+            .Take(take)
+            .Select(x => new InventoryCountView(
+                x.Id,
+                x.InventoryItemId,
+                x.InventoryItem!.Name,
+                x.InventoryItem.Unit,
+                x.LedgerQuantity,
+                x.CountedQuantity,
+                x.Variance,
+                x.Reason,
+                x.CountedBy,
+                x.CountedUtc))
             .ToListAsync(ct);
     }
 
@@ -300,4 +474,33 @@ public sealed class InventoryService(IDbContextFactory<RomsDbContext> factory, I
          join existingRole in db.Roles on userRole.RoleId equals existingRole.Id
          where user.UserName == actorId && existingRole.Name == role
          select user.Id).AnyAsync(ct);
+
+    private static void ValidateKey(string idempotencyKey, string operation)
+    {
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Length > 150)
+            throw new DomainException($"A valid {operation} key is required.");
+    }
+
+    private static bool IsTransientTransactionConflict(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is MySqlException { Number: 1205 or 1213 })
+                return true;
+        }
+        return false;
+    }
+
+    private static bool IsDuplicateKey(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is MySqlException { Number: 1062 })
+                return true;
+        }
+        return false;
+    }
+
+    private static DomainException RetryableInventoryConflict() =>
+        new("Another inventory update happened at the same time. Reload and try this action again.");
 }

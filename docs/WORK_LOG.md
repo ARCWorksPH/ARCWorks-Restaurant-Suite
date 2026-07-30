@@ -1,5 +1,60 @@
 # ROMS Work Log
 
+## 2026-07-30 — Structured receiving and physical-count reconciliation
+
+### Implemented
+
+- Added administrator-only stock receiving with positive quantity, required
+  delivery/invoice reference, optional note, audit record, and append-only
+  `Receipt` movement.
+- Added durable physical-count records containing ledger-before-count, counted
+  quantity, variance, reason, actor, timestamp, and idempotency key.
+- Zero-variance counts are retained without creating a false movement.
+- Nonzero variances append exactly one `Adjustment` movement in the same
+  serializable transaction.
+- Added recent count and movement history to the Inventory page.
+- Kept the generic adjustment form as an explicitly advanced correction path.
+- Added migration `20260730220000_AddInventoryCountRecords`.
+- Added the operating rules in `docs/INVENTORY_OPERATIONS.md`.
+
+### Safety and concurrency
+
+- Receiving and counting reject non-admin actors, inactive items, invalid
+  ranges, oversized values, missing references/reasons, and unbounded history
+  requests.
+- Stable form idempotency keys plus the database unique constraint prevent
+  duplicate receipts. Eight concurrent copies of one delivery produced one
+  receipt and one audit entry.
+- Physical-count reconciliation commits the count snapshot, variance movement,
+  and audit entry atomically.
+- MariaDB deadlock/timeout conflicts use the established safe reload-and-retry
+  message.
+
+### Verification
+
+- Release build: 0 warnings, 0 errors.
+- Final automated tests: 58/58 passed:
+  - Domain: 11/11.
+  - Command Gateway: 9/9.
+  - Playwright E2E: 3/3.
+  - Integration: 35/35.
+- Real MariaDB verified receipt/count idempotency, exact variance correction,
+  zero-variance evidence, authorization, and hostile range rejection.
+- Real Chromium verified item setup, approved loss, referenced receipt,
+  physical count, final balance, and activity history.
+- Production Dockerfile build completed successfully as
+  `roms:inventory-operations-test`.
+
+### Deployment boundary
+
+- The active application/database were not migrated, rebuilt, restarted, or
+  used for this acceptance run.
+- `Features__Inventory__Enabled=false` remains the required active setting.
+- Restaurant-confirmed units, recipes, witnessed opening balances, and
+  supervised physical-device acceptance remain activation gates.
+
+---
+
 ## 2026-07-30 — Synthetic multi-role, stress, and abuse testing
 
 ### Safety and isolation

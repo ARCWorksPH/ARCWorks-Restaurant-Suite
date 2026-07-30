@@ -29,6 +29,27 @@ public sealed record DashboardReport(decimal CompletedOrderValue, int OrderCount
     IReadOnlyList<BestSeller> BestSellers);
 public sealed record BestSeller(string Name, int Quantity, decimal Value);
 public sealed record InventoryBalance(Guid Id, string Name, string Unit, decimal CurrentStock, decimal MinimumStock, bool IsLow);
+public sealed record StockMovementView(
+    long Id,
+    Guid InventoryItemId,
+    string InventoryItemName,
+    string Unit,
+    StockMovementType Type,
+    decimal QuantityDelta,
+    string Reason,
+    string ActorId,
+    DateTime OccurredUtc);
+public sealed record InventoryCountView(
+    Guid Id,
+    Guid InventoryItemId,
+    string InventoryItemName,
+    string Unit,
+    decimal LedgerQuantity,
+    decimal CountedQuantity,
+    decimal Variance,
+    string Reason,
+    string CountedBy,
+    DateTime CountedUtc);
 public sealed record InventoryLossRequestView(
     Guid Id,
     Guid InventoryItemId,
@@ -95,8 +116,14 @@ public interface IInventoryService
     Task<IReadOnlyList<InventoryItem>> GetItemsAsync(CancellationToken cancellationToken = default);
     Task SaveItemAsync(InventoryItem item, string actorId, CancellationToken cancellationToken = default);
     Task SetRecipeIngredientAsync(Guid menuItemId, Guid inventoryItemId, decimal quantity, string actorId, CancellationToken cancellationToken = default);
+    Task ReceiveAsync(Guid itemId, decimal quantity, string deliveryReference, string? note, string actorId,
+        string idempotencyKey, CancellationToken cancellationToken = default);
+    Task<Guid> ReconcileCountAsync(Guid itemId, decimal countedQuantity, string reason, string actorId,
+        string idempotencyKey, CancellationToken cancellationToken = default);
     Task AdjustAsync(Guid itemId, decimal delta, string reason, string actorId, string idempotencyKey,
         CancellationToken cancellationToken = default, bool allowNegativeStock = false, string? inventoryOverrideReason = null);
+    Task<IReadOnlyList<StockMovementView>> GetRecentMovementsAsync(int take = 50, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<InventoryCountView>> GetRecentCountsAsync(int take = 25, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<InventoryLossRequestView>> GetLossRequestsAsync(CancellationToken cancellationToken = default);
     Task<Guid> ReportLossAsync(Guid itemId, InventoryLossType type, decimal quantity, string reason, string actorId,
         string idempotencyKey, CancellationToken cancellationToken = default);

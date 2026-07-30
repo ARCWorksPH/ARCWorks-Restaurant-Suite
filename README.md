@@ -7,7 +7,7 @@ ROMS is a single-location, touch-first restaurant workflow for waiters, kitchen 
 - Role-protected Admin, Waiter, and Kitchen experiences.
 - Table status, draft ordering, price/name snapshots, idempotent submission, KDS status flow, waiter completion, audit history, and real-time updates.
 - Menu/table/user administration and completed order-value reporting.
-- Feature-gated inventory ledger, recipes, low-stock balances, and transactional deduction on Preparing.
+- Feature-gated inventory ledger, recipes, low-stock balances, structured receiving, witnessed physical-count reconciliation, and transactional deduction on Preparing.
 - MariaDB migration, Docker Compose deployment, HTTPS reverse proxy, health monitoring, encrypted-backup script, and manual failover runbook.
 
 ## Run locally with Docker

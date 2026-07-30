@@ -28,7 +28,62 @@
         </div>
     </section>
     <section class="panel">
+        <h2>Receive stock</h2>
+        <p>Record a delivery as a positive receipt with its delivery or invoice reference.</p>
+        @if (HasActiveInventoryItems)
+        {
+            <div class="user-form">
+                <select class="form-select" aria-label="Received inventory item" @bind="receiveItemId">
+                    @foreach (var item in items.Where(x => x.IsActive))
+                    {
+                        <option value="@item.Id">@item.Name (@item.Unit)</option>
+                    }
+                </select>
+                <input class="form-control" type="number" min="0.001" step="0.001"
+                       placeholder="Received quantity" @bind="receivedQuantity" />
+                <input class="form-control" maxlength="120" placeholder="Delivery or invoice reference (required)"
+                       @bind="deliveryReference" @bind:event="oninput" />
+                <input class="form-control" maxlength="350" placeholder="Delivery note (optional)"
+                       @bind="deliveryNote" @bind:event="oninput" />
+                <button class="btn btn-primary touch-button"
+                        disabled="@(busy || receiveItemId == Guid.Empty)"
+                        @onclick="Receive">Post receipt</button>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state py-3">No active inventory items are available for receiving.</div>
+        }
+    </section>
+    <section class="panel">
+        <h2>Physical count reconciliation</h2>
+        <p>Enter the witnessed quantity on hand. ROMS records the count even when the variance is zero and posts only the required correction.</p>
+        @if (HasActiveInventoryItems)
+        {
+            <div class="user-form">
+                <select class="form-select" aria-label="Counted inventory item" @bind="countItemId">
+                    @foreach (var item in items.Where(x => x.IsActive))
+                    {
+                        <option value="@item.Id">@item.Name (@item.Unit)</option>
+                    }
+                </select>
+                <input class="form-control" type="number" min="0" step="0.001"
+                       placeholder="Physical quantity counted" @bind="countedQuantity" />
+                <input class="form-control" maxlength="500" placeholder="Count reason or count-sheet reference (required)"
+                       @bind="countReason" @bind:event="oninput" />
+                <button class="btn btn-success touch-button"
+                        disabled="@(busy || countItemId == Guid.Empty)"
+                        @onclick="ReconcileCount">Reconcile count</button>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state py-3">No active inventory items are available for physical counting.</div>
+        }
+    </section>
+    <section class="panel">
         <h2>Stock adjustment</h2>
+        <p>Advanced correction only. Use receiving and physical count reconciliation for normal operations.</p>
         @if (HasActiveInventoryItems)
         {
             <div class="user-form">
@@ -48,7 +103,7 @@
                 {
                     <input class="form-control" placeholder="Manager override reason (required)" @bind="adjustmentOverrideReason" />
                 }
-                <button class="btn btn-primary touch-button" disabled="@(adjustItemId == Guid.Empty)" @onclick="Adjust">Post adjustment</button>
+                <button class="btn btn-primary touch-button" disabled="@(busy || adjustItemId == Guid.Empty)" @onclick="Adjust">Post adjustment</button>
             </div>
         }
         else
@@ -167,20 +222,68 @@
         </div>
     }
 </section>
+<section class="panel mt-4">
+    <h2>Recent physical counts</h2>
+    @if (counts.Count == 0)
+    {
+        <div class="empty-state">No physical counts have been recorded.</div>
+    }
+    else
+    {
+        <div class="admin-list">
+            @foreach (var count in counts)
+            {
+                <div>
+                    <span>
+                        <strong>@count.InventoryItemName: @count.CountedQuantity.ToString("N3") @count.Unit counted</strong>
+                        <small>Ledger @count.LedgerQuantity.ToString("N3") · variance @Signed(count.Variance) · @count.Reason</small>
+                    </span>
+                    <small>@count.CountedBy · @count.CountedUtc.ToLocalTime().ToString("g")</small>
+                </div>
+            }
+        </div>
+    }
+</section>
+<section class="panel mt-4">
+    <h2>Recent stock activity</h2>
+    @if (movements.Count == 0)
+    {
+        <div class="empty-state">No stock movements have been recorded.</div>
+    }
+    else
+    {
+        <div class="admin-list">
+            @foreach (var movement in movements)
+            {
+                <div>
+                    <span>
+                        <strong>@movement.Type: @Signed(movement.QuantityDelta) @movement.Unit @movement.InventoryItemName</strong>
+                        <small>@movement.Reason</small>
+                    </span>
+                    <small>@movement.ActorId · @movement.OccurredUtc.ToLocalTime().ToString("g")</small>
+                </div>
+            }
+        </div>
+    }
+</section>
 
 @code {
-    private bool enabled, failed, isAdmin, allowNegativeAdjustment;
+    private bool enabled, failed, isAdmin, allowNegativeAdjustment, busy;
     private string actor = "unknown", adjustmentReason = "", adjustmentOverrideReason = "";
     private string newItemName = "", newItemUnit = "piece";
-    private string lossReason = "";
+    private string lossReason = "", deliveryReference = "", deliveryNote = "", countReason = "";
+    private string receiptKey = Guid.NewGuid().ToString("N"), countKey = Guid.NewGuid().ToString("N");
     private readonly Dictionary<Guid, string> reviewReasons = [];
     private string? message;
     private IReadOnlyList<InventoryBalance> balances = [];
     private IReadOnlyList<InventoryItem> items = [];
     private IReadOnlyList<MenuItemChoice> menu = [];
     private IReadOnlyList<InventoryLossRequestView> lossRequests = [];
-    private Guid adjustItemId, recipeMenuId, recipeInventoryId, lossItemId;
+    private IReadOnlyList<StockMovementView> movements = [];
+    private IReadOnlyList<InventoryCountView> counts = [];
+    private Guid adjustItemId, recipeMenuId, recipeInventoryId, lossItemId, receiveItemId, countItemId;
     private decimal adjustment, recipeQuantity = 1, lossQuantity = 1, newMinimumStock;
+    private decimal receivedQuantity = 1, countedQuantity;
     private InventoryLossType lossType = InventoryLossType.Waste;
 
     private bool HasActiveInventoryItems => items.Any(x => x.IsActive);
@@ -200,6 +303,8 @@
         items = await InventoryService.GetItemsAsync();
         menu = await Orders.GetMenuAsync();
         lossRequests = await InventoryService.GetLossRequestsAsync();
+        movements = await InventoryService.GetRecentMovementsAsync();
+        counts = await InventoryService.GetRecentCountsAsync();
 
         var activeItems = items.Where(x => x.IsActive).ToList();
         if (!activeItems.Any(x => x.Id == adjustItemId))
@@ -208,6 +313,10 @@
             recipeInventoryId = activeItems.FirstOrDefault()?.Id ?? Guid.Empty;
         if (!activeItems.Any(x => x.Id == lossItemId))
             lossItemId = activeItems.FirstOrDefault()?.Id ?? Guid.Empty;
+        if (!activeItems.Any(x => x.Id == receiveItemId))
+            receiveItemId = activeItems.FirstOrDefault()?.Id ?? Guid.Empty;
+        if (!activeItems.Any(x => x.Id == countItemId))
+            countItemId = activeItems.FirstOrDefault()?.Id ?? Guid.Empty;
         if (!menu.Any(x => x.Id == recipeMenuId))
             recipeMenuId = menu.FirstOrDefault()?.Id ?? Guid.Empty;
     }
@@ -223,6 +332,41 @@
         newItemUnit = "piece";
         newMinimumStock = 0;
     });
+
+    private Task Receive()
+    {
+        if (receiveItemId == Guid.Empty) return Task.CompletedTask;
+        return Run(async () =>
+        {
+            await InventoryService.ReceiveAsync(
+                receiveItemId,
+                receivedQuantity,
+                deliveryReference,
+                deliveryNote,
+                actor,
+                receiptKey);
+            receivedQuantity = 1;
+            deliveryReference = "";
+            deliveryNote = "";
+            receiptKey = Guid.NewGuid().ToString("N");
+        });
+    }
+
+    private Task ReconcileCount()
+    {
+        if (countItemId == Guid.Empty) return Task.CompletedTask;
+        return Run(async () =>
+        {
+            await InventoryService.ReconcileCountAsync(
+                countItemId,
+                countedQuantity,
+                countReason,
+                actor,
+                countKey);
+            countReason = "";
+            countKey = Guid.NewGuid().ToString("N");
+        });
+    }
 
     private Task Adjust()
     {
@@ -269,10 +413,14 @@
 
     private string ReviewReason(Guid requestId) => reviewReasons.GetValueOrDefault(requestId, "");
     private void SetReviewReason(Guid requestId, string? value) => reviewReasons[requestId] = value ?? "";
+    private static string Signed(decimal value) => value >= 0 ? $"+{value:N3}" : value.ToString("N3");
 
     private async Task Run(Func<Task> action)
     {
+        if (busy) return;
+        busy = true;
         try { await action(); message = "Saved."; failed = false; await Load(); }
         catch (Exception ex) { message = ex.Message; failed = true; }
+        finally { busy = false; }
     }
 }

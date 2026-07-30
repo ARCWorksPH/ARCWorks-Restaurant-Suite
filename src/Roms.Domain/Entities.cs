@@ -359,6 +359,50 @@ public sealed class StockMovement
     public DateTime OccurredUtc { get; set; }
 }
 
+public sealed class InventoryCountRecord
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid InventoryItemId { get; private set; }
+    public InventoryItem? InventoryItem { get; set; }
+    public decimal LedgerQuantity { get; private set; }
+    public decimal CountedQuantity { get; private set; }
+    public decimal Variance { get; private set; }
+    public string Reason { get; private set; } = "";
+    public string CountedBy { get; private set; } = "";
+    public DateTime CountedUtc { get; private set; }
+    public string IdempotencyKey { get; private set; } = "";
+
+    public static InventoryCountRecord Record(
+        Guid inventoryItemId,
+        decimal ledgerQuantity,
+        decimal countedQuantity,
+        string reason,
+        string actorId,
+        string idempotencyKey,
+        DateTime utcNow)
+    {
+        if (inventoryItemId == Guid.Empty) throw new DomainException("An inventory item is required.");
+        if (countedQuantity < 0) throw new DomainException("Physical count cannot be negative.");
+        if (countedQuantity > 99_999_999_999.999m) throw new DomainException("Physical count is too large.");
+        if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("A physical-count reason is required.");
+        if (reason.Trim().Length > 500) throw new DomainException("A physical-count reason cannot exceed 500 characters.");
+        if (string.IsNullOrWhiteSpace(actorId)) throw new DomainException("A counting staff member is required.");
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Length > 150)
+            throw new DomainException("A valid physical-count key is required.");
+        return new InventoryCountRecord
+        {
+            InventoryItemId = inventoryItemId,
+            LedgerQuantity = ledgerQuantity,
+            CountedQuantity = countedQuantity,
+            Variance = countedQuantity - ledgerQuantity,
+            Reason = reason.Trim(),
+            CountedBy = actorId,
+            CountedUtc = utcNow,
+            IdempotencyKey = idempotencyKey
+        };
+    }
+}
+
 public sealed class InventoryLossRequest
 {
     public Guid Id { get; set; } = Guid.NewGuid();

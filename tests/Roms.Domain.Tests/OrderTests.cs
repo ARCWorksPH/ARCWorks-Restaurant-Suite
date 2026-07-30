@@ -144,6 +144,35 @@ public sealed class OrderTests
         Assert.Equal(InventoryLossStatus.Rejected, request.Status);
     }
 
+    [Fact]
+    public void Physical_count_records_zero_or_nonzero_variance_and_rejects_invalid_values()
+    {
+        var itemId = Guid.NewGuid();
+        var count = InventoryCountRecord.Record(
+            itemId,
+            10m,
+            7.5m,
+            "Closing count sheet 42",
+            "admin",
+            "count-1",
+            Now);
+
+        Assert.Equal(itemId, count.InventoryItemId);
+        Assert.Equal(10m, count.LedgerQuantity);
+        Assert.Equal(7.5m, count.CountedQuantity);
+        Assert.Equal(-2.5m, count.Variance);
+        Assert.Equal("Closing count sheet 42", count.Reason);
+
+        var zeroVariance = InventoryCountRecord.Record(
+            itemId, 7.5m, 7.5m, "Witnessed recount", "admin", "count-2", Now);
+        Assert.Equal(0m, zeroVariance.Variance);
+
+        Assert.Throws<DomainException>(() =>
+            InventoryCountRecord.Record(itemId, 1m, -1m, "Bad count", "admin", "count-3", Now));
+        Assert.Throws<DomainException>(() =>
+            InventoryCountRecord.Record(itemId, 1m, 1m, " ", "admin", "count-4", Now));
+    }
+
     private static Order NewOrder() => new() { TableId = Guid.NewGuid(), WaiterId = "waiter", CreatedUtc = Now };
     private static Order WithItem() { var order = NewOrder(); order.AddItem(new MenuItem { Name = "Rice", Price = 50m }, 1, null, Now); return order; }
 }

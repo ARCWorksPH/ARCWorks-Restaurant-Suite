@@ -17,6 +17,9 @@ Status: implementation baseline for inventory-readiness testing. Inventory remai
 | Kitchen or Admin reports waste/spoilage | Create a Pending loss request. Do not change the stock ledger. |
 | Admin approves waste/spoilage | Mark the request Approved and append one idempotent `Waste` or `Spoilage` stock movement. |
 | Admin rejects waste/spoilage | Mark the request Rejected with a reason. Do not change the stock ledger. |
+| Admin records a delivery | Append one positive `Receipt` movement with a delivery reference. Duplicate submissions with the same key post once. |
+| Admin records a physical count with zero variance | Preserve the witnessed count record and audit entry. Do not create a false stock movement. |
+| Admin records a physical count with nonzero variance | Preserve the count snapshot and append one `Adjustment` movement equal to `counted - ledger` in the same transaction. |
 
 ## Authorization and audit
 
@@ -31,6 +34,8 @@ Status: implementation baseline for inventory-readiness testing. Inventory remai
 - Kitchen staff and administrators may report waste or spoilage. Only administrators may approve or reject a report.
 - A rejected loss report requires a review reason.
 - An approved physical loss is recorded even if it reveals negative stock; the system emits a discrepancy alert rather than hiding the loss.
+- Receiving and physical-count reconciliation are administrator-only and idempotent.
+- Physical counts preserve the ledger-before-count, counted quantity, variance, reason, actor, and timestamp.
 
 ## Deferred policies
 

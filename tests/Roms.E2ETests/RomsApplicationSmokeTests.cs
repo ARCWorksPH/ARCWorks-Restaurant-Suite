@@ -79,7 +79,26 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Expect(Page.GetByText("Pending", new() { Exact = true })).ToBeVisibleAsync();
             await Page.GetByRole(AriaRole.Button, new() { Name = "Approve" }).ClickAsync();
             await Expect(Page.GetByText("Approved", new() { Exact = true })).ToBeVisibleAsync();
-            await Expect(Page.GetByText("-1.000 piece")).ToBeVisibleAsync();
+            var balancesPanel = Page.Locator("section.panel").Filter(new()
+            {
+                Has = Page.GetByRole(AriaRole.Heading, new() { Name = "Current balances" })
+            });
+            await Expect(balancesPanel.GetByText("-1.000 piece")).ToBeVisibleAsync();
+            await Page.GetByLabel("Received inventory item").SelectOptionAsync(
+                new SelectOptionValue { Label = "Test milk (piece)" });
+            await Page.GetByPlaceholder("Received quantity").FillAsync("10");
+            await Page.GetByPlaceholder("Delivery or invoice reference (required)").FillAsync("E2E-DR-001");
+            await Page.GetByPlaceholder("Delivery note (optional)").FillAsync("Synthetic delivery");
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Post receipt" }).ClickAsync();
+            await Expect(Page.GetByText("Receipt: +10.000 piece Test milk")).ToBeVisibleAsync();
+            await Page.GetByLabel("Counted inventory item").SelectOptionAsync(
+                new SelectOptionValue { Label = "Test milk (piece)" });
+            await Page.GetByPlaceholder("Physical quantity counted").FillAsync("7.5");
+            await Page.GetByPlaceholder("Count reason or count-sheet reference (required)")
+                .FillAsync("E2E closing count");
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Reconcile count" }).ClickAsync();
+            await Expect(Page.GetByText("Test milk: 7.500 piece counted")).ToBeVisibleAsync();
+            await Expect(balancesPanel.GetByText("7.500 piece", new() { Exact = true })).ToBeVisibleAsync();
 
             var navigationToggle = Page.GetByRole(AriaRole.Button, new() { Name = "Toggle navigation menu" });
             await Expect(navigationToggle).ToHaveAttributeAsync("aria-expanded", "false");
