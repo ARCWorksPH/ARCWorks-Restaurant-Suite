@@ -1,9 +1,13 @@
 # MariaDB Deadlock Diagnostic Record
 
-Date investigated: 2026-07-30  
-Classification: synthetic overload finding, not a production incident  
-System: ROMS inventory transition workflow  
-Database: MariaDB 11.4.12, InnoDB  
+Date investigated: 2026-07-30
+
+Classification: synthetic overload finding, not a production incident
+
+System: ROMS inventory transition workflow
+
+Database: MariaDB 11.4.12, InnoDB
+
 Evidence source: disposable Testcontainers database
 
 ## Executive summary
