@@ -77,9 +77,14 @@ services:
       OLLAMA_KEEP_ALIVE: "2m"
     volumes:
       - ollama-models:/root/.ollama
-    # The model server is reachable only by services on the private inference
-    # network. Never publish Ollama's unauthenticated API to the host or tunnel.
-    networks: [inference]
+    # Loopback publishing supports controlled local benchmarks. It is not
+    # reachable from the LAN and must never be routed through Cloudflare.
+    ports:
+      - "127.0.0.1:11434:11434"
+    # The benchmark network supplies the gateway Docker Desktop needs for the
+    # loopback port and controlled model pulls. The application gateway remains
+    # isolated on the separate inference network.
+    networks: [inference, benchmark]
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=256m
@@ -135,3 +140,4 @@ networks:
   edge:
   command: { internal: true }
   inference: { internal: true }
+  benchmark:

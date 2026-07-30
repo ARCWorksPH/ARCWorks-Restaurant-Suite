@@ -24,9 +24,13 @@ the `command` network.
 
 Ollama:
 
-- no published host port;
+- API published only to Windows loopback at `127.0.0.1:11434` for controlled
+  local benchmarking;
+- no LAN, Cloudflare Tunnel, or public route to the Ollama API;
 - cloud inference disabled;
-- internal inference network only;
+- internal inference network for the command gateway;
+- separate benchmark bridge used only for Windows loopback access and
+  controlled model downloads;
 - external model volume `ollama`;
 - read-only root filesystem with bounded temporary storage;
 - all Linux capabilities dropped;
@@ -46,16 +50,40 @@ Command gateway:
 
 Neither container receives the Docker socket.
 
+## Local benchmark access
+
+The Ollama API can be reached from this Windows host at:
+
+```text
+http://127.0.0.1:11434
+```
+
+Examples:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:11434/api/tags
+docker exec -it arcworks-resto-ollama-1 ollama list
+docker exec -it arcworks-resto-ollama-1 ollama run tinyllama:1.1b
+```
+
+The native Windows `ollama` command is not required for the containerized
+instance. Tools that support an Ollama base URL should use the loopback URL
+above. Do not change the binding to `0.0.0.0` and do not add an Ollama
+Cloudflare route.
+
 ## Model installation
 
-The inference network is intentionally internal. Model installation is a
+The inference network remains internal. The isolated AI-lab profile gives
+Ollama a separate benchmark bridge so models can be downloaded without
+attaching it to ROMS' backend, edge, or Docker socket. Model installation is a
 controlled maintenance action:
 
-1. Temporarily attach the Ollama container to Docker's bridge network.
-2. Pull the explicitly selected model.
-3. Disconnect the bridge network immediately.
-4. Restart Ollama and verify that the model persists in its named volume.
-5. Confirm that only the internal inference network remains.
+1. Pull only an explicitly selected model through the containerized Ollama
+   CLI or its loopback API.
+2. Verify that the model persists in the named `ollama` volume.
+3. Record the exact model tag, size, benchmark settings, and result.
+4. Remove rejected models after the comparison so the portable model volume
+   does not accumulate unused multi-gigabyte downloads.
 
 Do not bind-mount the native Windows Ollama model directory into the container.
 
