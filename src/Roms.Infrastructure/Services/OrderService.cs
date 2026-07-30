@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MySql.Data.MySqlClient;
 using Roms.Application;
 using Roms.Domain;
 using Roms.Infrastructure.Persistence;
@@ -209,48 +210,58 @@ public sealed class OrderService(
         await using var strategyContext = await factory.CreateDbContextAsync(ct);
         var strategy = strategyContext.Database.CreateExecutionStrategy();
         Order? changedOrder = null;
-        await strategy.ExecuteAsync(async () =>
+        try
         {
-            await using var db = await factory.CreateDbContextAsync(ct);
-            await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
-            var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == orderId, ct);
-            var previous = order.Status;
-            if (next == OrderStatus.Cancelled)
+            await strategy.ExecuteAsync(async () =>
             {
-                if (previous is OrderStatus.Preparing or OrderStatus.Ready) await EnsureAdminAsync(db, actorId, ct);
-                else await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
-            }
-            else if (next == OrderStatus.Completed)
-                await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
-            else
-                await EnsureKitchenOrAdminAsync(db, actorId, ct);
-            order.TransitionTo(next, actorId, reason, clock.UtcNow, inventoryDisposition);
-
-            if (inventoryOptions.Value.Enabled)
-            {
-                if (next == OrderStatus.Preparing)
-                    await ReconcileInventoryAsync(db, order, actorId, consume: true,
-                        $"Order {order.Id} entered Preparing", "preparing", ct,
-                        allowNegativeStock, inventoryOverrideReason);
-                else if (next == OrderStatus.Cancelled &&
-                         previous is OrderStatus.Preparing or OrderStatus.Ready &&
-                         order.CancellationInventoryDisposition == InventoryDisposition.ReturnToStock)
-                    await ReconcileInventoryAsync(db, order, actorId, consume: false,
-                        $"Order {order.Id} was cancelled: {reason}", "cancelled", ct);
-            }
-
-            db.AuditEntries.Add(Audit(actorId, next == OrderStatus.Cancelled ? "CancelOrder" : "ChangeOrderStatus", order.Id,
-                JsonSerializer.Serialize(new
+                await using var db = await factory.CreateDbContextAsync(ct);
+                await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+                var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == orderId, ct);
+                var previous = order.Status;
+                if (next == OrderStatus.Cancelled)
                 {
-                    from = previous,
-                    to = next,
-                    reason,
-                    inventoryDisposition = order.CancellationInventoryDisposition?.ToString()
-                })));
-            await db.SaveChangesAsync(ct);
-            await tx.CommitAsync(ct);
-            changedOrder = order;
-        });
+                    if (previous is OrderStatus.Preparing or OrderStatus.Ready) await EnsureAdminAsync(db, actorId, ct);
+                    else await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
+                }
+                else if (next == OrderStatus.Completed)
+                    await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
+                else
+                    await EnsureKitchenOrAdminAsync(db, actorId, ct);
+                order.TransitionTo(next, actorId, reason, clock.UtcNow, inventoryDisposition);
+
+                if (inventoryOptions.Value.Enabled)
+                {
+                    if (next == OrderStatus.Preparing)
+                        await ReconcileInventoryAsync(db, order, actorId, consume: true,
+                            $"Order {order.Id} entered Preparing", "preparing", ct,
+                            allowNegativeStock, inventoryOverrideReason);
+                    else if (next == OrderStatus.Cancelled &&
+                             previous is OrderStatus.Preparing or OrderStatus.Ready &&
+                             order.CancellationInventoryDisposition == InventoryDisposition.ReturnToStock)
+                        await ReconcileInventoryAsync(db, order, actorId, consume: false,
+                            $"Order {order.Id} was cancelled: {reason}", "cancelled", ct);
+                }
+
+                db.AuditEntries.Add(Audit(actorId, next == OrderStatus.Cancelled ? "CancelOrder" : "ChangeOrderStatus", order.Id,
+                    JsonSerializer.Serialize(new
+                    {
+                        from = previous,
+                        to = next,
+                        reason,
+                        inventoryDisposition = order.CancellationInventoryDisposition?.ToString()
+                    })));
+                await db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+                changedOrder = order;
+            });
+        }
+        catch (Exception exception) when (IsTransientTransactionConflict(exception))
+        {
+            logger.LogWarning(exception,
+                "Order {OrderId} hit a transient database concurrency conflict.", orderId);
+            throw new DomainException(
+                "Another inventory update happened at the same time. Reload and try this action again.");
+        }
         await Publish(changedOrder!, "OrderStatusChanged", ct);
     }
 
@@ -429,6 +440,16 @@ public sealed class OrderService(
          join existingRole in db.Roles on userRole.RoleId equals existingRole.Id
          where user.UserName == actorId && existingRole.Name == role
          select user.Id).AnyAsync(ct);
+
+    private static bool IsTransientTransactionConflict(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is MySqlException { Number: 1205 or 1213 })
+                return true;
+        }
+        return false;
+    }
 
     private static async Task<Dictionary<string, string>> GetWaiterNamesAsync(RomsDbContext db, IEnumerable<string> waiterIds, CancellationToken ct)
     {

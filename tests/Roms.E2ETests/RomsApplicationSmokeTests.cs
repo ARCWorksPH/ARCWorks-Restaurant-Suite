@@ -3,15 +3,22 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
+using Roms.Application;
 using Roms.Domain;
+using Roms.Infrastructure.Identity;
+using Roms.Infrastructure.Persistence;
 using Testcontainers.MariaDb;
 
 namespace Roms.E2ETests;
 
 public sealed class RomsApplicationSmokeTests : PageTest
 {
+    private const string E2ePassword = "E2E-Only-Password!29";
+
     [Test]
     public async Task Admin_can_log_in_to_an_isolated_real_application()
     {
@@ -146,6 +153,115 @@ public sealed class RomsApplicationSmokeTests : PageTest
         }
     }
 
+    [Test]
+    public async Task Independent_waiter_kitchen_and_cashier_sessions_complete_one_order_in_real_time()
+    {
+        const string adminUsername = "synthetic-admin";
+        const string waiterUsername = "synthetic-waiter";
+        const string kitchenUsername = "synthetic-kitchen";
+        await using var database = new MariaDbBuilder("mariadb:11.4")
+            .WithDatabase("roms_multiuser")
+            .WithUsername("root")
+            .WithPassword($"roms-{Guid.NewGuid():N}")
+            .Build();
+        await database.StartAsync();
+
+        var port = ReservePort();
+        var baseAddress = $"http://127.0.0.1:{port}";
+        var keysPath = Path.Combine(Path.GetTempPath(), $"roms-multiuser-keys-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(keysPath);
+        var runningApplication = StartApplication(
+            baseAddress,
+            database.GetConnectionString(),
+            keysPath,
+            adminUsername,
+            E2ePassword);
+        using var application = runningApplication.Process;
+
+        try
+        {
+            await WaitUntilHealthyAsync(runningApplication, baseAddress);
+            await SeedStaffAsync(database.GetConnectionString(),
+                (waiterUsername, "Synthetic Waiter", RomsRoles.Waiter),
+                (kitchenUsername, "Synthetic Kitchen", RomsRoles.Kitchen));
+
+            await using var waiterContext = await Browser.NewContextAsync();
+            await using var kitchenContext = await Browser.NewContextAsync();
+            await using var cashierContext = await Browser.NewContextAsync();
+            var waiterPage = await waiterContext.NewPageAsync();
+            var kitchenPage = await kitchenContext.NewPageAsync();
+            var cashierPage = await cashierContext.NewPageAsync();
+
+            await Task.WhenAll(
+                LoginAsync(waiterPage, baseAddress, waiterUsername),
+                LoginAsync(kitchenPage, baseAddress, kitchenUsername),
+                LoginAsync(cashierPage, baseAddress, adminUsername));
+
+            await kitchenPage.GotoAsync($"{baseAddress}/kitchen");
+            await WaitForInteractiveAsync(kitchenPage);
+            await cashierPage.GotoAsync($"{baseAddress}/admin/payments");
+            await WaitForInteractiveAsync(cashierPage);
+
+            await waiterPage.GotoAsync($"{baseAddress}/tables");
+            await WaitForInteractiveAsync(waiterPage);
+            await waiterPage.GetByRole(AriaRole.Button, new()
+            {
+                NameRegex = new Regex("^Table 1 Available$")
+            }).ClickAsync();
+            await Expect(waiterPage.GetByRole(AriaRole.Heading, new() { Name = "Table 1" }))
+                .ToBeVisibleAsync();
+            var orderUrl = waiterPage.Url;
+            const string hostileNote = "<script>window.__romsXss=true</script> no onions";
+            await waiterPage.GetByPlaceholder("Special instructions").FillAsync(hostileNote);
+            await waiterPage.Locator(".menu-card").Filter(new() { HasText = "Cheeseburger" }).ClickAsync();
+            await waiterPage.GetByRole(AriaRole.Button, new() { Name = "Send to kitchen" }).ClickAsync();
+
+            await Expect(kitchenPage.GetByText(hostileNote, new() { Exact = true }))
+                .ToBeVisibleAsync(new() { Timeout = 15_000 });
+            Assert.That(await kitchenPage.EvaluateAsync<bool>("() => Boolean(window.__romsXss)"), Is.False);
+            await kitchenPage.GetByRole(AriaRole.Button, new() { Name = "Start preparing" }).ClickAsync();
+            await Expect(waiterPage.Locator(".status-pill.status-preparing"))
+                .ToBeVisibleAsync(new() { Timeout = 15_000 });
+            await kitchenPage.GetByRole(AriaRole.Button, new() { Name = "Ready" }).ClickAsync();
+
+            await waiterPage.GotoAsync(orderUrl);
+            await WaitForInteractiveAsync(waiterPage);
+            await waiterPage.GetByRole(AriaRole.Button, new() { Name = "Mark served" }).ClickAsync();
+            await Expect(cashierPage.GetByRole(AriaRole.Button, new() { Name = "Confirm payment received" }))
+                .ToBeVisibleAsync(new() { Timeout = 15_000 });
+            await cashierPage.GetByRole(AriaRole.Button, new() { Name = "Confirm payment received" }).ClickAsync();
+            await Expect(cashierPage.GetByText("No served orders are waiting for payment."))
+                .ToBeVisibleAsync();
+
+            await waiterPage.GotoAsync($"{baseAddress}/tables");
+            await WaitForInteractiveAsync(waiterPage);
+            await Expect(waiterPage.GetByRole(AriaRole.Button, new()
+            {
+                NameRegex = new Regex("^Table 1 Available$")
+            })).ToBeVisibleAsync();
+
+            await using var verificationDb = CreateDbContext(database.GetConnectionString());
+            var order = await verificationDb.Orders.Include(x => x.Items).SingleAsync();
+            Assert.Multiple(() =>
+            {
+                Assert.That(order.Status, Is.EqualTo(OrderStatus.Completed));
+                Assert.That(order.WaiterId, Is.EqualTo(waiterUsername));
+                Assert.That(order.PaymentConfirmedBy, Is.EqualTo(adminUsername));
+                Assert.That(order.PaymentConfirmedUtc, Is.Not.Null);
+                Assert.That(order.Items.Single().Notes, Is.EqualTo(hostileNote));
+            });
+            Assert.That(await verificationDb.AuditEntries.CountAsync(x =>
+                x.EntityId == order.Id.ToString()), Is.GreaterThanOrEqualTo(6));
+        }
+        finally
+        {
+            if (!application.HasExited)
+                application.Kill(entireProcessTree: true);
+            await application.WaitForExitAsync();
+            Directory.Delete(keysPath, recursive: true);
+        }
+    }
+
     private static RunningApplication StartApplication(
         string baseAddress,
         string connectionString,
@@ -219,6 +335,58 @@ public sealed class RomsApplicationSmokeTests : PageTest
         }
 
         throw new TimeoutException("ROMS did not become healthy within 60 seconds.");
+    }
+
+    private async Task LoginAsync(IPage page, string baseAddress, string username)
+    {
+        await page.GotoAsync($"{baseAddress}/Account/Login");
+        await page.GetByLabel("Username").FillAsync(username);
+        await page.GetByLabel("Password").FillAsync(E2ePassword);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Log in" }).ClickAsync();
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "My attendance" }))
+            .ToBeVisibleAsync();
+        await WaitForInteractiveAsync(page);
+    }
+
+    private async Task WaitForInteractiveAsync(IPage page) =>
+        await Expect(page.Locator("#roms-connection-indicator")).ToContainTextAsync(
+            "Connected", new() { Timeout = 15_000 });
+
+    private static async Task SeedStaffAsync(
+        string connectionString,
+        params (string Username, string DisplayName, string Role)[] staff)
+    {
+        await using var db = CreateDbContext(connectionString);
+        var roles = await db.Roles.ToDictionaryAsync(x => x.Name!, StringComparer.OrdinalIgnoreCase);
+        var hasher = new PasswordHasher<ApplicationUser>();
+        foreach (var definition in staff)
+        {
+            var user = new ApplicationUser
+            {
+                UserName = definition.Username,
+                NormalizedUserName = definition.Username.ToUpperInvariant(),
+                DisplayName = definition.DisplayName,
+                EmailConfirmed = true,
+                SecurityStamp = Guid.NewGuid().ToString("N"),
+                ConcurrencyStamp = Guid.NewGuid().ToString("N")
+            };
+            user.PasswordHash = hasher.HashPassword(user, E2ePassword);
+            db.Users.Add(user);
+            db.UserRoles.Add(new IdentityUserRole<string>
+            {
+                UserId = user.Id,
+                RoleId = roles[definition.Role].Id
+            });
+        }
+        await db.SaveChangesAsync();
+    }
+
+    private static RomsDbContext CreateDbContext(string connectionString)
+    {
+        var options = new DbContextOptionsBuilder<RomsDbContext>()
+            .UseMySQL(connectionString)
+            .Options;
+        return new RomsDbContext(options);
     }
 
     private static int ReservePort()

@@ -11,6 +11,7 @@ public sealed class ReportService(IDbContextFactory<RomsDbContext> factory) : IR
 {
     public async Task<DashboardReport> GetDashboardAsync(DateTime fromUtc, DateTime toUtc, CancellationToken ct = default)
     {
+        if (toUtc <= fromUtc) throw new DomainException("Report end time must be after the start time.");
         await using var db = await factory.CreateDbContextAsync(ct);
         var orders = await db.Orders.AsNoTracking().Include(x => x.Items)
             .Where(x => x.Status == OrderStatus.Completed && x.PaymentConfirmedUtc >= fromUtc && x.PaymentConfirmedUtc < toUtc).ToListAsync(ct);
@@ -42,6 +43,8 @@ public sealed class InventoryService(IDbContextFactory<RomsDbContext> factory, I
     {
         if (string.IsNullOrWhiteSpace(item.Name)) throw new DomainException("Inventory item name is required.");
         if (string.IsNullOrWhiteSpace(item.Unit)) throw new DomainException("Inventory unit is required.");
+        if (item.Name.Trim().Length > 120) throw new DomainException("Inventory item name cannot exceed 120 characters.");
+        if (item.Unit.Trim().Length > 20) throw new DomainException("Inventory unit cannot exceed 20 characters.");
         if (item.MinimumStock < 0) throw new DomainException("Minimum stock cannot be negative.");
         await using var db = await factory.CreateDbContextAsync(ct);
         await EnsureAdminAsync(db, actorId, ct);

@@ -17,6 +17,7 @@ public sealed class CatalogService(IDbContextFactory<RomsDbContext> factory, ICl
     public async Task SaveTableAsync(RestaurantTable table, string actorId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(table.Number)) throw new DomainException("Table number is required.");
+        if (table.Number.Trim().Length > 20) throw new DomainException("Table number cannot exceed 20 characters.");
         await using var db = await factory.CreateDbContextAsync(ct);
         var current = await db.RestaurantTables.SingleOrDefaultAsync(x => x.Id == table.Id, ct);
         if (current is null) db.RestaurantTables.Add(table);
@@ -34,6 +35,7 @@ public sealed class CatalogService(IDbContextFactory<RomsDbContext> factory, ICl
     public async Task SaveCategoryAsync(MenuCategory category, string actorId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(category.Name)) throw new DomainException("Category name is required.");
+        if (category.Name.Trim().Length > 80) throw new DomainException("Category name cannot exceed 80 characters.");
         await using var db = await factory.CreateDbContextAsync(ct);
         var current = await db.MenuCategories.SingleOrDefaultAsync(x => x.Id == category.Id, ct);
         if (current is null) db.MenuCategories.Add(category);
@@ -45,6 +47,9 @@ public sealed class CatalogService(IDbContextFactory<RomsDbContext> factory, ICl
     public async Task SaveMenuItemAsync(MenuItem item, string actorId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(item.Name) || item.Price < 0) throw new DomainException("A name and non-negative price are required.");
+        if (item.Name.Trim().Length > 120) throw new DomainException("Menu item name cannot exceed 120 characters.");
+        if (item.Description.Trim().Length > 500) throw new DomainException("Menu item description cannot exceed 500 characters.");
+        if (item.Price > 9_999_999_999.99m) throw new DomainException("Menu item price is too large.");
         await using var db = await factory.CreateDbContextAsync(ct);
         var current = await db.MenuItems.SingleOrDefaultAsync(x => x.Id == item.Id, ct);
         if (current is null) db.MenuItems.Add(item);

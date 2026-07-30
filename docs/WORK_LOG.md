@@ -1,5 +1,66 @@
 # ROMS Work Log
 
+## 2026-07-30 — Synthetic multi-role, stress, and abuse testing
+
+### Safety and isolation
+
+- Created and SHA-256 verified a complete Git bundle, binary working-tree patch,
+  status inventory, and active MariaDB logical dump before testing.
+- Backup: `D:\ARCWorks_Restaurant Suite Backups\pre-break-test-20260730-202348`.
+- Restored that dump into a disposable MariaDB 11.4 container and reconciled
+  21 tables, three migrations, and two orders.
+- All destructive, load, browser, and hostile-input tests used disposable
+  databases and temporary application processes. The active app/database
+  containers and named volume were not restarted, migrated, or load-tested.
+
+### Coverage added
+
+- Three isolated Chromium contexts now exercise simultaneous Waiter, Kitchen,
+  and Cashier/Admin sessions through order entry, live KDS updates, Preparing,
+  Ready, Served, payment confirmation, audit verification, and table release.
+- Script-shaped special instructions are verified as visible text and do not
+  execute in the browser.
+- A bounded real-MariaDB stress test completes 60 independent full order
+  lifecycles at parallelism 12 and verifies exact orders, histories, audits,
+  idempotency keys, and stored notes.
+- An inventory overload test launches 24 Preparing attempts against only 12
+  available units at parallelism 8, proves stock never becomes negative, then
+  retries after contention and proves exactly 12 advance while 12 remain New.
+- Hostile-input coverage includes reversed/equal dates, invalid enum values,
+  zero/negative/excessive quantities, overlong strings, HTML/SQL-shaped text,
+  and duplicate loss submissions.
+
+### Defects found and corrected
+
+- Reversed or empty report/attendance ranges previously returned misleading
+  empty results. They now fail with a clear domain message.
+- Several overlong or out-of-range values previously reached relational
+  database errors. Domain/service validation now matches persisted limits.
+- Undefined waste/spoilage enum values are rejected.
+- Heavy simultaneous inventory transitions can cause MariaDB deadlock/lock
+  conflicts. They already rolled back safely; these are now translated to a
+  staff-safe reload-and-retry message instead of exposing a database exception.
+
+### Verification
+
+- `dotnet build Roms.slnx --no-restore`: 0 warnings, 0 errors.
+- Final Release solution run: 53/53 passed
+  (Domain 10, Command Gateway 9, Playwright E2E 3, Integration 31).
+- Focused final concurrency regression: 8/8 passed, including all existing
+  MariaDB concurrency tests and both new stress tests.
+- Detailed scope, observations, and remaining acceptance boundary:
+  `docs/SYNTHETIC_RESILIENCE_TESTING_2026-07-30.md`.
+
+### Remaining boundary
+
+- This is strong synthetic evidence, not human beta acceptance or a production
+  capacity rating.
+- The active deployment still has inventory disabled and was not changed.
+- Live device/network, printer, payment handling, human usability, and verified
+  restaurant opening balances remain beta gates.
+
+---
+
 ## 2026-07-30 — Negative-stock controls and loss approvals
 
 ### Controls implemented

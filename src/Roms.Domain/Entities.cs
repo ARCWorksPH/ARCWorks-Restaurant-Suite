@@ -23,6 +23,7 @@ public sealed class StaffSchedule
     {
         if (endUtc <= startUtc) throw new DomainException("Scheduled end time must be after the start time.");
         if (endUtc - startUtc > TimeSpan.FromHours(24)) throw new DomainException("A staff schedule cannot exceed 24 hours.");
+        if ((notes?.Trim().Length ?? 0) > 500) throw new DomainException("Schedule notes cannot exceed 500 characters.");
         ScheduledStartUtc = startUtc;
         ScheduledEndUtc = endUtc;
         Notes = notes?.Trim() ?? "";
@@ -55,6 +56,7 @@ public sealed class AttendanceRecord
     public void Correct(DateTime clockInUtc, DateTime? clockOutUtc, string adminId, string reason, DateTime utcNow)
     {
         if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("A correction reason is required.");
+        if (reason.Trim().Length > 500) throw new DomainException("A correction reason cannot exceed 500 characters.");
         if (clockOutUtc is not null && clockOutUtc <= clockInUtc) throw new DomainException("Clock-out time must be after clock-in time.");
         ClockInUtc = clockInUtc;
         ClockOutUtc = clockOutUtc;
@@ -154,6 +156,7 @@ public sealed class Order
     {
         if (!menuItem.IsActive || !menuItem.IsAvailable) throw new DomainException("This menu item is unavailable.");
         if (quantity < 1 || quantity > 99) throw new DomainException("Quantity must be between 1 and 99.");
+        if ((notes?.Trim().Length ?? 0) > 500) throw new DomainException("Special instructions cannot exceed 500 characters.");
 
         Items.Add(new OrderItem
         {
@@ -172,6 +175,7 @@ public sealed class Order
         if (Status is not (OrderStatus.New or OrderStatus.Preparing))
             throw new DomainException("Only New or Preparing orders can be amended.");
         if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("An amendment reason is required.");
+        if (reason.Trim().Length > 500) throw new DomainException("An amendment reason cannot exceed 500 characters.");
     }
 
     public void RemoveDraftItem(Guid itemId, DateTime utcNow)
@@ -202,6 +206,7 @@ public sealed class Order
         {
             if (Status is OrderStatus.Completed or OrderStatus.Cancelled) throw new DomainException("This order can no longer be cancelled.");
             if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("A cancellation reason is required.");
+            if (reason.Trim().Length > 500) throw new DomainException("A cancellation reason cannot exceed 500 characters.");
             if (Status is OrderStatus.Preparing or OrderStatus.Ready && inventoryDisposition is null)
                 throw new DomainException("Choose whether prepared ingredients return to stock or remain consumed.");
             var previous = Status;
@@ -251,6 +256,8 @@ public sealed class Order
     {
         if (string.IsNullOrWhiteSpace(reason))
             throw new DomainException("A manager override reason is required.");
+        if (reason.Trim().Length > 500)
+            throw new DomainException("A manager override reason cannot exceed 500 characters.");
         InventoryOverriddenBy = actorId;
         InventoryOverrideReason = reason.Trim();
         InventoryOverrideUtc = utcNow;
@@ -378,8 +385,11 @@ public sealed class InventoryLossRequest
         DateTime utcNow)
     {
         if (inventoryItemId == Guid.Empty) throw new DomainException("An inventory item is required.");
+        if (!Enum.IsDefined(type)) throw new DomainException("Waste or spoilage type is invalid.");
         if (quantity <= 0) throw new DomainException("Waste or spoilage quantity must be greater than zero.");
+        if (quantity > 99_999_999_999.999m) throw new DomainException("Waste or spoilage quantity is too large.");
         if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("A waste or spoilage reason is required.");
+        if (reason.Trim().Length > 500) throw new DomainException("A waste or spoilage reason cannot exceed 500 characters.");
         if (string.IsNullOrWhiteSpace(actorId)) throw new DomainException("A reporting staff member is required.");
         if (string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Length > 150)
             throw new DomainException("A valid loss-report key is required.");
@@ -399,6 +409,7 @@ public sealed class InventoryLossRequest
     {
         EnsurePending();
         if (string.IsNullOrWhiteSpace(reviewerId)) throw new DomainException("An approving manager is required.");
+        if ((reviewReason?.Trim().Length ?? 0) > 500) throw new DomainException("A review reason cannot exceed 500 characters.");
         Status = InventoryLossStatus.Approved;
         ReviewedBy = reviewerId;
         ReviewedUtc = utcNow;
@@ -410,6 +421,7 @@ public sealed class InventoryLossRequest
         EnsurePending();
         if (string.IsNullOrWhiteSpace(reviewerId)) throw new DomainException("A reviewing manager is required.");
         if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("A rejection reason is required.");
+        if (reason.Trim().Length > 500) throw new DomainException("A rejection reason cannot exceed 500 characters.");
         Status = InventoryLossStatus.Rejected;
         ReviewedBy = reviewerId;
         ReviewedUtc = utcNow;
