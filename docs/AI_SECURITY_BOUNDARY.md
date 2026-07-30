@@ -71,6 +71,11 @@ instance. Tools that support an Ollama base URL should use the loopback URL
 above. Do not change the binding to `0.0.0.0` and do not add an Ollama
 Cloudflare route.
 
+Benchmark resource limits are configurable through `OLLAMA_MEMORY_LIMIT` and
+`OLLAMA_CPU_LIMIT`. The defaults are 16 GB and 12 logical CPUs, leaving
+capacity for ROMS and MariaDB on the current host. Record these limits with
+every result; comparisons made under different limits are not equivalent.
+
 ## Model installation
 
 The inference network remains internal. The isolated AI-lab profile gives

@@ -92,8 +92,10 @@ services:
     security_opt:
       - no-new-privileges:true
     pids_limit: 256
-    mem_limit: 8g
-    cpus: 4.0
+    # Defaults leave capacity for ROMS and MariaDB while allowing meaningful
+    # CPU-only comparisons on the current 16-thread Docker Desktop host.
+    mem_limit: ${OLLAMA_MEMORY_LIMIT:-16g}
+    cpus: ${OLLAMA_CPU_LIMIT:-12.0}
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 15s
