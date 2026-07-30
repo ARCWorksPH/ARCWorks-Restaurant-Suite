@@ -1,5 +1,37 @@
 # ROMS Work Log
 
+## 2026-07-30 — Codex final runtime acceptance and UI remediation
+
+### Corrections completed
+
+- Made the connection indicator update directly in the browser before attempting the Blazor callback, so an interrupted circuit truthfully renders `Connection lost`.
+- Added explicit navigation `aria-controls` and string-valued `aria-expanded` state, plus an identified navigation region.
+- Converted the desktop Kitchen Display navigation to a compact 72 px icon rail while preserving accessible link names and hover titles.
+- Marked the connection indicator as a polite live status region.
+- Added Playwright regression coverage for mobile menu expansion, offline/recovery state, Kitchen Display layout mode, compact rail width, and visually hidden rail labels.
+
+### Independent verification
+
+- `pwsh tools/Test-NoCommittedSeedPasswords.ps1`: passed.
+- `git diff --check`: passed.
+- Release build: passed with 0 warnings and 0 errors.
+- Automated tests: 36/36 passed (7 Domain, 9 Command Gateway, 2 Playwright E2E, 18 Integration).
+- Isolated Docker/MariaDB application health: passed on loopback port 7081.
+- Browser acceptance: passed on desktop, tablet, and mobile; no page overflow, fatal Blazor UI, console errors, uncaught page errors, or unexpected failed requests.
+- Kitchen Display clock: rendered in restaurant 12-hour format and advanced inside the Linux container.
+- Offline/recovery indicator: passed.
+- Mobile navigation ARIA and authorized-link exposure: passed.
+- Real MariaDB inventory smoke: item creation and +5 stock adjustment passed.
+- Visual review: desktop Kitchen Display compact rail and mobile expanded navigation passed.
+
+### Safety and scope
+
+- The active `arcworks-resto-*` stack on loopback port 7070 was not modified.
+- Acceptance used a separate disposable compose project, database volume, image, and temporary credentials.
+- Historical mockup copies remain rejected as runtime evidence; the acceptance above was generated from the running application.
+
+---
+
 ## 2026-07-30 — Claude Opus independent source review
 
 ### Starting point

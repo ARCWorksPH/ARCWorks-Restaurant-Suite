@@ -45,8 +45,22 @@
             this.dispose();
             this.ref = dotNetRef;
 
+            const renderStatus = state => {
+                const indicator = document.getElementById("roms-connection-indicator");
+                if (!indicator) return;
+
+                const label = state === "Offline"
+                    ? "Connection lost"
+                    : state === "Reconnecting"
+                        ? "Reconnecting"
+                        : "Connected";
+
+                indicator.classList.remove("status-connected", "status-reconnecting", "status-offline");
+                indicator.classList.add(`status-${state.toLowerCase()}`);
+                indicator.textContent = `● ${label}`;
+            };
+
             const updateStatus = () => {
-                if (!this.ref) return;
                 const isOnline = navigator.onLine;
                 const modal = document.getElementById("components-reconnect-modal");
 
@@ -61,6 +75,11 @@
                     }
                 }
 
+                // Browser connectivity must be reflected locally because an
+                // offline Blazor circuit cannot deliver a .NET callback.
+                renderStatus(state);
+
+                if (!this.ref) return;
                 try {
                     this.ref.invokeMethodAsync("UpdateConnectionState", state).catch(() => {});
                 } catch (e) {

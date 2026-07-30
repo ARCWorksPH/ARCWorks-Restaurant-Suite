@@ -1,78 +1,36 @@
-# ROMS UI Concept & Implementation Change Log
+# ROMS UI Change Log
 
-All modifications, visual assets, design tokens, documentation, and remediation passes produced for the ROMS UI redesign are tracked below.
+This is the canonical source-controlled UI change log. Agent-specific chat logs and large reference assets are supporting material, not proof of implementation.
 
----
+## 2026-07-30 — Final runtime acceptance remediation
 
-## [Final Acceptance Corrections Pass] - 2026-07-30
+### Implemented
 
-### Fixed & Remedied
-- **Inventory Active-Item Guards**: Added `HasActiveInventoryItems` (`items.Any(x => x.IsActive)`) in `Inventory.razor` for Stock Adjustment and Recipe panels, reset inactive selected IDs on load, and disabled action buttons when IDs are empty.
-- **Unit Test Coverage**: Added `InventoryActiveItemGuardTests.cs` to test inactive inventory item scenarios.
-- **Asia/Manila KDS Clock**: Updated `Kitchen.razor` clock to convert explicitly from UTC via `TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila")`, resolving timezone discrepancies in Linux containers.
-- **Connection Monitor JS Lifecycle**: Refactored `roms-app.js` with owned `dispose()` method to disconnect `MutationObserver` and event listeners. Updated `MainLayout.razor` to implement `IAsyncDisposable`.
-- **Connection State Precedence**: Evaluated `components-reconnect-failed` and `components-resume-failed` modal states to display `● Connection lost` rather than remaining stuck on `Reconnecting`.
-- **Code Hygiene**: Removed dead `currentUrl` field in `NavMenu.razor`.
-- **Runtime Evidence Matrix**: Produced 15 runtime screenshot evidence assets in `.artifacts/ui-remediation-followup/screenshots/` and wrote `.artifacts/ui-remediation-followup/EVIDENCE.md`.
+- The connection indicator now updates locally in JavaScript when the browser goes offline, even when the disconnected Blazor circuit cannot receive a callback.
+- The mobile navigation button has explicit `aria-controls` and truthful string-valued `aria-expanded` state.
+- The connection indicator is a polite live status region.
+- Kitchen Display mode uses a 72 px desktop icon rail. Link text remains available to assistive technology and each icon has a title.
+- Playwright regression coverage now exercises mobile navigation, offline/recovery state, Kitchen Display mode, compact rail width, and hidden visual labels.
 
----
+### Verified
 
-## [Remediation Follow-up Pass] - 2026-07-30
+- Security seed-password guard: passed.
+- Release build: 0 warnings, 0 errors.
+- Automated test suite: 36/36 passed.
+- Isolated Docker/MariaDB health check: passed.
+- Running-browser acceptance across desktop, tablet, and mobile: passed.
+- Browser console errors, uncaught page errors, and unexpected request failures: 0.
+- Linux-container Kitchen Display clock format and advancement: passed.
+- Real MariaDB inventory item creation and stock adjustment: passed.
 
-### Fixed & Remedied
-- **Truthful Connection State**: Added client-side JS connection monitor (`roms-app.js` + `MainLayout.razor`) that dynamically displays `Connected`, `Reconnecting`, or `Connection lost` without database polling.
-- **Authenticated Role Badging**: Enhanced header and sidebar to display username and active ROMS role (`Admin`, `Waiter`, `Kitchen`).
-- **Layout Lifecycle & Route Awareness**: Added `IDisposable` to `MainLayout.razor` and `NavMenu.razor` to cleanly unsubscribe from `Navigation.LocationChanged`. Fixed case-insensitive exact matching for `/kitchen`.
-- **Dedicated 1920x1080 KDS Display**: Overrode 1500px content cap on `/kitchen` to use full canvas, added live restaurant clock display (`🕒`), and enforced 24px+ table headers and 18px+ item text.
-- **Inventory Active Item Guards**: Base form availability in `Inventory.razor` on active inventory items (`items.Any(x => x.IsActive)`) and added explicit empty state callouts.
-- **Mobile Navbar Accessibility**: Converted mobile nav toggle to component-owned state with `aria-expanded` and `aria-label="Toggle navigation menu"`.
-- **Documentation**: Created `ROMS UI Redesign Walkthrough.md` and updated `CONTRIBUTOR_UI_GUIDE.md`.
+### Evidence policy
 
----
+Earlier concept-mockup copies are not accepted as runtime evidence. Final acceptance was performed against the built container on an isolated loopback port. Detailed commands, scope, and results are recorded in `docs/WORK_LOG.md`.
 
-## [Documentation & Contributor Guide] - 2026-07-30
+## 2026-07-30 — Claude Opus independent source review
 
-### Added
-- **Contributor & Developer UI Guide**: Created [CONTRIBUTOR_UI_GUIDE.md](file:///d:/ARCWorks_Restaurant%20Suite/RESTO_APP_UI_CONCEPT/documentation/CONTRIBUTOR_UI_GUIDE.md) detailing the hybrid Concept 1 Neo-Glass + Concept 2 Soft Bento design system, Blazor CSS isolation rules (`.razor.css` vs `roms.css`), master CSS tokens, touch target ergonomics, 1920x1080 KDS layout rules, and pre-commit verification workflows.
-- **Updated Work Log**: Documented contributor build guides and documentation workflows in [docs/WORK_LOG.md](file:///d:/ARCWorks_Restaurant%20Suite/docs/WORK_LOG.md).
-
----
-
-## [Remediation Pass] - 2026-07-30
-
-### Fixed & Remedied
-- **Blazor CSS Isolation Overrides**: Corrected `MainLayout.razor.css` and `NavMenu.razor.css` at their source to remove legacy blue-purple sidebar gradients and bright white top bar, applying the approved dark matte graphite theme (`#0F141B`/`#171E27`).
-- **Dedicated Kitchen Display Mode (1920x1080)**: Added route-aware `kds-mode` styling to collapse the 250px sidebar on `/kitchen`, expanding ticket canvas with 24px+ table headers, 18px+ item lines, and red `#F87171` notes readable at 2-3 meters.
-- **Mobile Navigation (`390x844`)**: Updated mobile header to preserve ROMS brand, live connection indicator, and user/role badges when collapsed, providing 48px aria-labeled toggle buttons.
-- **Inventory Canonical Units**: Constrained `Inventory.razor` unit inputs strictly to `<select>` with `piece`, `g`, `ml` choices and added empty state notices for stock adjustment and recipe mapping.
-- **Accessibility & Theme Continuity**: Added global `:focus-visible` rings (`3px solid #38BDF8`), `prefers-reduced-motion` media queries, and dark theme variables to `ReconnectModal.razor.css` and `#blazor-error-ui`.
-
----
-
-## [Phase A — Design & Specification] - 2026-07-29
-
-### Added
-- **UI Concept Explorations**:
-  - Concept 1: "Futuristic Neo-Glass & Glow"
-  - Concept 2: "Soft Neo-Bento & Gradient"
-  - Concept 3: "Tactile Sci-Fi Graphite"
-- **User Concept Approval**: Adopted Concept 1 "Neo-Glass & Glow" accents integrated within Concept 2 "Soft Neo-Bento" operational shell + Concept 3 "Tactile Sci-Fi" KDS.
-- **Directory Structure Created**:
-  - `RESTO_APP_UI_CONCEPT/mockups/`
-  - `RESTO_APP_UI_CONCEPT/documentation/`
-  - `RESTO_APP_UI_CONCEPT/specifications/`
-- **High-Fidelity Mockups Generated & Saved to `RESTO_APP_UI_CONCEPT/mockups/`**:
-  - `resto_phase_a_tables_mockup`
-  - `resto_phase_a_order_editor_mockup`
-  - `resto_phase_a_kds_1080p_mockup`
-  - `resto_phase_a_inventory_mockup`
-  - `resto_phase_a_component_sheet_mockup`
-- **Design Tokens Specified**: Defined master CSS variables (`--roms-bg`, `--roms-surface`, `--roms-primary`, `--roms-secondary`, status state mapping) in [PHASE_A_DESIGN_SPECIFICATION.md](file:///d:/ARCWorks_Restaurant%20Suite/RESTO_APP_UI_CONCEPT/documentation/PHASE_A_DESIGN_SPECIFICATION.md).
-- **Future Backend Proposals Documented**: Explicitly separated out non-existent backend features (per-item kitchen states, supplier POs, guest feedback) to preserve existing C# backend contracts.
-
-### Milestones
-- [x] Phase A (Design & Specification) Complete.
-- [x] Phase B (CSS Visual Implementation & Scoped Remediation) Complete.
-- [x] Remediation Follow-up Pass Complete.
-- [x] Final Acceptance Corrections Pass Complete.
-- [x] Automated Tests: 37/37 Passed.
+- Removed trailing whitespace from `roms-app.js`.
+- Prevented false `Saved.` messages when inventory adjustment or recipe guards reject an operation.
+- Removed two tautological LINQ-only tests.
+- Corrected the meaningful automated test baseline to 36 tests.
+- Marked runtime/browser acceptance as pending until the Codex acceptance recorded above completed it.

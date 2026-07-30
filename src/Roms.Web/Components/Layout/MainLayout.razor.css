@@ -77,8 +77,48 @@ main {
     }
 
     .page.kds-mode .sidebar {
-        width: 60px;
+        width: 72px;
         overflow: hidden;
+    }
+
+    .page.kds-mode .sidebar ::deep .navbar-brand,
+    .page.kds-mode .sidebar ::deep .nav-user-item {
+        display: none;
+    }
+
+    .page.kds-mode .sidebar ::deep .top-row {
+        padding: 0 !important;
+    }
+
+    .page.kds-mode .sidebar ::deep .container-fluid {
+        justify-content: center;
+        padding: 0;
+    }
+
+    .page.kds-mode .sidebar ::deep .nav-item {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .page.kds-mode .sidebar ::deep .nav-link {
+        justify-content: center;
+        gap: 0;
+        width: 48px;
+        margin: 0 auto;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .page.kds-mode .sidebar ::deep .nav-text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
     }
 
     .page.kds-mode .content {

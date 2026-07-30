@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 using Testcontainers.MariaDb;
@@ -49,6 +50,49 @@ public sealed class RomsApplicationSmokeTests : PageTest
                 .ToBeVisibleAsync();
             await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Menu & Tables" }))
                 .ToBeVisibleAsync();
+
+            await Page.SetViewportSizeAsync(390, 844);
+            await Page.GotoAsync($"{baseAddress}/inventory");
+            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Inventory", Exact = true }))
+                .ToBeVisibleAsync();
+
+            var navigationToggle = Page.GetByRole(AriaRole.Button, new() { Name = "Toggle navigation menu" });
+            await Expect(navigationToggle).ToHaveAttributeAsync("aria-expanded", "false");
+            await navigationToggle.ClickAsync();
+            await Expect(navigationToggle).ToHaveAttributeAsync("aria-expanded", "true");
+            await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Kitchen Display" }))
+                .ToBeVisibleAsync();
+
+            var connectionIndicator = Page.Locator("#roms-connection-indicator");
+            await Expect(connectionIndicator).ToContainTextAsync("Connected");
+            await Page.Context.SetOfflineAsync(true);
+            try
+            {
+                await Expect(connectionIndicator).ToContainTextAsync("Connection lost");
+            }
+            finally
+            {
+                await Page.Context.SetOfflineAsync(false);
+            }
+            await Expect(connectionIndicator).ToContainTextAsync("Connected");
+
+            await Page.SetViewportSizeAsync(1920, 1080);
+            await Page.GotoAsync($"{baseAddress}/kitchen");
+            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Kitchen Display" }))
+                .ToBeVisibleAsync();
+            await Expect(Page.Locator(".page")).ToHaveClassAsync(new Regex("\\bkds-mode\\b"));
+
+            var sidebarBox = await Page.Locator(".sidebar").BoundingBoxAsync();
+            Assert.That(sidebarBox, Is.Not.Null);
+            Assert.That(sidebarBox!.Width, Is.InRange(70, 74));
+
+            var compactLabelBox = await Page.Locator(".sidebar .nav-text").First.BoundingBoxAsync();
+            Assert.That(compactLabelBox, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(compactLabelBox!.Width, Is.LessThanOrEqualTo(1));
+                Assert.That(compactLabelBox.Height, Is.LessThanOrEqualTo(1));
+            });
         }
         finally
         {

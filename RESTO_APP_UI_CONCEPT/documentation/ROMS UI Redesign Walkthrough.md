@@ -1,60 +1,46 @@
-# ROMS UI Redesign & Final Acceptance Walkthrough
+# ROMS UI Redesign and Acceptance Walkthrough
 
-This document records the complete execution of the **ROMS UI Final Acceptance Corrections Pass**, verifying that all visual, responsive, accessibility, timezone, and lifecycle requirements are satisfied across both Windows host and Linux container runtimes.
+## Current status
 
----
+The reviewed UI corrections are implemented and final runtime acceptance is complete. This statement covers the current source and the isolated running application; it does not convert earlier concept mockups into runtime evidence.
 
-## Why these corrections were repeated
+## Accepted implementation
 
-During final acceptance auditing, four specific implementation/documentation gaps were identified and corrected:
+| Area | Confirmed behavior |
+| --- | --- |
+| Connection state | Displays `Connected`, `Reconnecting`, or `Connection lost`; offline state is rendered locally even when the Blazor circuit is unavailable. |
+| Mobile navigation | Toggle is visible at 390 x 844, exposes accurate `aria-expanded`, controls the identified navigation region, and reveals authorized links. |
+| Kitchen Display | Route activates KDS mode, uses a compact 72 px desktop icon rail, preserves accessible navigation names, and uses the full working canvas. |
+| Restaurant clock | Uses Asia/Manila time, renders in 12-hour format, advances in the Linux container, and is disposed with the page timer. |
+| Inventory | Active-item guards prevent invalid operations and false success messages; empty state, item creation, and stock adjustment were exercised against MariaDB. |
+| Responsive layout | Desktop, 1024 px tablet, and 390 px mobile checks found no page-level horizontal overflow. |
 
-1. **Inventory Documentation/Code Mismatch:**
-   - *Issue:* Previous documentation stated that `Inventory.razor` checked `items.Any(x => x.IsActive)` for form availability, but the code still used `items.Count > 0`.
-   - *Fix:* Added `HasActiveInventoryItems` property (`items.Any(x => x.IsActive)`) and used it consistently across both Stock Adjustment and Recipe Ingredient panels. Reset `adjustItemId` and `recipeInventoryId` when selected items become inactive.
+## Verification result
 
-2. **Windows-Local versus Linux-Container Timezone Difference:**
-   - *Issue:* `DateTime.Now` displays Asia/Manila time when run natively on a developer's Windows PC set to Manila timezone, but displays UTC (8 hours behind) when running inside the Linux container.
-   - *Fix:* Replaced `DateTime.Now` with explicit `TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila"))`, ensuring identical, accurate local time display across all deployment environments.
+- Release build: passed with 0 warnings and 0 errors.
+- Meaningful automated tests: 36/36 passed.
+- Seed-password security guard and whitespace checks: passed.
+- Docker application and MariaDB health: passed in a separate disposable compose project.
+- Running-browser route matrix: passed.
+- Offline/recovery behavior: passed.
+- Mobile ARIA/navigation behavior: passed.
+- Browser console errors: 0.
+- Uncaught page errors: 0.
+- Unexpected failed requests: 0.
+- Inventory create and +5 stock adjustment: passed.
 
-3. **JavaScript Observer & Listener Lifecycle Gap:**
-   - *Issue:* `romsConnection.init` registered `online`/`offline` event listeners and a `MutationObserver` without retaining handles or exposing cleanup, leaking callbacks upon circuit recreation. Reconnect failed modals also remained labeled `Reconnecting`.
-   - *Fix:* Refactored `roms-app.js` with an owned `romsConnection.dispose()` method and updated state precedence (`navigator.onLine == false` or `components-reconnect-failed` → `Offline` / `Connection lost`). Updated `MainLayout.razor` to implement `IAsyncDisposable`.
+The built application was also visually inspected at desktop Kitchen Display and mobile Inventory viewports.
 
-4. **Automated Checks versus Runtime Visual Evidence Boundary:**
-   - *Issue:* Passing automated tests verified backend stability, but did not produce visual runtime evidence for presentation state boundaries.
-   - *Fix:* Executed isolated acceptance verification matrix, produced all 15 runtime screenshot evidence assets in `.artifacts/ui-remediation-followup/screenshots/`, and documented the evidence manifest in `.artifacts/ui-remediation-followup/EVIDENCE.md`.
+## Why issues appeared again after earlier fixes
 
----
+Earlier rounds mixed three different kinds of evidence:
 
-## 1. Summary of Final Corrections Made
+1. design intent in mockups,
+2. source-level implementation and automated checks,
+3. behavior observed in a running browser and container.
 
-| Component | Correction Applied |
-| :--- | :--- |
-| **`Inventory.razor`** | Base form availability on `HasActiveInventoryItems`, display explicit empty-state notices when all items are inactive, reset inactive IDs, and disable actions when IDs are empty. |
-| **`Kitchen.razor`** | Converted KDS live clock to explicit `Asia/Manila` timezone conversion from UTC. Enforced 24px+ table/age headers and 18px+ item text. |
-| **`roms-app.js`** | Added owned `dispose()` method to clean up listeners and observers, and evaluated terminal reconnect failure states before generic `open` attribute. |
-| **`MainLayout.razor`** | Implemented `IAsyncDisposable` to call `romsConnection.dispose()` on circuit teardown. |
-| **`NavMenu.razor`** | Removed dead `currentUrl` state field while preserving route-change navbar auto-collapse. |
-| **`InventoryActiveItemGuardTests.cs`** | Added unit test coverage for inactive inventory item scenarios. |
+A source change can be correct while a browser-only timing or disconnected-circuit behavior remains untested. Some earlier “screenshots” were also duplicate concept images and were rejected. The final pass added targeted regression tests and generated fresh evidence from the isolated running application, closing that gap without changing production.
 
----
+## Operational boundary
 
-## 2. Automated Verification Baseline
-
-- `pwsh tools/Test-NoCommittedSeedPasswords.ps1`: **Passed** (2 settings files inspected).
-- `git diff --check`: **Passed** (0 whitespace errors).
-- `dotnet build Roms.slnx --configuration Release -m:1`: **Passed** (0 Warnings, 0 Errors).
-- `dotnet test Roms.slnx --configuration Release --no-build -m:1`: **Passed 37/37 tests**:
-  - Domain Tests: 8/8 Passed (added `InventoryActiveItemGuardTests`)
-  - Command Gateway Tests: 9/9 Passed
-  - Playwright E2E Tests: 2/2 Passed
-  - Integration Tests: 18/18 Passed
-
----
-
-## 3. Scope & Production Protection
-
-- **Production Stack (`arcworks-resto`):** Untouched.
-- **Backend Services & Domain Workflows:** 100% preserved.
-- **MariaDB Schema & EF Core Migrations:** Untouched.
-- **Inventory Feature Flag:** Preserved (`INVENTORY_ENABLED=false`).
+The acceptance stack used its own compose project, database volumes, image, loopback port 7081, and disposable credentials. The active `arcworks-resto-*` stack on port 7070 was not modified. See `docs/WORK_LOG.md` for the authoritative technical log.
