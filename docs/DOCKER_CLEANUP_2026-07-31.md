@@ -123,4 +123,3 @@ Use Compose service DNS:
 application and database stack if it is intended to be true staging. Pointing
 it to `http://app:8080` makes it only a second hostname for the production
 instance.
-
