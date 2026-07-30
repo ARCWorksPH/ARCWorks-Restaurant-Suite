@@ -1,5 +1,37 @@
 # ROMS Work Log
 
+## 2026-07-31 — Docker cleanup and tunnel readiness
+
+### Safety
+
+- Created and SHA-256 verified a fresh logical backup of the active 21-table
+  ROMS database before removing any Docker resource.
+- Restricted the backup directory to the current Windows account and SYSTEM.
+- Protected the active ROMS stack, `portfolio-v30-hosting`, all four active
+  project volumes, the Docker Ollama model, and project build/test images.
+
+### Cleanup
+
+- Permanently removed one anonymous nginx container, one exited Cloudflared
+  test container, and two failed disposable MariaDB containers.
+- Removed the failed containers' volumes plus three unreferenced anonymous
+  MariaDB-sized volumes.
+- Removed six obsolete/unrelated images, one unused Compose network, and
+  4.755 GB of build cache.
+- Exactly six containers remain: five ROMS services and the portfolio service.
+
+### Verification and tunnel boundary
+
+- ROMS returned HTTP 200; MariaDB, Ollama, and portfolio health passed.
+- Gatus continued to report successful ROMS and MariaDB checks.
+- The exposed temporary Cloudflare tunnel token must be rotated before reuse.
+- A Dockerized Cloudflared service must route through Compose DNS
+  (`app:8080`, `monitor:8080`), not its own `127.0.0.1`.
+- `roms-staging` requires a separate app/database stack to represent staging.
+- Full evidence: `docs/DOCKER_CLEANUP_2026-07-31.md`.
+
+---
+
 ## 2026-07-30 — Inventory activation preflight and external-audit handoff
 
 ### Implemented
