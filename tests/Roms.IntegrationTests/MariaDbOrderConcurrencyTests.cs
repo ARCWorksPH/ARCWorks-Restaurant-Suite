@@ -63,11 +63,40 @@ public sealed class MariaDbOrderConcurrencyTests(MariaDbFixture fixture)
 
         Assert.All(results, result => Assert.Null(result));
         await using var db = database.CreateContext();
-        var movements = await db.StockMovements.OrderBy(x => x.OrderId).ToListAsync();
+        var movements = await db.StockMovements.Where(x => x.OrderId != null).OrderBy(x => x.OrderId).ToListAsync();
         Assert.Equal(2, movements.Count);
         Assert.All(movements, movement => Assert.Equal(-2m, movement.QuantityDelta));
         Assert.Equal(-4m, movements.Sum(x => x.QuantityDelta));
         Assert.Equal(2, movements.Select(x => x.IdempotencyKey).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task Concurrent_orders_cannot_both_spend_the_same_remaining_stock()
+    {
+        await using var database = await fixture.CreateDatabaseAsync();
+        var scenario = await SeedScenarioAsync(database, orderCount: 2, openingStock: 2m);
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var attempts = new[]
+        {
+            TransitionAfterSignalAsync(CreateService(database), scenario.OrderIds[0], start.Task),
+            TransitionAfterSignalAsync(CreateService(database), scenario.OrderIds[1], start.Task)
+        };
+        start.SetResult();
+        var results = await Task.WhenAll(attempts);
+
+        Assert.Single(results, result => result is null);
+        Assert.Single(results, result => result is not null);
+        Assert.True(results.Single(result => result is not null) is
+            DomainException or DbUpdateConcurrencyException or DbUpdateException);
+
+        await using var db = database.CreateContext();
+        var orderMovements = await db.StockMovements.Where(x => x.OrderId != null).ToListAsync();
+        Assert.Single(orderMovements);
+        Assert.Equal(-2m, orderMovements.Sum(x => x.QuantityDelta));
+        Assert.Equal(0m, await db.StockMovements.SumAsync(x => x.QuantityDelta));
+        Assert.Equal(1, await db.Orders.CountAsync(x => x.Status == OrderStatus.Preparing));
+        Assert.Equal(1, await db.Orders.CountAsync(x => x.Status == OrderStatus.New));
     }
 
     [Fact]
@@ -81,7 +110,7 @@ public sealed class MariaDbOrderConcurrencyTests(MariaDbFixture fixture)
 
         await using var db = database.CreateContext();
         Assert.Equal(OrderStatus.Preparing, (await db.Orders.SingleAsync()).Status);
-        Assert.Equal(-2m, (await db.StockMovements.SingleAsync()).QuantityDelta);
+        Assert.Equal(-2m, (await db.StockMovements.SingleAsync(x => x.OrderId != null)).QuantityDelta);
     }
 
     [Fact]
@@ -101,7 +130,7 @@ public sealed class MariaDbOrderConcurrencyTests(MariaDbFixture fixture)
 
         await using var db = database.CreateContext();
         var order = await db.Orders.SingleAsync();
-        var movements = await db.StockMovements.ToListAsync();
+        var movements = await db.StockMovements.Where(x => x.OrderId != null).ToListAsync();
 
         Assert.Equal(OrderStatus.Cancelled, order.Status);
         Assert.Equal(
@@ -175,12 +204,25 @@ public sealed class MariaDbOrderConcurrencyTests(MariaDbFixture fixture)
         }
     }
 
-    private static async Task<Scenario> SeedScenarioAsync(MariaDbTestDatabase database, int orderCount)
+    private static async Task<Scenario> SeedScenarioAsync(
+        MariaDbTestDatabase database,
+        int orderCount,
+        decimal openingStock = 100m)
     {
         await using var db = database.CreateContext();
         var category = new MenuCategory { Name = "Mains" };
         var menu = new MenuItem { Name = "Burger", Price = 185m };
         var inventory = new InventoryItem { Name = "Patty", Unit = "piece" };
+        inventory.Movements.Add(new StockMovement
+        {
+            InventoryItemId = inventory.Id,
+            Type = StockMovementType.Receipt,
+            QuantityDelta = openingStock,
+            Reason = "Test opening balance",
+            IdempotencyKey = $"opening:{inventory.Id}",
+            ActorId = "admin",
+            OccurredUtc = new(2026, 7, 29, 11, 0, 0, DateTimeKind.Utc)
+        });
         menu.RecipeIngredients.Add(new RecipeIngredient
         {
             InventoryItem = inventory,

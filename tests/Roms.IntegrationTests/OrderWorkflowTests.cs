@@ -83,6 +83,7 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
             var menu = await setup.MenuItems.SingleAsync();
             var stock = new InventoryItem { Name = "Patty", Unit = "piece" };
             menu.RecipeIngredients.Add(new RecipeIngredient { InventoryItem = stock, Quantity = 1m });
+            stock.Movements.Add(OpeningStock(stock.Id));
             await setup.SaveChangesAsync();
         }
         await using var db = new RomsDbContext(options);
@@ -92,9 +93,48 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
         await service.AddItemAsync(id, menuItem.Id, 2, null, "waiter");
         await service.SubmitAsync(id, "submit-stock", "waiter");
         await service.TransitionAsync(id, OrderStatus.Preparing, "kitchen");
-        var movement = await db.StockMovements.SingleAsync();
+        var movement = await db.StockMovements.SingleAsync(x => x.OrderId == id);
         Assert.Equal(-2m, movement.QuantityDelta);
         Assert.Equal($"order:{id}:preparing:{movement.InventoryItemId}", movement.IdempotencyKey);
+    }
+
+    [Fact]
+    public async Task Negative_stock_is_blocked_until_an_admin_supplies_an_audited_override()
+    {
+        await using (var setup = new RomsDbContext(options))
+        {
+            var menu = await setup.MenuItems.SingleAsync();
+            var stock = new InventoryItem { Name = "Patty", Unit = "piece" };
+            menu.RecipeIngredients.Add(new RecipeIngredient { InventoryItem = stock, Quantity = 1m });
+            await setup.SaveChangesAsync();
+        }
+        await using var db = new RomsDbContext(options);
+        var service = CreateService(inventory: true);
+        var table = await db.RestaurantTables.SingleAsync();
+        var menuItem = await db.MenuItems.SingleAsync();
+        var id = await service.GetOrCreateDraftAsync(table.Id, "waiter");
+        await service.AddItemAsync(id, menuItem.Id, 2, null, "waiter");
+        await service.SubmitAsync(id, "negative-stock", "waiter");
+
+        var blocked = await Assert.ThrowsAsync<DomainException>(
+            () => service.TransitionAsync(id, OrderStatus.Preparing, "kitchen"));
+        Assert.Contains("Insufficient stock", blocked.Message);
+
+        await service.TransitionAsync(
+            id,
+            OrderStatus.Preparing,
+            "admin",
+            allowNegativeStock: true,
+            inventoryOverrideReason: "Physical count pending after emergency delivery");
+
+        db.ChangeTracker.Clear();
+        var order = await db.Orders.SingleAsync(x => x.Id == id);
+        Assert.Equal(OrderStatus.Preparing, order.Status);
+        Assert.Equal("admin", order.InventoryOverriddenBy);
+        Assert.Equal("Physical count pending after emergency delivery", order.InventoryOverrideReason);
+        Assert.Equal(-2m, await db.StockMovements.Where(x => x.OrderId == id).SumAsync(x => x.QuantityDelta));
+        Assert.True(await db.AuditEntries.AnyAsync(x =>
+            x.EntityId == id.ToString() && x.Action == "INVENTORY_DISCREPANCY_ALERT"));
     }
 
     [Fact]
@@ -103,8 +143,9 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
         await using (var setup = new RomsDbContext(options))
         {
             var menu = await setup.MenuItems.SingleAsync();
-            menu.RecipeIngredients.Add(new RecipeIngredient
-                { InventoryItem = new InventoryItem { Name = "Patty", Unit = "piece" }, Quantity = 1m });
+            var stock = new InventoryItem { Name = "Patty", Unit = "piece" };
+            menu.RecipeIngredients.Add(new RecipeIngredient { InventoryItem = stock, Quantity = 1m });
+            stock.Movements.Add(OpeningStock(stock.Id));
             await setup.SaveChangesAsync();
         }
         await using var db = new RomsDbContext(options);
@@ -122,7 +163,7 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
             "Customer left",
             inventoryDisposition: InventoryDisposition.ReturnToStock);
 
-        var movements = await db.StockMovements.OrderBy(x => x.Id).ToListAsync();
+        var movements = await db.StockMovements.Where(x => x.OrderId == id).OrderBy(x => x.Id).ToListAsync();
         Assert.Equal(2, movements.Count);
         Assert.Equal(StockMovementType.Consumption, movements[0].Type);
         Assert.Equal(StockMovementType.Reversal, movements[1].Type);
@@ -135,8 +176,9 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
         await using (var setup = new RomsDbContext(options))
         {
             var menu = await setup.MenuItems.SingleAsync();
-            menu.RecipeIngredients.Add(new RecipeIngredient
-                { InventoryItem = new InventoryItem { Name = "Patty", Unit = "piece" }, Quantity = 1m });
+            var stock = new InventoryItem { Name = "Patty", Unit = "piece" };
+            menu.RecipeIngredients.Add(new RecipeIngredient { InventoryItem = stock, Quantity = 1m });
+            stock.Movements.Add(OpeningStock(stock.Id));
             await setup.SaveChangesAsync();
         }
         await using var db = new RomsDbContext(options);
@@ -155,7 +197,7 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
             inventoryDisposition: InventoryDisposition.ConsumedAsWasteOrStaffMeal);
 
         var order = await db.Orders.SingleAsync(x => x.Id == id);
-        var movements = await db.StockMovements.ToListAsync();
+        var movements = await db.StockMovements.Where(x => x.OrderId == id).ToListAsync();
         var audit = await db.AuditEntries.OrderByDescending(x => x.Id)
             .FirstAsync(x => x.Action == "CancelOrder");
 
@@ -173,8 +215,9 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
         await using (var setup = new RomsDbContext(options))
         {
             var menu = await setup.MenuItems.SingleAsync();
-            menu.RecipeIngredients.Add(new RecipeIngredient
-                { InventoryItem = new InventoryItem { Name = "Patty", Unit = "piece" }, Quantity = 1m });
+            var stock = new InventoryItem { Name = "Patty", Unit = "piece" };
+            menu.RecipeIngredients.Add(new RecipeIngredient { InventoryItem = stock, Quantity = 1m });
+            stock.Movements.Add(OpeningStock(stock.Id));
             await setup.SaveChangesAsync();
         }
         await using var db = new RomsDbContext(options);
@@ -189,7 +232,7 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
         await service.AmendAddItemAsync(id, menuItem.Id, 1, null, "Extra burger", "waiter");
         var addedItemId = (await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == id))
             .Items.Single(x => x.Quantity == 1).Id;
-        Assert.Equal(-3m, (await db.StockMovements.ToListAsync()).Sum(x => x.QuantityDelta));
+        Assert.Equal(-3m, (await db.StockMovements.Where(x => x.OrderId == id).ToListAsync()).Sum(x => x.QuantityDelta));
 
         await service.AmendRemoveItemAsync(
             id,
@@ -197,7 +240,7 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
             "Admin-approved correction",
             "admin",
             inventoryDisposition: InventoryDisposition.ReturnToStock);
-        var movements = await db.StockMovements.OrderBy(x => x.Id).ToListAsync();
+        var movements = await db.StockMovements.Where(x => x.OrderId == id).OrderBy(x => x.Id).ToListAsync();
         Assert.Equal(3, movements.Count);
         Assert.Equal(-2m, movements.Sum(x => x.QuantityDelta));
         Assert.Equal(StockMovementType.Reversal, movements[^1].Type);
@@ -209,8 +252,9 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
         await using (var setup = new RomsDbContext(options))
         {
             var menu = await setup.MenuItems.SingleAsync();
-            menu.RecipeIngredients.Add(new RecipeIngredient
-                { InventoryItem = new InventoryItem { Name = "Patty", Unit = "piece" }, Quantity = 1m });
+            var stock = new InventoryItem { Name = "Patty", Unit = "piece" };
+            menu.RecipeIngredients.Add(new RecipeIngredient { InventoryItem = stock, Quantity = 1m });
+            stock.Movements.Add(OpeningStock(stock.Id));
             await setup.SaveChangesAsync();
         }
         await using var db = new RomsDbContext(options);
@@ -240,7 +284,7 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
 
         db.ChangeTracker.Clear();
         var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == id);
-        var movements = await db.StockMovements.OrderBy(x => x.Id).ToListAsync();
+        var movements = await db.StockMovements.Where(x => x.OrderId == id).OrderBy(x => x.Id).ToListAsync();
 
         Assert.Equal(-2m, movements.Sum(x => x.QuantityDelta));
         Assert.Equal(
@@ -303,6 +347,17 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
+    private static StockMovement OpeningStock(Guid inventoryItemId) => new()
+    {
+        InventoryItemId = inventoryItemId,
+        Type = StockMovementType.Receipt,
+        QuantityDelta = 100m,
+        Reason = "Test opening balance",
+        ActorId = "admin",
+        IdempotencyKey = $"test-opening:{inventoryItemId}",
+        OccurredUtc = new(2026, 7, 13, 11, 0, 0, DateTimeKind.Utc)
+    };
+
     private OrderService CreateService(bool inventory = false) => new(
         new TestFactory(options),
         new FixedClock(),

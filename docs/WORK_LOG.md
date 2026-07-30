@@ -1,5 +1,43 @@
 # ROMS Work Log
 
+## 2026-07-30 — Negative-stock controls and loss approvals
+
+### Controls implemented
+
+- Preparation and preparation-time additions now calculate projected global stock before appending recipe consumption.
+- A projected negative balance blocks the whole operation inside a serializable transaction.
+- An authenticated administrator can use an explicit override only with a reason.
+- Manager, reason, and timestamp are persisted on the order and displayed in the Order Editor and Kitchen Display.
+- Every permitted negative result appends an `INVENTORY_DISCREPANCY_ALERT` audit record with shortage details.
+- Manual negative adjustments are subject to the same Admin-only reason and discrepancy rules.
+- Kitchen/Admin staff can report Waste or Spoilage; reports remain Pending and do not affect stock.
+- Admin approval appends one idempotent `Waste` or `Spoilage` movement. Rejection requires a reason and appends no movement.
+- Approved physical loss is never hidden: if approval reveals negative stock, it is posted and accompanied by a discrepancy alert.
+- Inventory setup and adjustments remain Admin-only; Kitchen users now receive an Inventory navigation entry for loss reporting.
+- Added migration `20260730120000_AddNegativeStockAndLossApprovals`.
+
+### Verification
+
+- Release build: 0 warnings, 0 errors.
+- Automated tests: 48/48 passed:
+  - Domain: 10/10.
+  - Command Gateway: 9/9.
+  - Playwright E2E: 2/2.
+  - Integration: 27/27.
+- Real MariaDB migration and workflow coverage passed.
+- Real MariaDB concurrency proved that two orders cannot both consume the same final stock quantity: one completed and one remained New with no duplicate consumption.
+- Real-browser workflow passed against disposable MariaDB: create inventory item, report loss, verify Pending/no immediate posting, approve, and display the resulting balance.
+- Browser automation now waits for the interactive Blazor circuit before entering data, preventing prerender hydration from replacing test input.
+
+### Safety boundary
+
+- The active application and its MariaDB volume were not migrated or restarted.
+- `Features__Inventory__Enabled=false` remains active.
+- The provisional restaurant dataset remains unverified and sandbox-only.
+- Live multi-user acceptance and confirmed restaurant opening balances remain deployment gates.
+
+---
+
 ## 2026-07-30 — Inventory disposition and reversal milestone
 
 ### Business gap resolved

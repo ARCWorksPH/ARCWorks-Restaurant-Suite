@@ -12,6 +12,11 @@ Status: implementation baseline for inventory-readiness testing. Inventory remai
 | Add an item while Preparing | Consume the added item's recipe quantities. |
 | Remove an item while Preparing and choose **Return to stock** | Reverse only the removed item's recipe quantities. |
 | Remove an item while Preparing and choose **Consumed as waste/staff meal** | Preserve the removed item's consumption, including after later amendments. |
+| Start or amend preparation when recipe consumption would make any item negative | Block the operation and show the shortage. Do not change the order, ledger, or audit trail. |
+| Administrator explicitly overrides a negative-stock block with a reason | Permit the operation, persist the manager and reason on the order, and append an `INVENTORY_DISCREPANCY_ALERT` audit entry. |
+| Kitchen or Admin reports waste/spoilage | Create a Pending loss request. Do not change the stock ledger. |
+| Admin approves waste/spoilage | Mark the request Approved and append one idempotent `Waste` or `Spoilage` stock movement. |
+| Admin rejects waste/spoilage | Mark the request Rejected with a reason. Do not change the stock ledger. |
 
 ## Authorization and audit
 
@@ -21,10 +26,15 @@ Status: implementation baseline for inventory-readiness testing. Inventory remai
 - Every post-preparation cancellation or removal requires an explicit inventory disposition.
 - The disposition is persisted on the order or order item and included in the audit entry.
 - Stock movements remain append-only. Reconciliation posts compensating `Reversal` movements; it never edits or deletes prior consumption.
+- Negative-stock checks and the resulting stock movement are committed in one serializable database transaction.
+- Only an administrator may override a negative-stock block; every override requires a reason and emits `INVENTORY_DISCREPANCY_ALERT`.
+- Kitchen staff and administrators may report waste or spoilage. Only administrators may approve or reject a report.
+- A rejected loss report requires a review reason.
+- An approved physical loss is recorded even if it reveals negative stock; the system emits a discrepancy alert rather than hiding the loss.
 
 ## Deferred policies
 
-- Negative-stock blocking and manager override remain a later gate.
-- Waste/spoilage approvals and cost accounting remain a later gate.
+- Ingredient/unit cost accounting and financial valuation remain a later gate.
+- Alert acknowledgement/escalation beyond the append-only audit record remains a later gate.
 - The provisional Bob Marlin dataset is sandbox-only until restaurant confirmation.
-- Inventory must remain disabled in the active deployment until these rules pass real-MariaDB, concurrency, browser, and multi-user acceptance.
+- Inventory must remain disabled in the active deployment until restaurant data is confirmed and live multi-user acceptance is authorized.

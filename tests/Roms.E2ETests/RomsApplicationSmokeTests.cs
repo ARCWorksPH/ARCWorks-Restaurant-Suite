@@ -56,6 +56,23 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Page.GotoAsync($"{baseAddress}/inventory");
             await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Inventory", Exact = true }))
                 .ToBeVisibleAsync();
+            var connectionIndicator = Page.Locator("#roms-connection-indicator");
+            await Expect(connectionIndicator).ToContainTextAsync("Connected");
+            await Page.GetByPlaceholder("Name", new() { Exact = true })
+                .PressSequentiallyAsync("Test milk", new() { Delay = 40 });
+            await Page.WaitForTimeoutAsync(500);
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Add item" }).ClickAsync();
+            await Expect(Page.Locator(".alert").Last).ToContainTextAsync("Saved.");
+            await Page.GetByLabel("Loss inventory item").SelectOptionAsync(
+                new SelectOptionValue { Label = "Test milk (piece)" });
+            await Page.GetByPlaceholder("Quantity", new() { Exact = true }).FillAsync("1");
+            await Page.GetByPlaceholder("What happened? (required)").FillAsync("Container damaged in receiving");
+            await Page.WaitForTimeoutAsync(500);
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Submit for approval" }).ClickAsync();
+            await Expect(Page.GetByText("Pending", new() { Exact = true })).ToBeVisibleAsync();
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Approve" }).ClickAsync();
+            await Expect(Page.GetByText("Approved", new() { Exact = true })).ToBeVisibleAsync();
+            await Expect(Page.GetByText("-1.000 piece")).ToBeVisibleAsync();
 
             var navigationToggle = Page.GetByRole(AriaRole.Button, new() { Name = "Toggle navigation menu" });
             await Expect(navigationToggle).ToHaveAttributeAsync("aria-expanded", "false");
@@ -64,8 +81,6 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Kitchen Display" }))
                 .ToBeVisibleAsync();
 
-            var connectionIndicator = Page.Locator("#roms-connection-indicator");
-            await Expect(connectionIndicator).ToContainTextAsync("Connected");
             await Page.Context.SetOfflineAsync(true);
             try
             {

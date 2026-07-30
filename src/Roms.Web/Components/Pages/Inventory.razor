@@ -1,5 +1,5 @@
 @page "/inventory"
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Policy = "KitchenOrAdmin")]
 @inject IInventoryService InventoryService
 @inject IOrderService Orders
 @inject AuthenticationStateProvider Authentication
@@ -11,17 +11,19 @@
     <div class="alert alert-warning"><strong>Automatic stock deduction is paused.</strong> Configure and verify stock units, opening balances, and recipes here before enabling <code>Features:Inventory:Enabled</code>.</div>
 }
 @if (!string.IsNullOrWhiteSpace(message)) { <div class="alert @(failed ? "alert-danger" : "alert-success")">@message</div> }
+@if (isAdmin)
+{
 <div class="admin-grid">
     <section class="panel">
         <h2>Add inventory item</h2>
         <div class="user-form">
-            <input class="form-control" placeholder="Name" @bind="newItem.Name" />
-            <select class="form-select" @bind="newItem.Unit">
+            <input class="form-control" placeholder="Name" @bind="newItemName" @bind:event="oninput" />
+            <select class="form-select" @bind="newItemUnit">
                 <option value="piece">piece</option>
                 <option value="g">g</option>
                 <option value="ml">ml</option>
             </select>
-            <input class="form-control" type="number" min="0" step="0.001" placeholder="Minimum stock" @bind="newItem.MinimumStock" />
+            <input class="form-control" type="number" min="0" step="0.001" placeholder="Minimum stock" @bind="newMinimumStock" />
             <button class="btn btn-primary touch-button" @onclick="SaveItem">Add item</button>
         </div>
     </section>
@@ -38,6 +40,14 @@
                 </select>
                 <input class="form-control" type="number" step="0.001" placeholder="Quantity + or -" @bind="adjustment" />
                 <input class="form-control" placeholder="Reason (required)" @bind="adjustmentReason" />
+                <label class="form-check">
+                    <input class="form-check-input" type="checkbox" @bind="allowNegativeAdjustment" />
+                    <span class="form-check-label">Manager override if this would make stock negative</span>
+                </label>
+                @if (allowNegativeAdjustment)
+                {
+                    <input class="form-control" placeholder="Manager override reason (required)" @bind="adjustmentOverrideReason" />
+                }
                 <button class="btn btn-primary touch-button" disabled="@(adjustItemId == Guid.Empty)" @onclick="Adjust">Post adjustment</button>
             </div>
         }
@@ -77,6 +87,67 @@
         }
     </section>
 </div>
+}
+<section class="panel mt-4">
+    <h2>Report waste or spoilage</h2>
+    <p>Reports remain pending and do not change stock until an administrator approves them.</p>
+    @if (HasActiveInventoryItems)
+    {
+        <div class="user-form">
+            <select class="form-select" aria-label="Loss inventory item" @bind="lossItemId">
+                @foreach (var item in items.Where(x => x.IsActive))
+                {
+                    <option value="@item.Id">@item.Name (@item.Unit)</option>
+                }
+            </select>
+            <select class="form-select" aria-label="Loss type" @bind="lossType">
+                <option value="@InventoryLossType.Waste">Waste</option>
+                <option value="@InventoryLossType.Spoilage">Spoilage</option>
+            </select>
+            <input class="form-control" type="number" min="0.001" step="0.001" placeholder="Quantity" @bind="lossQuantity" />
+            <input class="form-control" placeholder="What happened? (required)" @bind="lossReason" @bind:event="oninput" />
+            <button class="btn btn-warning touch-button" disabled="@(lossItemId == Guid.Empty)" @onclick="ReportLoss">Submit for approval</button>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state py-3">No active inventory items are available for loss reporting.</div>
+    }
+</section>
+<section class="panel mt-4">
+    <h2>Waste and spoilage approvals</h2>
+    @if (lossRequests.Count == 0)
+    {
+        <div class="empty-state">No loss reports have been submitted.</div>
+    }
+    else
+    {
+        <div class="admin-list">
+            @foreach (var request in lossRequests)
+            {
+                <div>
+                    <span>
+                        <strong>@request.Type: @request.Quantity.ToString("N3") @request.Unit @request.InventoryItemName</strong>
+                        <small>@request.Reason · reported by @request.ReportedBy · @request.ReportedUtc.ToLocalTime().ToString("g")</small>
+                    </span>
+                    <span class="status-pill status-@request.Status.ToString().ToLowerInvariant()">@request.Status</span>
+                    @if (isAdmin && request.Status == InventoryLossStatus.Pending)
+                    {
+                        <input class="form-control" placeholder="Review note (required to reject)"
+                               value="@ReviewReason(request.Id)"
+                               @oninput="eventArgs => SetReviewReason(request.Id, eventArgs.Value?.ToString())" />
+                        <button class="btn btn-success" @onclick="() => ReviewLoss(request.Id, true)">Approve</button>
+                        <button class="btn btn-outline-danger" @onclick="() => ReviewLoss(request.Id, false)">Reject</button>
+                    }
+                    else if (request.Status != InventoryLossStatus.Pending)
+                    {
+                        <small>Reviewed by @request.ReviewedBy@if (!string.IsNullOrWhiteSpace(request.ReviewReason)) { <text>: @request.ReviewReason</text> }</small>
+                    }
+                </div>
+            }
+        </div>
+    }
+</section>
 <section class="panel mt-4">
     <h2>Current balances</h2>
     @if (balances.Count == 0)
@@ -98,15 +169,19 @@
 </section>
 
 @code {
-    private bool enabled, failed;
-    private string actor = "unknown", adjustmentReason = "";
+    private bool enabled, failed, isAdmin, allowNegativeAdjustment;
+    private string actor = "unknown", adjustmentReason = "", adjustmentOverrideReason = "";
+    private string newItemName = "", newItemUnit = "piece";
+    private string lossReason = "";
+    private readonly Dictionary<Guid, string> reviewReasons = [];
     private string? message;
     private IReadOnlyList<InventoryBalance> balances = [];
     private IReadOnlyList<InventoryItem> items = [];
     private IReadOnlyList<MenuItemChoice> menu = [];
-    private InventoryItem newItem = new InventoryItem { Unit = "piece" };
-    private Guid adjustItemId, recipeMenuId, recipeInventoryId;
-    private decimal adjustment, recipeQuantity = 1;
+    private IReadOnlyList<InventoryLossRequestView> lossRequests = [];
+    private Guid adjustItemId, recipeMenuId, recipeInventoryId, lossItemId;
+    private decimal adjustment, recipeQuantity = 1, lossQuantity = 1, newMinimumStock;
+    private InventoryLossType lossType = InventoryLossType.Waste;
 
     private bool HasActiveInventoryItems => items.Any(x => x.IsActive);
 
@@ -115,6 +190,7 @@
         enabled = Configuration.GetValue<bool>("Features:Inventory:Enabled");
         var state = await Authentication.GetAuthenticationStateAsync();
         actor = state.User.Identity?.Name ?? "unknown";
+        isAdmin = state.User.IsInRole(RomsRoles.Admin);
         await Load();
     }
 
@@ -123,29 +199,47 @@
         balances = await InventoryService.GetBalancesAsync();
         items = await InventoryService.GetItemsAsync();
         menu = await Orders.GetMenuAsync();
+        lossRequests = await InventoryService.GetLossRequestsAsync();
 
         var activeItems = items.Where(x => x.IsActive).ToList();
         if (!activeItems.Any(x => x.Id == adjustItemId))
             adjustItemId = activeItems.FirstOrDefault()?.Id ?? Guid.Empty;
         if (!activeItems.Any(x => x.Id == recipeInventoryId))
             recipeInventoryId = activeItems.FirstOrDefault()?.Id ?? Guid.Empty;
+        if (!activeItems.Any(x => x.Id == lossItemId))
+            lossItemId = activeItems.FirstOrDefault()?.Id ?? Guid.Empty;
         if (!menu.Any(x => x.Id == recipeMenuId))
             recipeMenuId = menu.FirstOrDefault()?.Id ?? Guid.Empty;
     }
 
     private Task SaveItem() => Run(async () => {
-        if (string.IsNullOrWhiteSpace(newItem.Unit)) newItem.Unit = "piece";
-        await InventoryService.SaveItemAsync(newItem, actor);
-        newItem = new InventoryItem { Unit = "piece" };
+        await InventoryService.SaveItemAsync(new InventoryItem
+        {
+            Name = newItemName,
+            Unit = string.IsNullOrWhiteSpace(newItemUnit) ? "piece" : newItemUnit,
+            MinimumStock = newMinimumStock
+        }, actor);
+        newItemName = "";
+        newItemUnit = "piece";
+        newMinimumStock = 0;
     });
 
     private Task Adjust()
     {
         if (adjustItemId == Guid.Empty) return Task.CompletedTask;
         return Run(async () => {
-            await InventoryService.AdjustAsync(adjustItemId, adjustment, adjustmentReason, actor, Guid.NewGuid().ToString("N"));
+            await InventoryService.AdjustAsync(
+                adjustItemId,
+                adjustment,
+                adjustmentReason,
+                actor,
+                Guid.NewGuid().ToString("N"),
+                allowNegativeStock: allowNegativeAdjustment,
+                inventoryOverrideReason: adjustmentOverrideReason);
             adjustment = 0;
             adjustmentReason = "";
+            adjustmentOverrideReason = "";
+            allowNegativeAdjustment = false;
         });
     }
 
@@ -154,6 +248,27 @@
         if (recipeMenuId == Guid.Empty || recipeInventoryId == Guid.Empty) return Task.CompletedTask;
         return Run(() => InventoryService.SetRecipeIngredientAsync(recipeMenuId, recipeInventoryId, recipeQuantity, actor));
     }
+
+    private Task ReportLoss()
+    {
+        if (lossItemId == Guid.Empty) return Task.CompletedTask;
+        return Run(async () =>
+        {
+            await InventoryService.ReportLossAsync(
+                lossItemId, lossType, lossQuantity, lossReason, actor, Guid.NewGuid().ToString("N"));
+            lossQuantity = 1;
+            lossReason = "";
+        });
+    }
+
+    private Task ReviewLoss(Guid requestId, bool approve) => Run(async () =>
+    {
+        await InventoryService.ReviewLossAsync(requestId, approve, ReviewReason(requestId), actor);
+        reviewReasons.Remove(requestId);
+    });
+
+    private string ReviewReason(Guid requestId) => reviewReasons.GetValueOrDefault(requestId, "");
+    private void SetReviewReason(Guid requestId, string? value) => reviewReasons[requestId] = value ?? "";
 
     private async Task Run(Func<Task> action)
     {

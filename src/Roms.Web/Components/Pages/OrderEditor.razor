@@ -12,6 +12,14 @@
 else
 {
     <div class="page-heading"><div><h1>Table @order.TableNumber</h1><span class="status-pill status-@order.Status.ToString().ToLowerInvariant()">@order.Status</span> <small>Waiter: @order.WaiterName · Revision @order.Revision</small></div><button class="btn btn-outline-secondary touch-button" @onclick="Back">Back</button></div>
+    @if (!string.IsNullOrWhiteSpace(order.InventoryOverrideReason))
+    {
+        <div class="alert alert-danger">
+            <strong>Inventory discrepancy — manager override used.</strong>
+            @order.InventoryOverrideReason
+            <small>Authorized by @order.InventoryOverriddenBy at @order.InventoryOverrideUtc?.ToLocalTime().ToString("g").</small>
+        </div>
+    }
     <div class="order-layout">
         <section>
             <h2>Current order</h2>
@@ -70,6 +78,14 @@ else
                                 <option value="@InventoryDisposition.ReturnToStock">Return ingredients to stock</option>
                                 <option value="@InventoryDisposition.ConsumedAsWasteOrStaffMeal">Consumed as waste or staff meal</option>
                             </select>
+                            <label class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" @bind="allowNegativeStock" />
+                                <span class="form-check-label">Manager override if added items would make stock negative</span>
+                            </label>
+                            @if (allowNegativeStock)
+                            {
+                                <input class="form-control mt-2" placeholder="Manager stock override reason (required)" @bind="inventoryOverrideReason" />
+                            }
                         }
                     </div>
                 }
@@ -82,11 +98,11 @@ else
 
 @code {
     [Parameter] public Guid OrderId { get; set; }
-    private OrderView? order; private IReadOnlyList<MenuItemChoice> menu = []; private string notes = "", amendmentReason = "", cancellationReason = ""; private int quantity = 1; private bool busy, isAdmin; private string? error; private string actor = "unknown"; private string submissionKey = Guid.NewGuid().ToString("N"); private InventoryDisposition? removalInventoryDisposition, cancellationInventoryDisposition;
+    private OrderView? order; private IReadOnlyList<MenuItemChoice> menu = []; private string notes = "", amendmentReason = "", cancellationReason = "", inventoryOverrideReason = ""; private int quantity = 1; private bool busy, isAdmin, allowNegativeStock; private string? error; private string actor = "unknown"; private string submissionKey = Guid.NewGuid().ToString("N"); private InventoryDisposition? removalInventoryDisposition, cancellationInventoryDisposition;
     protected override async Task OnInitializedAsync() { var state = await Authentication.GetAuthenticationStateAsync(); actor = state.User.Identity?.Name ?? "unknown"; isAdmin = state.User.IsInRole(RomsRoles.Admin); Events.Changed += OnChanged; }
     protected override async Task OnParametersSetAsync() => await Load();
     private async Task Load() { try { order = await Orders.GetOrderAsync(OrderId, actor); menu = await Orders.GetMenuAsync(); if (order is null) error = "Order not found."; } catch (Exception ex) { order = null; error = ex.Message; } }
-    private async Task Add(Guid menuId) => await Run(async () => { if (order!.Status == OrderStatus.Draft) await Orders.AddItemAsync(OrderId, menuId, quantity, notes, actor); else await Orders.AmendAddItemAsync(OrderId, menuId, quantity, notes, amendmentReason, actor); notes = amendmentReason = ""; quantity = 1; });
+    private async Task Add(Guid menuId) => await Run(async () => { if (order!.Status == OrderStatus.Draft) await Orders.AddItemAsync(OrderId, menuId, quantity, notes, actor); else await Orders.AmendAddItemAsync(OrderId, menuId, quantity, notes, amendmentReason, actor, allowNegativeStock: allowNegativeStock, inventoryOverrideReason: inventoryOverrideReason); notes = amendmentReason = inventoryOverrideReason = ""; allowNegativeStock = false; quantity = 1; });
     private async Task Remove(Guid itemId) => await Run(async () => { if (order!.Status == OrderStatus.Draft) await Orders.RemoveDraftItemAsync(OrderId, itemId, actor); else await Orders.AmendRemoveItemAsync(OrderId, itemId, amendmentReason, actor, inventoryDisposition: removalInventoryDisposition); amendmentReason = ""; removalInventoryDisposition = null; });
     private async Task Submit() => await Run(async () => { await Orders.SubmitAsync(OrderId, submissionKey, actor); submissionKey = Guid.NewGuid().ToString("N"); });
     private async Task Complete() => await Run(() => Orders.TransitionAsync(OrderId, OrderStatus.Completed, actor));

@@ -3,8 +3,10 @@ namespace Roms.Domain;
 public enum UserRole { Admin, Waiter, Kitchen }
 public enum OrderStatus { Draft, New, Preparing, Ready, Completed, Cancelled }
 public enum TableStatus { Available, Occupied, Preparing, ReadyToServe, PendingPayment }
-public enum StockMovementType { Receipt, Consumption, Adjustment, Reversal }
+public enum StockMovementType { Receipt, Consumption, Adjustment, Reversal, Waste, Spoilage }
 public enum InventoryDisposition { ReturnToStock, ConsumedAsWasteOrStaffMeal }
+public enum InventoryLossType { Waste, Spoilage }
+public enum InventoryLossStatus { Pending, Approved, Rejected }
 
 public sealed class StaffSchedule
 {
@@ -107,6 +109,9 @@ public sealed class Order
     public string? PaymentConfirmedBy { get; private set; }
     public string? CancellationReason { get; private set; }
     public InventoryDisposition? CancellationInventoryDisposition { get; private set; }
+    public string? InventoryOverrideReason { get; private set; }
+    public string? InventoryOverriddenBy { get; private set; }
+    public DateTime? InventoryOverrideUtc { get; private set; }
     public int Revision { get; private set; } = 1;
     public long Version { get; private set; }
     public List<OrderItem> Items { get; set; } = [];
@@ -242,6 +247,16 @@ public sealed class Order
         Touch(utcNow);
     }
 
+    public void RecordInventoryOverride(string actorId, string reason, DateTime utcNow)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new DomainException("A manager override reason is required.");
+        InventoryOverriddenBy = actorId;
+        InventoryOverrideReason = reason.Trim();
+        InventoryOverrideUtc = utcNow;
+        Touch(utcNow);
+    }
+
     private void AddHistory(OrderStatus from, OrderStatus to, string actorId, string? reason, DateTime utcNow)
     {
         StatusHistory.Add(new OrderStatusHistory
@@ -335,6 +350,77 @@ public sealed class StockMovement
     public string IdempotencyKey { get; set; } = "";
     public string ActorId { get; set; } = "system";
     public DateTime OccurredUtc { get; set; }
+}
+
+public sealed class InventoryLossRequest
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid InventoryItemId { get; set; }
+    public InventoryItem? InventoryItem { get; set; }
+    public InventoryLossType Type { get; private set; }
+    public decimal Quantity { get; private set; }
+    public string Reason { get; private set; } = "";
+    public string ReportedBy { get; private set; } = "";
+    public DateTime ReportedUtc { get; private set; }
+    public InventoryLossStatus Status { get; private set; } = InventoryLossStatus.Pending;
+    public string? ReviewedBy { get; private set; }
+    public DateTime? ReviewedUtc { get; private set; }
+    public string? ReviewReason { get; private set; }
+    public string IdempotencyKey { get; set; } = "";
+
+    public static InventoryLossRequest Report(
+        Guid inventoryItemId,
+        InventoryLossType type,
+        decimal quantity,
+        string reason,
+        string actorId,
+        string idempotencyKey,
+        DateTime utcNow)
+    {
+        if (inventoryItemId == Guid.Empty) throw new DomainException("An inventory item is required.");
+        if (quantity <= 0) throw new DomainException("Waste or spoilage quantity must be greater than zero.");
+        if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("A waste or spoilage reason is required.");
+        if (string.IsNullOrWhiteSpace(actorId)) throw new DomainException("A reporting staff member is required.");
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Length > 150)
+            throw new DomainException("A valid loss-report key is required.");
+        return new InventoryLossRequest
+        {
+            InventoryItemId = inventoryItemId,
+            Type = type,
+            Quantity = quantity,
+            Reason = reason.Trim(),
+            ReportedBy = actorId,
+            ReportedUtc = utcNow,
+            IdempotencyKey = idempotencyKey
+        };
+    }
+
+    public void Approve(string reviewerId, string? reviewReason, DateTime utcNow)
+    {
+        EnsurePending();
+        if (string.IsNullOrWhiteSpace(reviewerId)) throw new DomainException("An approving manager is required.");
+        Status = InventoryLossStatus.Approved;
+        ReviewedBy = reviewerId;
+        ReviewedUtc = utcNow;
+        ReviewReason = reviewReason?.Trim();
+    }
+
+    public void Reject(string reviewerId, string reason, DateTime utcNow)
+    {
+        EnsurePending();
+        if (string.IsNullOrWhiteSpace(reviewerId)) throw new DomainException("A reviewing manager is required.");
+        if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("A rejection reason is required.");
+        Status = InventoryLossStatus.Rejected;
+        ReviewedBy = reviewerId;
+        ReviewedUtc = utcNow;
+        ReviewReason = reason.Trim();
+    }
+
+    private void EnsurePending()
+    {
+        if (Status != InventoryLossStatus.Pending)
+            throw new DomainException("This loss report has already been reviewed.");
+    }
 }
 
 public sealed class DomainException(string message) : InvalidOperationException(message);

@@ -2,6 +2,7 @@
 @attribute [Authorize(Policy = "KitchenOrAdmin")]
 @inject IOrderService Orders
 @inject AuthenticationStateProvider Authentication
+@inject IConfiguration Configuration
 @inject OrderEventBus Events
 @implements IDisposable
 
@@ -32,6 +33,13 @@
             <span>@Elapsed(item.SubmittedUtc)</span>
         </header>
         <div class="status-pill status-@item.Status.ToString().ToLowerInvariant()">@item.Status</div>
+        @if (!string.IsNullOrWhiteSpace(item.InventoryOverrideReason))
+        {
+            <div class="alert alert-danger py-2">
+                <strong>Manager stock override</strong><br />
+                @item.InventoryOverrideReason
+            </div>
+        }
         <ul>
             @foreach (var line in item.Items.Where(x => !x.IsRemoved))
             {
@@ -41,7 +49,17 @@
                 </li>
             }
         </ul>
-        @if (item.Status == OrderStatus.New) { <button class="btn btn-warning btn-lg touch-button w-100" @onclick="() => Move(item.Id, OrderStatus.Preparing)">Start preparing</button> }
+        @if (item.Status == OrderStatus.New)
+        {
+            <button class="btn btn-warning btn-lg touch-button w-100" @onclick="() => Move(item.Id, OrderStatus.Preparing)">Start preparing</button>
+            @if (inventoryEnabled && isAdmin)
+            {
+                <input class="form-control mt-2" placeholder="Manager override reason" value="@OverrideReason(item.Id)" @oninput="eventArgs => SetOverrideReason(item.Id, eventArgs.Value?.ToString())" />
+                <button class="btn btn-outline-danger touch-button w-100 mt-2" @onclick="() => Move(item.Id, OrderStatus.Preparing, true)">
+                    Override stock control and start
+                </button>
+            }
+        }
         else if (item.Status == OrderStatus.Preparing) { <button class="btn btn-success btn-lg touch-button w-100" @onclick="() => Move(item.Id, OrderStatus.Ready)">Ready</button> }
         else { <div class="ready-callout">Waiting for waiter</div> }
     </article>
@@ -53,6 +71,8 @@
 
     private IReadOnlyList<OrderView> orders = [];
     private string actor = "unknown";
+    private bool inventoryEnabled, isAdmin;
+    private readonly Dictionary<Guid, string> overrideReasons = [];
     private string? error;
     private string currentTime = RestaurantTime();
     private System.Threading.Timer? clockTimer;
@@ -61,6 +81,8 @@
     {
         var state = await Authentication.GetAuthenticationStateAsync();
         actor = state.User.Identity?.Name ?? "unknown";
+        isAdmin = state.User.IsInRole(RomsRoles.Admin);
+        inventoryEnabled = Configuration.GetValue<bool>("Features:Inventory:Enabled");
         Events.Changed += OnChanged;
         clockTimer = new System.Threading.Timer(_ =>
         {
@@ -79,11 +101,24 @@
         catch (Exception ex) { error = ex.Message; }
     }
 
-    private async Task Move(Guid id, OrderStatus next)
+    private async Task Move(Guid id, OrderStatus next, bool allowNegativeStock = false)
     {
-        try { await Orders.TransitionAsync(id, next, actor); await Load(); }
+        try
+        {
+            await Orders.TransitionAsync(
+                id,
+                next,
+                actor,
+                allowNegativeStock: allowNegativeStock,
+                inventoryOverrideReason: allowNegativeStock ? OverrideReason(id) : null);
+            overrideReasons.Remove(id);
+            await Load();
+        }
         catch (Exception ex) { error = ex.Message; }
     }
+
+    private string OverrideReason(Guid orderId) => overrideReasons.GetValueOrDefault(orderId, "");
+    private void SetOverrideReason(Guid orderId, string? value) => overrideReasons[orderId] = value ?? "";
 
     private void OnChanged(OrderEvent message) => _ = InvokeAsync(async () => { await Load(); StateHasChanged(); });
 
