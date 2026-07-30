@@ -2,17 +2,20 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using MySql.Data.MySqlClient;
 using Roms.Application;
 using Roms.Domain;
 using Roms.Infrastructure.Identity;
 using Roms.Infrastructure.Services;
+using Xunit.Abstractions;
 
 namespace Roms.IntegrationTests;
 
 [Collection(MariaDbCollection.Name)]
-public sealed class ResilienceStressTests(MariaDbFixture fixture)
+public sealed class ResilienceStressTests(MariaDbFixture fixture, ITestOutputHelper output)
 {
     [Fact]
     public async Task Sixty_simultaneous_waiter_kitchen_cashier_flows_finish_without_lost_updates()
@@ -80,6 +83,8 @@ public sealed class ResilienceStressTests(MariaDbFixture fixture)
         }
 
         var outcomes = new ConcurrentBag<Exception?>();
+        var databaseConflicts = new ConcurrentBag<Exception>();
+        var conflictLogger = new ConflictRecordingLogger(databaseConflicts);
         await Parallel.ForEachAsync(
             orderIds,
             new ParallelOptions { MaxDegreeOfParallelism = 8 },
@@ -87,7 +92,7 @@ public sealed class ResilienceStressTests(MariaDbFixture fixture)
             {
                 try
                 {
-                    await CreateOrderService(database, inventoryEnabled: true)
+                    await CreateOrderService(database, inventoryEnabled: true, conflictLogger)
                         .TransitionAsync(orderId, OrderStatus.Preparing, scenario.KitchenId);
                     outcomes.Add(null);
                 }
@@ -103,6 +108,28 @@ public sealed class ResilienceStressTests(MariaDbFixture fixture)
         Assert.InRange(initialSuccesses, 1, availableUnits);
         Assert.All(outcomes.Where(x => x is not null), exception =>
             Assert.IsType<DomainException>(exception));
+        var mysqlConflicts = databaseConflicts
+            .SelectMany(ExceptionChain)
+            .OfType<MySqlException>()
+            .Where(x => x.Number is 1205 or 1213)
+            .ToList();
+        output.WriteLine(
+            "Initial surge: {0} committed, {1} rejected; captured MariaDB transaction conflicts: {2}.",
+            initialSuccesses,
+            orderCount - initialSuccesses,
+            mysqlConflicts.Count);
+        foreach (var group in mysqlConflicts.GroupBy(x => new { x.Number, x.SqlState, x.Message }))
+        {
+            output.WriteLine(
+                "MariaDB error {0}, SQLSTATE {1}, occurrences {2}: {3}",
+                group.Key.Number,
+                group.Key.SqlState,
+                group.Count(),
+                group.Key.Message);
+        }
+        var innodbDeadlock = await ReadLatestDeadlockAsync(database.ConnectionString);
+        if (!string.IsNullOrWhiteSpace(innodbDeadlock))
+            output.WriteLine("InnoDB latest-deadlock excerpt:{0}{1}", Environment.NewLine, innodbDeadlock);
 
         // A deliberately excessive first surge may cause transient database deadlocks.
         // Once contention subsides, retry the still-New tickets as a real client would.
@@ -193,13 +220,38 @@ public sealed class ResilienceStressTests(MariaDbFixture fixture)
             admin.UserName!);
     }
 
-    private static OrderService CreateOrderService(MariaDbTestDatabase database, bool inventoryEnabled) =>
+    private static OrderService CreateOrderService(
+        MariaDbTestDatabase database,
+        bool inventoryEnabled,
+        ILogger<OrderService>? logger = null) =>
         new(
             database.CreateFactory(),
             new FixedClock(),
             new NoOpPublisher(),
             Options.Create(new InventoryOptions { Enabled = inventoryEnabled }),
-            NullLogger<OrderService>.Instance);
+            logger ?? NullLogger<OrderService>.Instance);
+
+    private static IEnumerable<Exception> ExceptionChain(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+            yield return current;
+    }
+
+    private static async Task<string?> ReadLatestDeadlockAsync(string connectionString)
+    {
+        await using var connection = new MySqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SHOW ENGINE INNODB STATUS";
+        await using var reader = await command.ExecuteReaderAsync();
+        if (!await reader.ReadAsync()) return null;
+        var status = reader.GetString(2);
+        const string marker = "LATEST DETECTED DEADLOCK";
+        var start = status.IndexOf(marker, StringComparison.Ordinal);
+        if (start < 0) return null;
+        var end = status.IndexOf("\n------------\nTRANSACTIONS", start, StringComparison.Ordinal);
+        return (end < 0 ? status[start..] : status[start..end]).Trim();
+    }
 
     private sealed record Scenario(
         IReadOnlyList<Guid> TableIds,
@@ -218,5 +270,22 @@ public sealed class ResilienceStressTests(MariaDbFixture fixture)
     {
         public Task PublishAsync(OrderEvent message, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+    }
+
+    private sealed class ConflictRecordingLogger(ConcurrentBag<Exception> exceptions)
+        : ILogger<OrderService>
+    {
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning;
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (exception is not null && logLevel >= LogLevel.Warning)
+                exceptions.Add(exception);
+        }
     }
 }

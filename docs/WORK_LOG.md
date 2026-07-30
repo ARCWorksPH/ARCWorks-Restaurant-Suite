@@ -50,6 +50,10 @@
   MariaDB concurrency tests and both new stress tests.
 - Detailed scope, observations, and remaining acceptance boundary:
   `docs/SYNTHETIC_RESILIENCE_TESTING_2026-07-30.md`.
+- Provider exception counts, the InnoDB lock graph, exact conflicting SQL, and
+  research questions are preserved in
+  `docs/MARIADB_DEADLOCK_INCIDENT_2026-07-30.md` with the raw TRX evidence under
+  `docs/evidence/`.
 
 ### Remaining boundary
 
