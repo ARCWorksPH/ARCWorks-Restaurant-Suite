@@ -10,7 +10,7 @@ Active deployment: excluded from destructive and load testing
 
 Before testing, the repository and active database were captured at:
 
-`D:\ARCWorks_Restaurant Suite Backups\pre-break-test-20260730-202348`
+`D:\ARCWorks_Restaurant Suite\backups\recovery-points\pre-break-test-20260730-202348`
 
 The package contains:
 

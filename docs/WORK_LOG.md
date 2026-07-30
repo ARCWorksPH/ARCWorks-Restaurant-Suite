@@ -1,5 +1,28 @@
 # ROMS Work Log
 
+## 2026-07-31 — Backup consolidation and database residue audit
+
+### Consolidation
+
+- Moved all known ROMS recovery points and legacy project copies from separate
+  `D:` locations into the Git-ignored project `backups` tree.
+- Verified every move with complete before/after directory fingerprints built
+  from relative paths, file lengths, and SHA-256 file hashes.
+- Preserved 10,607 files totaling 1,624,778,273 bytes across the three sources.
+
+### Database boundary
+
+- Confirmed the active ROMS MariaDB container is running and healthy.
+- Confirmed its named volume is held in Docker Desktop storage under the project
+  at `Docker\storage\DockerDesktopWSL\disk\docker_data.vhdx`.
+- Found no native MariaDB process, database listener, or ROMS/MariaDB database
+  data outside the project after consolidation.
+- A disabled MariaDB service and installed-app entry still point to the missing
+  `C:\RealShitRP-GBServerPH\database` directory. They are stale, unrelated
+  uninstall records and contain no ROMS data.
+
+---
+
 ## 2026-07-31 — Docker cleanup and tunnel readiness
 
 ### Safety
@@ -143,7 +166,8 @@
 
 - Created and SHA-256 verified a complete Git bundle, binary working-tree patch,
   status inventory, and active MariaDB logical dump before testing.
-- Backup: `D:\ARCWorks_Restaurant Suite Backups\pre-break-test-20260730-202348`.
+- Backup:
+  `D:\ARCWorks_Restaurant Suite\backups\recovery-points\pre-break-test-20260730-202348`.
 - Restored that dump into a disposable MariaDB 11.4 container and reconciled
   21 tables, three migrations, and two orders.
 - All destructive, load, browser, and hostile-input tests used disposable

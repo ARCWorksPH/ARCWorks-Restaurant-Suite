@@ -8,7 +8,7 @@ Docker now contains only the active ROMS Compose workloads and the
 ## Backup created before cleanup
 
 - Location:
-  `D:\ARCWorks_Restaurant Suite Backups\pre-docker-cleanup-20260731-021827`
+  `D:\ARCWorks_Restaurant Suite\backups\recovery-points\pre-docker-cleanup-20260731-021827`
 - File: `roms-pre-docker-cleanup.sql`
 - Size: 29,077 bytes
 - SHA-256:
@@ -17,6 +17,36 @@ Docker now contains only the active ROMS Compose workloads and the
 - Source database: active ROMS MariaDB, 21 tables.
 - Access: inherited permissions removed; full control retained only for the
   current Windows account and SYSTEM.
+
+## Backup consolidation and database residue audit
+
+All known ROMS backup copies on `D:` were moved under the Git-ignored project
+backup tree:
+
+- `backups\recovery-points`
+- `backups\legacy-project-copies\ROMS-Git-Recovery-20260729`
+- `backups\legacy-project-copies\GBServerPH - Staff-side Restaurant Ordering App`
+
+Each source and destination was fingerprinted from every relative file path,
+file length, and SHA-256 file hash. The verified directory manifest results
+were:
+
+- Recovery points: 7 files, 83,345,400 bytes,
+  `A227DF110DE4B64F8A256F9679FCC601ABA5D85149AD0E88D95F0B0A76372600`
+- Git recovery: 203 files, 10,093,061 bytes,
+  `002202D80C80F58C22A1734D2EEBBCD4405263B31432085FDC30E9A0597E8FF5`
+- Legacy project copy: 10,397 files, 1,531,339,812 bytes,
+  `99834838580992C46630DB4FC7E25FF0D08CFF40ADC7A46584177ACA0D7C3F14`
+
+The old source paths no longer exist. The active ROMS MariaDB volume remains
+inside the Docker Desktop virtual disk at
+`Docker\storage\DockerDesktopWSL\disk\docker_data.vhdx`.
+
+No native MariaDB process or database listener was found. No ROMS/MariaDB
+database data files were found outside the project after consolidation. Windows
+still had a disabled MariaDB service and installed-app registration pointing to
+the already-missing `C:\RealShitRP-GBServerPH\database` path; these are unrelated
+stale uninstall records, not ROMS data.
 
 ## Permanently removed
 
