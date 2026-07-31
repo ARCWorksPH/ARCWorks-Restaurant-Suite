@@ -1,0 +1,6 @@
+model,parameters,quantization,context_length,capabilities,total_seconds,load_seconds,output_tokens,eval_rate_tps,prompt_rate_tps,active_cpu_mean_pct,active_cpu_p95_pct,peak_cpu_pct,initial_ram_used_gb,peak_ram_used_gb,ram_peak_minus_initial_gb,gpu_samples_recorded,ollama_rss_samples_nonzero,independent_essay_assessment,assessment_note
+tinyllama:1.1b,1B,Q4_0,2048,completion,28.06,0.86,1177,43.66,285.34,57.1,64.6,65.8,23.81,24.0,0.19,0,0,Rejected,"Major factual inventions, including a fabricated blue-moon mechanism."
+llama3.2:3b,3.2B,Q4_K_M,131072,"completion, tools",85.73,3.38,1176,14.38,93.73,56.6,62.4,64.6,28.3,28.42,0.12,0,0,Mixed,"Readable, but contains historical misattributions and scientific errors."
+phi3:3.8b,3.8B,Q4_0,131072,completion,106.27,3.52,1264,12.37,74.78,59.6,68.6,80.9,32.09,32.57,0.48,0,0,Mixed,"Coherent but verbose, with multiple scientific and historical inaccuracies."
+qwen2.5:7b,7.6B,Q4_K_M,32768,"completion, tools",117.29,14.33,724,7.13,40.44,58.7,63.8,79.1,31.16,31.69,0.53,0,0,Best of this set,"Most accurate essay, though still imperfect and not a ROMS task."
+qwen2.5-coder:7b,7.6B,Q4_K_M,32768,"completion, tools, insert",109.08,0.13,782,7.19,437.83,58.9,66.4,81.2,28.78,28.94,0.16,0,0,Good,"Structured, but incorrectly says blue scatters more effectively than violet."
