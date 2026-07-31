@@ -7,7 +7,7 @@ namespace Roms.CommandGateway;
 
 public sealed class OllamaOptions
 {
-    public string Model { get; set; } = "tinyllama:1.1b";
+    public string Model { get; set; } = "qwen2.5:7b";
 }
 
 public interface ICommandInterpretationService

@@ -63,7 +63,7 @@ Examples:
 ```powershell
 Invoke-RestMethod http://127.0.0.1:11434/api/tags
 docker exec -it arcworks-resto-ollama-1 ollama list
-docker exec -it arcworks-resto-ollama-1 ollama run tinyllama:1.1b
+docker exec -it arcworks-resto-ollama-1 ollama run qwen2.5:7b
 ```
 
 The native Windows `ollama` command is not required for the containerized
@@ -95,10 +95,10 @@ Do not bind-mount the native Windows Ollama model directory into the container.
 ## Current limitations
 
 - Container Ollama detects CPU only on this Windows/Docker Desktop setup.
-- Native Windows Ollama currently runs TinyLlama on the AMD GPU and remains
-  installed as a benchmark and rollback.
-- TinyLlama has already demonstrated material semantic errors. It is not an
-  approved model.
+- The provisional read-only laboratory model is `qwen2.5:7b`; final selection
+  still requires ROMS-specific tool, grounding, failure, and concurrency tests.
+- TinyLlama and Phi 3 were rejected by the first benchmark and removed from the
+  model volume. Their benchmark records remain preserved.
 - No user interface, voice path, database query, inventory mutation, or
   production authorization path is connected to the AI lab.
 

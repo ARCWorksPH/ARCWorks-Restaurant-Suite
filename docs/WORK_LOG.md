@@ -1,5 +1,32 @@
 # ROMS Work Log
 
+## 2026-07-31 — Rejected-model removal and provisional AI default
+
+### Model storage
+
+- Permanently removed rejected models `tinyllama:1.1b` and `phi3:3.8b` from
+  the external Docker volume `ollama`.
+- Preserved all raw benchmark transcripts, samplers, and independent evaluation
+  evidence.
+- Reduced the model volume from approximately 14 GB to 11 GB.
+- Verified 14 referenced model blobs, 14 stored blobs, and zero orphan blobs.
+- Retained finalists `llama3.2:3b`, `qwen2.5:7b`, and
+  `qwen2.5-coder:7b`.
+
+### Runtime and verification
+
+- Changed the command gateway's configurable provisional model from TinyLlama
+  to `qwen2.5:7b`.
+- Recreated the isolated command gateway and verified its effective
+  `Ollama__Model` value.
+- Command-gateway tests passed 9/9.
+- The broader solution test command exceeded its execution window and left an
+  integration-test child process; the exact test processes were stopped. The
+  full-suite result is inconclusive, not passed.
+- ROMS, monitor, and portfolio public endpoints continued returning HTTP 200.
+
+---
+
 ## 2026-07-31 — Backup consolidation and database residue audit
 
 ### Consolidation
