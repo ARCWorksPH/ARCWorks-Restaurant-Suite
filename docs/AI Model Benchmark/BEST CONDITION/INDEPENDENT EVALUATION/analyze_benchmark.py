@@ -78,7 +78,12 @@ for model, config in MODELS.items():
     # The Llama transcript contains earlier TinyLlama runs. Its final PowerShell
     # session is the actual Llama run represented by the matching CSV.
     if model == "llama3.2:3b":
-        transcript = transcript[transcript.rfind("PS C:\\Users\\GBServerPH>") :]
+        session_starts = list(
+            re.finditer(r"^PS C:\\Users\\[^>]+>", transcript, flags=re.MULTILINE)
+        )
+        if not session_starts:
+            raise ValueError("No PowerShell session marker found in Llama transcript")
+        transcript = transcript[session_starts[-1].start() :]
 
     parameter_text = last_match(r"^\s+parameters\s+([\d.]+B)", transcript)
     context_length = int(last_match(r"^\s+context length\s+(\d+)", transcript))

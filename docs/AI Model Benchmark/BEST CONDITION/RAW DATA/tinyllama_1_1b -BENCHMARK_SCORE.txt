@@ -1,0 +1,123 @@
+PS C:\Users\REDACTED> docker exec -it arcworks-resto-ollama-1 ollama run tinyllama:1.1b
+>>> /set verbose
+Set 'verbose' mode.
+>>> /set parameter num_gpu 99
+Set parameter 'num_gpu' to '99'
+>>> /set parameter num_ctx 4096
+Set parameter 'num_ctx' to '4096'
+>>> /show info
+  Model
+    architecture        llama
+    parameters          1B
+    context length      2048
+    embedding length    2048
+    quantization        Q4_0
+
+  Capabilities
+    completion
+
+  Parameters
+    stop    "<|system|>"
+    stop    "<|user|>"
+    stop    "<|assistant|>"
+    stop    "</s>"
+
+  System
+    You are a helpful AI assistant.
+
+>>> /show parameters
+Model defined parameters:
+  stop                           "<|system|>"
+  stop                           "<|user|>"
+  stop                           "<|assistant|>"
+  stop                           "</s>"
+
+User defined parameters:
+  num_gpu                        99
+  num_ctx                        4096
+
+>>> Write a long essay on why the sky is blue. Include scientific explanations, historical context, and practical exampl
+... es. Make it detailed and well-structured.
+The Mysterious Blue Sky: An Exploration of the Science Behind Why It's Blue
+
+For millions of years, the sky has been a colorful and mysterious canvas, filled with secrets to be unraveled.
+From the clouds that form in the morning and mingle with the sea air at noon, to the sunset that paints the sky in
+vibrant hues and shapes, the sky is a natural wonderland of colors and patterns.
+
+But why does the sky look blue? This is one of the most vexing questions of nature, and scientists are working
+hard to shed some light on this enigma. Here's a look at how we came to understand the mysterious color of the
+sky.
+
+The Blue Sky: A Historical Perspective
+
+The first sightings of the blue sky can be traced back to ancient Greece, where it was known as a “phantasma” - an
+optical illusion caused by refraction and distortion. In 1675, the philosopher Baron Hermann von Helmholtz
+observed that the sun's rays are bent as they strike the earth's atmosphere, creating a colorful halo around the
+horizon.
+
+In the 19th century, astronomers began to study this phenomenon in greater detail, finding that the blue light
+from the sun is absorbed by the oxygen atoms in the Earth's upper atmosphere before being scattered and refracted
+by water vapor. This scattering creates a pattern of colors seen in the sky, from deep blues and purples at night
+to shades of green, gold, and brown in daylight.
+
+The Science Behind Blue Skies: The Physics of the Sun's Light
+
+Understanding the physics of blue skies is essential for understanding how they form. In fact, the sun's light
+itself generates these colors - it's the Earth's atmosphere that refracts and bends this light.
+
+When the sun rises in the morning sky, warm, high-altitude air is being blown out by the sun's heat. This heated
+air rushes down through the troposphere (the lowest layer of Earth's atmosphere) and into the stratosphere (the
+upper layers beyond 10 km). As it flows upward, the air cools, creating a cooler, lower atmospheric pressure.
+
+This cooler air rises, but its density is still relatively high compared to water vapor in the atmosphere. When
+the air passes through a wavelength of blue light, the molecules bend and scatter this light. The shorter
+wavelengths (blue light) are scattered more than the longer wavelengths, resulting in a pattern of colors that
+appears blue at night.
+
+The Science Behind Blue Skies: The Chemistry of Water Vapor
+
+As well as the Earth's atmosphere, water vapor also plays an essential role in generating blue skies. This is
+because as warm air rises, it cools and expands due to its increased pressure. This expansion creates a high
+amount of humidity (water vapor mixed with air) as the air rises upwards.
+
+When this humidified air reaches the upper levels of Earth's atmosphere, it causes clouds to form. Clouds are
+formed by a dense layer of water droplets that rise and condense in response to increased pressure. The water
+droplets create tiny drops that eventually fall back down to earth as rain or snow.
+
+This process continues until the air reaches the stratosphere, where the humidity is much lower and clouds
+dissipate. From there, cooler, higher altitude air rushes upwards again, producing new cloud formations.
+
+The Science Behind Blue Skies: The Chemistry of Oxygen and Water Vapor
+
+Oxygen (O2) is another important component in the formation of blue skies. As mentioned earlier, oxygen atoms are
+scattered by blue light, producing a pattern of colors that appears blue. This scattering is caused by the
+interference of blue light with water vapor in the atmosphere. The resulting pattern is what we see as the blue
+sky.
+
+Scientists have discovered that when oxygen atoms hit water vapor in the atmosphere, they are absorbed and then
+bounced back. This creates a pattern of colors called a "blue moon," where each point on the sky has an alternate
+pattern. The blue moon effect is so strong that it can be detected from space!
+
+Practical Examples of Blue Skies: From Scenic Landscapes to Air Traffic Control Systems
+
+The blue sky is not just a pretty sight - it also has practical applications in our everyday lives. In air traffic
+control, the colors seen in the sky can be an indicator of incoming or outgoing flights, allowing pilots to make
+informed decisions based on weather conditions. Similarly, in scenic landscapes, blue skies can create a stunning
+visual effect that draws travelers and tourists alike.
+
+Conclusion: The Science Behind Blue Skies
+
+The science of why the sky is blue is complex and fascinating. It's a testament to the power of nature to amaze us
+with its mysterious beauty. Whether we appreciate it from above or below, we can all agree that the colors seen in
+the sky are a sight to behold - and it's an experience that continues to inspire wonder and exploration in people
+across the world.
+
+total duration:       28.063498961s
+load duration:        863.481324ms
+prompt eval count:    69 token(s)
+prompt eval duration: 241.817ms
+prompt eval rate:     285.34 tokens/s
+eval count:           1177 token(s)
+eval duration:        26.95542s
+eval rate:            43.66 tokens/s
+>>> Send a message (/? for help)

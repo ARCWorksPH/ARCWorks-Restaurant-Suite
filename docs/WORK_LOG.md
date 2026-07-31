@@ -706,3 +706,34 @@ repository metadata before publication.
 - The disposable database container was removed after verification.
 - Production ROMS, production MariaDB, the inventory feature flag, and the AI
   lab were not changed.
+
+## 2026-07-31 — Local-model benchmark publication and provisional selection
+
+### Published evidence
+
+- Added the complete editable five-model benchmark package under
+  `docs/AI Model Benchmark/BEST CONDITION`, including raw transcripts, resource
+  samples, charts, supplied evaluations, the independent evaluation, and the
+  reproducible analysis script.
+- Added `tools/ARKTECH-RESOURCE-MONITOR-MINI.py`, the local resource sampling
+  tool used for benchmark capture.
+- Added a benchmark README defining the evidence map, reproduction command,
+  decision boundary, and limitations.
+- Anonymized copied Windows prompt paths and made the Llama session parser
+  independent of a specific Windows username.
+- Removed personal author/creator metadata from the published DOCX and PDF
+  reports. Their extracted text and document/page structure remained
+  equivalent. LibreOffice was unavailable, so DOCX image-render comparison was
+  not performed.
+- Excluded the redundant `BEST CONDITION.zip` and generated Python bytecode
+  from version control.
+
+### Model disposition
+
+- `qwen2.5:7b` is the provisional isolated laboratory model.
+- `llama3.2:3b` and `qwen2.5-coder:7b` remain challengers.
+- `tinyllama:1.1b` and `phi3:3.8b` were removed from Ollama storage after their
+  benchmark evidence was preserved.
+- No model has production approval. The next gate is a deterministic,
+  read-only ROMS functional qualification suite followed by controlled
+  concurrency testing.

@@ -1,0 +1,107 @@
+PS C:\Users\REDACTED> docker exec -it arcworks-resto-ollama-1 ollama run qwen2.5-coder:7b
+>>> /set verbose
+Set 'verbose' mode.
+>>> /set parameter num_gpu 99
+Set parameter 'num_gpu' to '99'
+>>> /set parameter num_ctx 4096
+Set parameter 'num_ctx' to '4096'
+>>> /show info
+  Model
+    architecture        qwen2
+    parameters          7.6B
+    context length      32768
+    embedding length    3584
+    quantization        Q4_K_M
+
+  Capabilities
+    completion
+    tools
+    insert
+
+  System
+    You are Qwen, created by Alibaba Cloud. You are a helpful assistant.
+
+  License
+    Apache License
+    Version 2.0, January 2004
+    ...
+
+>>> /show parameters
+Model defined parameters:
+  No additional parameters were specified for this model.
+
+User defined parameters:
+  num_ctx                        4096
+  num_gpu                        99
+
+>>> Write a long essay on why the sky is blue. Include scientific explanations, historical context, and practical exampl
+... es. Make it detailed and well-structured.
+The sky is a captivating sight, often described as a vast expanse of azure, blue or even purple depending on the
+time of day and weather conditions. This color has fascinated humans for centuries, from ancient philosophers to
+modern-day scientists. The phenomenon that explains why our skies appear predominantly blue is the scattering of
+light by tiny molecules in the Earth's atmosphere, a principle known as Rayleigh scattering.
+
+### Historical Context
+
+The concept of why the sky appears blue has its roots in ancient philosophy and early scientific thought. For
+example, Aristotle observed that the sun appeared white but the sky was blue during the day. His explanation for
+this discrepancy involved the presence of water vapor, which he believed acted like a mirror reflecting sunlight.
+However, Aristotle's theory did not fully explain why the sky is predominantly blue.
+
+The modern understanding of atmospheric scattering was developed much later in the 17th century. Isaac Newton made
+significant contributions to this field with his studies on optics and light refraction. Newton explained that
+when sunlight enters Earth's atmosphere, it collides with molecules of nitrogen and oxygen, as well as small
+particles like dust and water droplets. These collisions scatter the light in all directions due to the tiny size
+of the scattering particles compared to the wavelength of visible light.
+
+### Scientific Explanation
+
+The color blue is the result of a phenomenon called Rayleigh scattering. This occurs when light encounters
+particles that are significantly smaller than the wavelength of light itself. The Earth's atmosphere, filled with
+nitrogen and oxygen molecules, provides an abundance of small particles for this process. When sunlight enters the
+atmosphere, it interacts with these particles.
+
+The key to understanding why the sky appears blue lies in how different wavelengths of visible light scatter
+differently. Sunlight is composed of a spectrum of colors, each corresponding to a specific wavelength. The
+shorter wavelengths (blue and violet) are scattered more effectively than longer wavelengths (red and orange).
+
+However, why isn't the sky violet? This is due to Rayleigh scattering being proportional to the fourth power of
+the wavelength's inverse. Blue light has a wavelength around 470 nanometers, while violet light has a slightly
+shorter wavelength at approximately 405 nanometers. Although blue light scatters more effectively than violet,
+human eyes are less sensitive to violet light compared to blue light. Thus, we perceive the sky as predominantly
+blue rather than violet.
+
+### Practical Examples
+
+To better understand the phenomenon of Rayleigh scattering, consider the following practical examples:
+
+1. **Sunset and Sunrise:** At sunset and sunrise, the sun appears red or orange because the light must pass
+through more atmosphere to reach our eyes. This increased path length causes blue light to scatter away from our
+line of sight, leaving only longer wavelengths like red and orange.
+
+2. **Clouds and Particulates:** When there are clouds in the sky, they can affect the color of the sky. Clouds
+consist of water droplets or ice crystals. The way these particles scatter light depends on their size relative to
+the wavelength of visible light. Large cloud particles tend to scatter all wavelengths equally, leading to white
+clouds. However, if a thin layer of small water droplets is present, it can enhance the blue color by more
+efficiently scattering blue light.
+
+3. **Air Pollution:** When there is air pollution, particularly with dust or aerosols, these particles can scatter
+more colors uniformly across the spectrum. This results in a hazy sky that appears gray rather than blue.
+
+### Conclusion
+
+The beauty of the sky is not just an optical illusion but a result of the fundamental laws of physics and the
+composition of our atmosphere. Rayleigh scattering is responsible for the blue color we see during clear days,
+although factors like altitude, pollution, and time of day can influence this appearance. Understanding these
+principles helps us appreciate the complexity and beauty of nature around us, reminding us of the
+interconnectedness of all things in our universe.
+
+total duration:       1m49.081093348s
+load duration:        131.724787ms
+prompt eval count:    59 token(s)
+prompt eval duration: 134.755ms
+prompt eval rate:     437.83 tokens/s
+eval count:           782 token(s)
+eval duration:        1m48.767909s
+eval rate:            7.19 tokens/s
+>>> Send a message (/? for help)

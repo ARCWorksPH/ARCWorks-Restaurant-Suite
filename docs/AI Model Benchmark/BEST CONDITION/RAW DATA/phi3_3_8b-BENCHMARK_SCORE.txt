@@ -1,0 +1,131 @@
+PS C:\Users\REDACTED> docker exec -it arcworks-resto-ollama-1 ollama run phi3:3.8b
+>>> /set verbose
+Set 'verbose' mode.
+>>> /set parameter num_gpu 99
+Set parameter 'num_gpu' to '99'
+>>> /set parameter num_ctx 4096
+Set parameter 'num_ctx' to '4096'
+>>> /show info
+  Model
+    architecture        phi3
+    parameters          3.8B
+    context length      131072
+    embedding length    3072
+    quantization        Q4_0
+
+  Capabilities
+    completion
+
+  Parameters
+    stop    "<|end|>"
+    stop    "<|user|>"
+    stop    "<|assistant|>"
+
+  License
+    Microsoft.
+    Copyright (c) Microsoft Corporation.
+    ...
+
+>>> /show parameters
+Model defined parameters:
+  stop                           "<|end|>"
+  stop                           "<|user|>"
+  stop                           "<|assistant|>"
+
+User defined parameters:
+  num_gpu                        99
+  num_ctx                        4096
+
+>>> Write a long essay on why the sky is blue. Include scientific explanations, historical context, and practical exampl
+... es. Make it detailed and well-structured.
+Title: The Blue Sky Mystery Unveiled: A Comprehensive Examination of Earth's Most Remarkable Aspect Through
+Science, History, and Practical Perspective
+
+Introduction
+
+The sky presents an everlasting canvas that has fascinated humanity for centuries. Its hues paint stories in our
+minds - from the tranquil azure to the fiery red sunsets. Despite its familiar presence above us every day of our
+lives, many questions about this phenomenon remain unanswered: Why is it blue? To answer these queries and delve
+deeper into understanding Earth's atmosphere requires a journey through scientific exploration, historical
+context, and practical examples that provide further illumination on the subject.
+
+Scientific Explanation
+
+The color of our sky can be attributed to several factors including Rayleigh scattering, Mie scattering, and other
+optical processes involving Earth's atmosphere interact with sunlight (composed mainly of red light but also
+containing all colors). The scientific explanation lies in the physics principle known as Rayleigh Scattering.
+
+Normally, when we look up at a clear blue sky during daytime hours, what our eyes are actually seeing is primarily
+scattered shorter wavelengths - blues and violets- from sunlight coming into Earth's atmosphere; these two colors
+being closer to the spectrum of visible light (380 nm – 495 nm). Rayleigh Scattering occurs when molecules or
+small particles suspended in a medium such as air scatter short-wavelength light, blue and violet rays more
+effectively than longer wavelength lights like red. This is due to the fact that shorter waves have higher
+frequencies which results in them being deflected by smaller objects (like nitrogen and oxygen molecules) within
+their pathway - leading us towards seeing a bluer sky overall rather than violet, as we explained earlier under
+influence of sunlight's lower intensity at these wavelengths.
+
+Additionally, it is essential to mention Mie scattering which occurs with particles approximately the size equal
+or greater than the light they are hitting (larger molecules and water droplets). This type of scattering results
+in a white sky during cloudsy days when sunlight interacts directly within these larger atmospheric constituents.
+
+Historical Context
+
+The understanding humans have towards explaining why we see color was significantly limited until the scientific
+revolution, with ancient Greeks like Aristotle proposing explanations based on their observations and philosophies
+about nature instead of empirical evidence or experimentation as understood today in science discipline - often
+blaming phenomena such as atmospheric refraction for colors seen during sunrise or sunset.
+
+However, it wasn't until Sir John William Strutt (later known simply as Lord Rayleigh) began examining scattering
+of light by small particles around 1871 that a scientific explanation started to emerge - leading us towards
+comprehension why the sky is blue during daylight hours. His extensive work on this subject was finally published
+in his book "The theory of sound and light" (1896), providing more substantial evidence toward understanding
+Rayleigh scattering's influence upon our perception of colors within Earth’s atmosphere.
+
+Later, further contributions from scientists such as Gustav Kirchhoff and Robert A. Millikan expanded on these
+theories by studying the interaction between wavelength-specific light sources with atmospheric elements - helping
+refine Rayleigh Scattering's understanding overall which still holds relevance in today’s scientific community
+when discussing about Earth sky coloration.
+
+Practical Examples
+
+Understanding why we perceive the sky as blue has significant implications across various practical fields such as
+weather forecast, aviation industry and artistic representations of nature amongst many others - each requiring
+accurate understanding or assumptions based on this phenomenon for efficiency and accuracy in their respective
+tasks.
+
+For instance, pilots need to consider light coloration when navigating through cloudy conditions since it affects
+visibility; consequently influencing flight path planning during daytime hours versus night-time periods where
+darkness could potentially enhance vision due to lesser interference from atmospheric components responsible for
+Rayleigh Scattering.
+
+In meteorology, knowledge about how sunlight interact with atmosphere can aid forecasters in predicting sky colors
+under specific weather conditions which will directly impact their reports on current or future daytime hours;
+this information is also essential when determining UV radiation levels within Earth's atmospheric boundary layers
+that could potentially pose health risks to humans.
+
+Lastly, the world of art often mimics nature itself - skylight colors play a significant role in how artists
+portray sunrise or sunset scenes which can provide audiences with realistic experiences and evoke emotions linked
+closely towards these majestic natural occurrences; understanding sky coloration therefore becomes crucial for
+accurate depiction within artworks.
+
+Conclusion
+
+The blue of the skies is not just a simple palette on nature's canvas but rather an intricate scientific
+phenomenon that requires comprehensive exploration - from groundbreaking work by scientists like Lord Rayleigh, to
+understanding its impact across various practical domains such as meteorology and aviation industry. As we
+continue delving deeper into Earth’s atmosphere through the lens of science while appreciating historical
+perspectives which evolve our perception over time; it's essential not only for us but also future generations who
+will inherit this beautiful planet to grasp why its skies are painted with an everlasting shade of blue. By
+understanding these factors, we can develop further insights into how Earth’s atmosphere functions while fostering
+appreciation towards the marvelous phenomena occurring above our heads every day; bringing us closer together as
+humanity sharing this wondrous world beneath its boundless skies with breathtaking hues.
+
+total duration:       1m46.269110527s
+load duration:        3.524379752s
+prompt eval count:    43 token(s)
+prompt eval duration: 575.039ms
+prompt eval rate:     74.78 tokens/s
+eval count:           1264 token(s)
+eval duration:        1m42.166857s
+eval rate:            12.37 tokens/s
+>>> Send a message (/? for help)
