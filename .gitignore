@@ -16,3 +16,5 @@ Docker/
 **/DataProtection-Keys/
 *.user
 *.suo
+__pycache__/
+*.pyc

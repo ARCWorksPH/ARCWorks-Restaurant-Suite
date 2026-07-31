@@ -128,4 +128,3 @@ If a temporary model is required before the next benchmark, use
 `qwen2.5:7b` for the isolated read-only laboratory because it had the strongest
 single-response factual quality and exposes tool capability. This is a
 provisional laboratory choice, not production approval.
-
