@@ -737,3 +737,43 @@ repository metadata before publication.
 - No model has production approval. The next gate is a deterministic,
   read-only ROMS functional qualification suite followed by controlled
   concurrency testing.
+
+## 2026-08-02 — AI workstation resource baseline
+
+### Runtime configuration
+
+- Verified the restarted Docker Desktop WSL 2 runtime exposes 14 logical CPUs,
+  47.05 GiB memory, and 16 GiB swap.
+- Set the ignored local `.env` overrides to `OLLAMA_MEMORY_LIMIT=32g` and
+  `OLLAMA_CPU_LIMIT=14.0`. The remaining WSL memory is reserved for ROMS,
+  MariaDB, Cloudflare, monitoring, and Docker overhead.
+- Recreated only the Ollama service. Its model volume was preserved and the
+  service returned healthy with an effective 32 GiB memory limit and 14 CPUs.
+
+### Verification
+
+- The loopback Ollama API responded and the existing model inventory remained
+  available.
+- ROMS local health returned HTTP 200.
+- `roms.arkworksph.online`, `monitor.arkworksph.online`, and
+  `portfolio.arkworksph.online` each returned HTTP 200 after the recreation.
+- No GPU acceleration is claimed by this change; accelerator qualification
+  remains a separate evidence gate.
+
+## 2026-08-02 — Multilingual AI Benchmark 2 disposition
+
+- Published the user-created harness, three completed JSON reports, terminal
+  transcripts, and incomplete-run logs under
+  `docs/AI Model Benchmark/AI_BENCHMARK_2`.
+- Excluded the approximately 6.1 GB desktop recording from Git while retaining
+  it as local review evidence.
+- Documented the duplicated score/result block, permissive false-positive
+  grader, absent database grounding, incomplete Coder run, and missing model
+  provenance. The displayed percentages are rejected as accuracy claims.
+- Preserved the duplicate-adjusted arithmetic only as a traceability aid:
+  Llama 3.2 3B 34/75, Qwen 2.5 7B 31/75, and TinyLlama 20/75.
+- Finalized the direction: complete ROMS independently of AI; retain an
+  isolated, disabled assistant experiment limited to clarification and
+  approved permission-aware ROMS functions. Arbitrary SQL, production model
+  approval, a two-model selector, and network GPU infrastructure remain out of
+  scope until later evidence justifies them.

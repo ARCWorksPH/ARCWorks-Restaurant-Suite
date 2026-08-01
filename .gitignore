@@ -18,3 +18,6 @@ Docker/
 *.suo
 __pycache__/
 *.pyc
+
+# Local benchmark recordings are multi-gigabyte review evidence, not source.
+/docs/AI Model Benchmark/AI_BENCHMARK_2/Video/
