@@ -1,4 +1,6 @@
 name: ci
+permissions:
+  contents: read
 on:
   push:
   pull_request:
@@ -6,10 +8,12 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with: { dotnet-version: 10.0.x }
+      - run: pwsh tools/Test-NoCommittedSeedPasswords.ps1
       - run: dotnet restore Roms.slnx
       - run: dotnet build Roms.slnx --no-restore --configuration Release
+      - run: pwsh tests/Roms.E2ETests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
       - run: dotnet test Roms.slnx --no-build --configuration Release
       - run: docker build --tag roms:${{ github.sha }} .

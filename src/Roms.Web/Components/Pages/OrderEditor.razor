@@ -25,16 +25,34 @@ else
             else if (order.Status == OrderStatus.Ready) { <button class="btn btn-success btn-lg touch-button w-100" disabled="@busy" @onclick="Complete">Mark served</button> }
             else if (order.Status == OrderStatus.Completed && order.PaymentConfirmedUtc is null) { <div class="alert alert-warning"><strong>Pending payment.</strong> The table will be released after Admin confirms payment.</div> }
             else if (order.Status == OrderStatus.Completed) { <div class="alert alert-success">Payment confirmed and order completed.</div> }
+            else if (order.Status == OrderStatus.Cancelled)
+            {
+                <div class="alert alert-secondary">
+                    <strong>Order cancelled.</strong>
+                    @order.CancellationReason
+                </div>
+            }
             else { <div class="alert alert-info">Kitchen status: <strong>@order.Status</strong></div> }
             @if (order.Status is not (OrderStatus.Completed or OrderStatus.Cancelled) && (isAdmin || order.Status is OrderStatus.Draft or OrderStatus.New))
             {
-                <div class="cancel-panel"><input class="form-control" placeholder="Cancellation reason (required)" @bind="cancellationReason" /><button class="btn btn-outline-danger touch-button" disabled="@busy" @onclick="Cancel">Cancel order</button></div>
+                <div class="cancel-panel">
+                    <input class="form-control" placeholder="Cancellation reason (required)"
+                           value="@cancellationReason"
+                           @oninput="eventArgs => cancellationReason = eventArgs.Value?.ToString() ?? string.Empty" />
+                    <button class="btn btn-outline-danger touch-button" disabled="@busy" @onclick="Cancel">Cancel order</button>
+                </div>
             }
         </section>
         @if (order.Status is OrderStatus.Draft or OrderStatus.New or OrderStatus.Preparing)
         {
             <section><h2>@(order.Status == OrderStatus.Draft ? "Add menu items" : "Amend order")</h2>
-                @if (order.Status != OrderStatus.Draft) { <div class="alert alert-warning">Kitchen will be notified. <input class="form-control mt-2" placeholder="Amendment reason (required)" @bind="amendmentReason" /></div> }
+                @if (order.Status != OrderStatus.Draft)
+                {
+                    <div class="alert alert-warning">
+                        Kitchen will be notified.
+                        <input class="form-control mt-2" placeholder="Amendment reason (required)" @bind="amendmentReason" />
+                    </div>
+                }
                 <div class="input-row"><input class="form-control" placeholder="Special instructions" @bind="notes" /><input class="form-control quantity" type="number" min="1" max="99" @bind="quantity" /></div>
                 @foreach (var group in menu.GroupBy(x => x.Category)) { <h3>@group.Key</h3><div class="menu-grid">@foreach (var item in group) { <button class="menu-card" disabled="@busy" @onclick="() => Add(item.Id)"><strong>@item.Name</strong><span>₱@item.Price.ToString("N2")</span><small>@item.Description</small></button> }</div> }
             </section>

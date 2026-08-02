@@ -1,0 +1,45 @@
+------------------------------------------------------------------------------
+[1] Q1 | Tagalog | category A
+Question: Magkano ang isang order ng Bicol Express?
+Review aid: ₱195
+Answer:
+Ang price ng isang order ng Bicol Express ay 195 Philippine Pesos.
+Human review: acceptable
+Error: None
+Metrics: 9.941s | 20 tokens | 10.73 t/s
+------------------------------------------------------------------------------
+[2] Q2 | Tagalog | category A
+Question: Ano ang presyo ng Pork Sisig?
+Review aid: ₱210
+Answer:
+Pork Sisig ay pinagbiglang 210 pesos.
+Human review: acceptable
+Error: None
+Metrics: 2.173s | 17 tokens | 10.12 t/s
+------------------------------------------------------------------------------
+[3] Q3 | Tagalog | category A
+Question: Ilang kilo ng manok ang kasalukuyang nasa inventory?
+Review aid: 12 kg
+Answer:
+12 kg lamang ng manok ang kasalukuyang nasa inventory.
+Human review: acceptable
+Error: None
+Metrics: 2.497s | 19 tokens | 10.13 t/s
+------------------------------------------------------------------------------
+[4] Q4 | Tagalog | category A
+Question: Ilang serving ng Beef Pares ang maaaring gawin gamit ang 8 kilo ng beef?
+Review aid: 32 servings (8 / 0.25)
+Answer:
+Maaari kang gawin 32 servings ng Beef Pares gamit ang 8 kg ng beef.
+Human review: acceptable
+Error: None
+Metrics: 3.07s | 25 tokens | 10.47 t/s
+------------------------------------------------------------------------------
+[5] Q5 | Tagalog | category A
+Question: Gaano karaming baboy ang kailangan para sa limang order ng Pork Sisig?
+Review aid: 1 kg (5 × 0.2)
+Answer:
+Para sa limang order ng Pork Sisig, kailanman ay karamihang 1.200 gram o 1.2 kilogram (kg) baboy ay kailangan.
+Human review: acceptable
+Error: None
+Metrics: 5.241s | 45 tokens | 9.89 t/s

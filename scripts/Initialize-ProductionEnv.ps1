@@ -58,7 +58,6 @@ $lines = @(
     "ADMIN_USERNAME='admin'"
     "ADMIN_PASSWORD=$(ConvertTo-DotEnvValue $adminPassword)"
     "ADMIN_DISPLAY_NAME='ROMS Administrator'"
-    "INVENTORY_ENABLED='false'"
 )
 
 [IO.File]::WriteAllLines(

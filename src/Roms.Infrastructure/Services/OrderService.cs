@@ -1,19 +1,19 @@
+using System.Data;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
+using MySql.Data.MySqlClient;
 using Roms.Application;
 using Roms.Domain;
 using Roms.Infrastructure.Persistence;
 
 namespace Roms.Infrastructure.Services;
 
-public sealed class InventoryOptions { public bool Enabled { get; set; } }
-
 public sealed class OrderService(
     IDbContextFactory<RomsDbContext> factory,
     IClock clock,
     IOrderEventPublisher publisher,
-    IOptions<InventoryOptions> inventoryOptions) : IOrderService
+    ILogger<OrderService> logger) : IOrderService
 {
     private static readonly OrderStatus[] ActiveStatuses = [OrderStatus.Draft, OrderStatus.New, OrderStatus.Preparing, OrderStatus.Ready];
 
@@ -113,32 +113,49 @@ public sealed class OrderService(
         await Publish(order, "OrderAmended", ct);
     }
 
-    public async Task AmendAddItemAsync(Guid orderId, Guid menuItemId, int quantity, string? notes, string reason, string actorId, CancellationToken ct = default)
+    public async Task AmendAddItemAsync(
+        Guid orderId,
+        Guid menuItemId,
+        int quantity,
+        string? notes,
+        string reason,
+        string actorId,
+        CancellationToken ct = default)
     {
-        await using var db = await factory.CreateDbContextAsync(ct);
-        var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == orderId, ct);
-        await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
-        var menuItem = await db.MenuItems.SingleAsync(x => x.Id == menuItemId, ct);
-        order.AmendAddItem(menuItem, quantity, notes, actorId, reason, clock.UtcNow);
-        if (inventoryOptions.Value.Enabled && order.Status == OrderStatus.Preparing)
-            await ReconcileInventoryAsync(db, order, actorId, consume: true,
-                $"Order {order.Id} revision {order.Revision} added an item", $"revision:{order.Revision}", ct);
-        db.AuditEntries.Add(Audit(actorId, "AmendAddOrderItem", order.Id, JsonSerializer.Serialize(new { menuItemId, quantity, notes, reason, order.Revision })));
-        await db.SaveChangesAsync(ct);
-        await Publish(order, "OrderAmended", ct);
+        await using var strategyContext = await factory.CreateDbContextAsync(ct);
+        var strategy = strategyContext.Database.CreateExecutionStrategy();
+        Order? changedOrder = null;
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var db = await factory.CreateDbContextAsync(ct);
+            await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == orderId, ct);
+            await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
+            var menuItem = await db.MenuItems.SingleAsync(x => x.Id == menuItemId, ct);
+            order.AmendAddItem(menuItem, quantity, notes, actorId, reason, clock.UtcNow);
+            db.AuditEntries.Add(Audit(actorId, "AmendAddOrderItem", order.Id,
+                JsonSerializer.Serialize(new { menuItemId, quantity, notes, reason, order.Revision })));
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            changedOrder = order;
+        });
+        await Publish(changedOrder!, "OrderAmended", ct);
     }
 
-    public async Task AmendRemoveItemAsync(Guid orderId, Guid itemId, string reason, string actorId, CancellationToken ct = default)
+    public async Task AmendRemoveItemAsync(
+        Guid orderId,
+        Guid itemId,
+        string reason,
+        string actorId,
+        CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == orderId, ct);
         await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
         var verifiedIsAdmin = await IsInRoleAsync(db, actorId, RomsRoles.Admin, ct);
         order.AmendRemoveItem(itemId, actorId, reason, verifiedIsAdmin, clock.UtcNow);
-        if (inventoryOptions.Value.Enabled && order.Status == OrderStatus.Preparing)
-            await ReconcileInventoryAsync(db, order, actorId, consume: true,
-                $"Order {order.Id} revision {order.Revision} removed an item", $"revision:{order.Revision}", ct);
-        db.AuditEntries.Add(Audit(actorId, "AmendRemoveOrderItem", order.Id, JsonSerializer.Serialize(new { itemId, reason, order.Revision })));
+        db.AuditEntries.Add(Audit(actorId, "AmendRemoveOrderItem", order.Id,
+            JsonSerializer.Serialize(new { itemId, reason, order.Revision })));
         await db.SaveChangesAsync(ct);
         await Publish(order, "OrderAmended", ct);
     }
@@ -159,44 +176,54 @@ public sealed class OrderService(
         return order.Id;
     }
 
-    public async Task TransitionAsync(Guid orderId, OrderStatus next, string actorId, string? reason = null, CancellationToken ct = default)
+    public async Task TransitionAsync(
+        Guid orderId,
+        OrderStatus next,
+        string actorId,
+        string? reason = null,
+        CancellationToken ct = default)
     {
         await using var strategyContext = await factory.CreateDbContextAsync(ct);
         var strategy = strategyContext.Database.CreateExecutionStrategy();
         Order? changedOrder = null;
-        await strategy.ExecuteAsync(async () =>
+        try
         {
-            await using var db = await factory.CreateDbContextAsync(ct);
-            await using var tx = await db.Database.BeginTransactionAsync(ct);
-            var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == orderId, ct);
-            var previous = order.Status;
-            if (next == OrderStatus.Cancelled)
+            await strategy.ExecuteAsync(async () =>
             {
-                if (previous is OrderStatus.Preparing or OrderStatus.Ready) await EnsureAdminAsync(db, actorId, ct);
-                else await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
-            }
-            else if (next == OrderStatus.Completed)
-                await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
-            else
-                await EnsureKitchenOrAdminAsync(db, actorId, ct);
-            order.TransitionTo(next, actorId, reason, clock.UtcNow);
+                await using var db = await factory.CreateDbContextAsync(ct);
+                await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+                var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == orderId, ct);
+                var previous = order.Status;
+                if (next == OrderStatus.Cancelled)
+                {
+                    if (previous is OrderStatus.Preparing or OrderStatus.Ready) await EnsureAdminAsync(db, actorId, ct);
+                    else await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
+                }
+                else if (next == OrderStatus.Completed)
+                    await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
+                else
+                    await EnsureKitchenOrAdminAsync(db, actorId, ct);
+                order.TransitionTo(next, actorId, reason, clock.UtcNow);
 
-            if (inventoryOptions.Value.Enabled)
-            {
-                if (next == OrderStatus.Preparing)
-                    await ReconcileInventoryAsync(db, order, actorId, consume: true,
-                        $"Order {order.Id} entered Preparing", "preparing", ct);
-                else if (next == OrderStatus.Cancelled && previous is OrderStatus.Preparing or OrderStatus.Ready)
-                    await ReconcileInventoryAsync(db, order, actorId, consume: false,
-                        $"Order {order.Id} was cancelled: {reason}", "cancelled", ct);
-            }
-
-            db.AuditEntries.Add(Audit(actorId, next == OrderStatus.Cancelled ? "CancelOrder" : "ChangeOrderStatus", order.Id,
-                JsonSerializer.Serialize(new { from = previous, to = next, reason })));
-            await db.SaveChangesAsync(ct);
-            await tx.CommitAsync(ct);
-            changedOrder = order;
-        });
+                db.AuditEntries.Add(Audit(actorId, next == OrderStatus.Cancelled ? "CancelOrder" : "ChangeOrderStatus", order.Id,
+                    JsonSerializer.Serialize(new
+                    {
+                        from = previous,
+                        to = next,
+                        reason
+                    })));
+                await db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+                changedOrder = order;
+            });
+        }
+        catch (Exception exception) when (IsTransientTransactionConflict(exception))
+        {
+            logger.LogWarning(exception,
+                "Order {OrderId} hit a transient database concurrency conflict.", orderId);
+            throw new DomainException(
+                "Another order update happened at the same time. Reload and try this action again.");
+        }
         await Publish(changedOrder!, "OrderStatusChanged", ct);
     }
 
@@ -213,51 +240,26 @@ public sealed class OrderService(
         await Publish(order, "PaymentConfirmed", ct);
     }
 
-    private async Task ReconcileInventoryAsync(
-        RomsDbContext db,
-        Order order,
-        string actorId,
-        bool consume,
-        string reason,
-        string operation,
-        CancellationToken ct)
-    {
-        var desired = new Dictionary<Guid, decimal>();
-        if (consume)
-        {
-            var activeItems = order.Items.Where(x => !x.IsRemoved).ToList();
-            var menuIds = activeItems.Select(x => x.MenuItemId).Distinct().ToList();
-            var recipes = await db.RecipeIngredients.Where(x => menuIds.Contains(x.MenuItemId)).ToListAsync(ct);
-            foreach (var group in recipes.GroupBy(x => x.InventoryItemId))
-                desired[group.Key] = -activeItems.Join(group, i => i.MenuItemId, r => r.MenuItemId,
-                    (i, r) => i.Quantity * r.Quantity).Sum();
-        }
-
-        var existing = await db.StockMovements.Where(x => x.OrderId == order.Id).ToListAsync(ct);
-        var inventoryItemIds = desired.Keys.Concat(existing.Select(x => x.InventoryItemId)).Distinct();
-        foreach (var inventoryItemId in inventoryItemIds)
-        {
-            var current = existing.Where(x => x.InventoryItemId == inventoryItemId).Sum(x => x.QuantityDelta);
-            var target = desired.GetValueOrDefault(inventoryItemId);
-            var delta = target - current;
-            if (delta == 0) continue;
-
-            var key = operation == "preparing"
-                ? $"order:{order.Id}:preparing:{inventoryItemId}"
-                : $"order:{order.Id}:{operation}:{inventoryItemId}";
-            if (await db.StockMovements.AnyAsync(x => x.IdempotencyKey == key, ct)) continue;
-            db.StockMovements.Add(new StockMovement { InventoryItemId = inventoryItemId,
-                Type = delta < 0 ? StockMovementType.Consumption : StockMovementType.Reversal,
-                QuantityDelta = delta, Reason = reason, OrderId = order.Id,
-                IdempotencyKey = key, ActorId = actorId, OccurredUtc = clock.UtcNow });
-        }
-    }
-
     private AuditEntry Audit(string actor, string action, Guid id, string? values) => new()
         { ActorId = actor, Action = action, EntityType = nameof(Order), EntityId = id.ToString(), NewValuesJson = values, OccurredUtc = clock.UtcNow };
 
-    private Task Publish(Order order, string kind, CancellationToken ct) =>
-        publisher.PublishAsync(new OrderEvent(order.Id, order.Revision, order.Version, clock.UtcNow, kind), ct);
+    private async Task Publish(Order order, string kind, CancellationToken ct)
+    {
+        try
+        {
+            await publisher.PublishAsync(
+                new OrderEvent(order.Id, order.Revision, order.Version, clock.UtcNow, kind),
+                ct);
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(
+                exception,
+                "Order event {EventKind} for order {OrderId} could not be delivered after the state was committed. Clients must reload authoritative state.",
+                kind,
+                order.Id);
+        }
+    }
 
     private static TableStatus ToTableStatus(Order? order) => order?.Status switch
     {
@@ -284,7 +286,7 @@ public sealed class OrderService(
     private static async Task EnsureAdminAsync(RomsDbContext db, string actorId, CancellationToken ct)
     {
         if (await IsInRoleAsync(db, actorId, RomsRoles.Admin, ct)) return;
-        throw new DomainException("Only an administrator can cancel an order after preparation begins.");
+        throw new DomainException("Only an administrator can perform this protected action.");
     }
 
     private static Task<bool> IsInRoleAsync(RomsDbContext db, string actorId, string role, CancellationToken ct) =>
@@ -293,6 +295,16 @@ public sealed class OrderService(
          join existingRole in db.Roles on userRole.RoleId equals existingRole.Id
          where user.UserName == actorId && existingRole.Name == role
          select user.Id).AnyAsync(ct);
+
+    private static bool IsTransientTransactionConflict(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is MySqlException { Number: 1205 or 1213 })
+                return true;
+        }
+        return false;
+    }
 
     private static async Task<Dictionary<string, string>> GetWaiterNamesAsync(RomsDbContext db, IEnumerable<string> waiterIds, CancellationToken ct)
     {
@@ -313,5 +325,12 @@ public sealed class OrderService(
     private static OrderView Map(Order x, IReadOnlyDictionary<string, string> waiterNames) => new(
         x.Id, x.TableId, x.Table?.Number ?? "?", x.WaiterId, WaiterName(x.WaiterId, waiterNames), x.Status,
         x.CreatedUtc, x.SubmittedUtc, x.CompletedUtc, x.PaymentConfirmedUtc, x.Revision, x.Version, x.Total,
-        x.Items.OrderBy(i => i.MenuItemName).Select(i => new OrderItemView(i.Id, i.MenuItemName, i.UnitPrice, i.Quantity, i.Notes, i.IsRemoved)).ToList());
+        x.CancellationReason,
+        x.Items.OrderBy(i => i.MenuItemName).Select(i => new OrderItemView(
+            i.Id,
+            i.MenuItemName,
+            i.UnitPrice,
+            i.Quantity,
+            i.Notes,
+            i.IsRemoved)).ToList());
 }

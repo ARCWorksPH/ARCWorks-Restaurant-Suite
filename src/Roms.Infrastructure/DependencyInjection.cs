@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Roms.Application;
+using Roms.Application.Ai;
 using Roms.Infrastructure.Persistence;
 using Roms.Infrastructure.Services;
 
@@ -20,12 +21,15 @@ public static class DependencyInjection
         services.AddDbContextFactory<RomsDbContext>((provider, options) => options
             .UseMySQL(connectionString, mySql => mySql.EnableRetryOnFailure())
             .AddInterceptors(provider.GetRequiredService<MariaDbMigrationLockInterceptor>()), ServiceLifetime.Scoped);
-        services.Configure<InventoryOptions>(configuration.GetSection("Features:Inventory"));
         services.AddSingleton<IClock, SystemClock>();
+        services.Configure<AiSecurityOptions>(configuration.GetSection("Ai"));
+        services.AddSingleton<AiRequestGate>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<ICatalogService, CatalogService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScoped<IAiFunctionService, AiFunctionService>();
+        services.AddScoped<IAiAssistantService, AiAssistantService>();
         services.AddScoped<IAttendanceService, AttendanceService>();
         return services;
     }

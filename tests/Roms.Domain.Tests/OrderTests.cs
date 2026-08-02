@@ -73,10 +73,90 @@ public sealed class OrderTests
     {
         var order = WithItem(); order.Submit(Now); order.TransitionTo(OrderStatus.Preparing, "kitchen", null, Now);
         var itemId = order.Items[0].Id;
-        Assert.Throws<DomainException>(() => order.AmendRemoveItem(itemId, "waiter", "Customer changed mind", false, Now));
-        order.AmendRemoveItem(itemId, "admin", "Approved correction", true, Now);
+        Assert.Throws<DomainException>(() => order.AmendRemoveItem(
+            itemId, "waiter", "Customer changed mind", false, Now));
+        order.AmendRemoveItem(
+            itemId,
+            "admin",
+            "Approved correction",
+            true,
+            Now);
         Assert.True(order.Items[0].IsRemoved);
         Assert.Equal(2, order.Revision);
+    }
+
+    [Fact]
+    public void Prepared_order_can_be_cancelled_with_a_reason()
+    {
+        var order = WithItem();
+        order.Submit(Now);
+        order.TransitionTo(OrderStatus.Preparing, "kitchen", null, Now);
+
+        order.TransitionTo(OrderStatus.Cancelled, "admin", "Customer left", Now);
+        Assert.Equal(OrderStatus.Cancelled, order.Status);
+        Assert.Equal("Customer left", order.CancellationReason);
+    }
+
+    [Fact]
+    public void Inventory_loss_requires_review_and_cannot_be_reviewed_twice()
+    {
+        var request = InventoryLossRequest.Report(
+            Guid.NewGuid(),
+            InventoryLossType.Spoilage,
+            2.5m,
+            "Temperature excursion",
+            "kitchen",
+            "loss-1",
+            Now);
+
+        Assert.Equal(InventoryLossStatus.Pending, request.Status);
+        request.Approve("admin", "Verified against cold-storage log", Now.AddMinutes(5));
+
+        Assert.Equal(InventoryLossStatus.Approved, request.Status);
+        Assert.Equal("admin", request.ReviewedBy);
+        Assert.Throws<DomainException>(() =>
+            request.Reject("admin", "Cannot reverse approval", Now.AddMinutes(6)));
+    }
+
+    [Fact]
+    public void Inventory_loss_rejection_requires_a_reason()
+    {
+        var request = InventoryLossRequest.Report(
+            Guid.NewGuid(), InventoryLossType.Waste, 1m, "Dropped", "kitchen", "loss-2", Now);
+
+        Assert.Throws<DomainException>(() => request.Reject("admin", " ", Now.AddMinutes(1)));
+        request.Reject("admin", "No supporting incident record", Now.AddMinutes(2));
+
+        Assert.Equal(InventoryLossStatus.Rejected, request.Status);
+    }
+
+    [Fact]
+    public void Physical_count_records_zero_or_nonzero_variance_and_rejects_invalid_values()
+    {
+        var itemId = Guid.NewGuid();
+        var count = InventoryCountRecord.Record(
+            itemId,
+            10m,
+            7.5m,
+            "Closing count sheet 42",
+            "admin",
+            "count-1",
+            Now);
+
+        Assert.Equal(itemId, count.InventoryItemId);
+        Assert.Equal(10m, count.LedgerQuantity);
+        Assert.Equal(7.5m, count.CountedQuantity);
+        Assert.Equal(-2.5m, count.Variance);
+        Assert.Equal("Closing count sheet 42", count.Reason);
+
+        var zeroVariance = InventoryCountRecord.Record(
+            itemId, 7.5m, 7.5m, "Witnessed recount", "admin", "count-2", Now);
+        Assert.Equal(0m, zeroVariance.Variance);
+
+        Assert.Throws<DomainException>(() =>
+            InventoryCountRecord.Record(itemId, 1m, -1m, "Bad count", "admin", "count-3", Now));
+        Assert.Throws<DomainException>(() =>
+            InventoryCountRecord.Record(itemId, 1m, 1m, " ", "admin", "count-4", Now));
     }
 
     private static Order NewOrder() => new() { TableId = Guid.NewGuid(), WaiterId = "waiter", CreatedUtc = Now };

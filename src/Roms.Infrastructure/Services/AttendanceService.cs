@@ -10,6 +10,7 @@ public sealed class AttendanceService(IDbContextFactory<RomsDbContext> factory, 
 {
     public async Task<MyAttendanceView> GetMineAsync(string username, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default)
     {
+        ValidateRange(fromUtc, toUtc);
         await using var db = await factory.CreateDbContextAsync(ct);
         var user = await ActiveUserAsync(db, username, ct);
         var schedules = await db.StaffSchedules.AsNoTracking()
@@ -63,6 +64,7 @@ public sealed class AttendanceService(IDbContextFactory<RomsDbContext> factory, 
 
     public async Task<AttendanceAdminView> GetAdminViewAsync(DateTime fromUtc, DateTime toUtc, CancellationToken ct = default)
     {
+        ValidateRange(fromUtc, toUtc);
         await using var db = await factory.CreateDbContextAsync(ct);
         var users = await db.Users.AsNoTracking().Where(x => x.UserName != null)
             .Select(x => new StaffIdentity(x.Id, x.UserName!, x.DisplayName)).ToDictionaryAsync(x => x.Id, ct);
@@ -119,6 +121,11 @@ public sealed class AttendanceService(IDbContextFactory<RomsDbContext> factory, 
 
     private static async Task<Identity.ApplicationUser> ActiveUserAsync(RomsDbContext db, string username, CancellationToken ct) =>
         await db.Users.SingleOrDefaultAsync(x => x.UserName == username && x.IsActive, ct) ?? throw new DomainException("Active staff account not found.");
+
+    private static void ValidateRange(DateTime fromUtc, DateTime toUtc)
+    {
+        if (toUtc <= fromUtc) throw new DomainException("Date range end time must be after the start time.");
+    }
 
     private AttendanceRecordView Map(AttendanceRecord x, string username, string displayName) => new(x.Id, x.UserId, username,
         string.IsNullOrWhiteSpace(displayName) ? username : displayName, x.StaffScheduleId, x.ClockInUtc, x.ClockOutUtc,

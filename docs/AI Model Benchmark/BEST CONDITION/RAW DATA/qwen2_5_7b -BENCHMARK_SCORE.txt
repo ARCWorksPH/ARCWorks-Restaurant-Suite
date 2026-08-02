@@ -1,0 +1,103 @@
+PS C:\Users\REDACTED> docker exec -it arcworks-resto-ollama-1 ollama run qwen2.5:7b
+>>> /set verbose
+Set 'verbose' mode.
+>>> /set parameter num_gpu 99
+Set parameter 'num_gpu' to '99'
+>>> /set parameter num_ctx 4096
+Set parameter 'num_ctx' to '4096'
+>>> /show info
+  Model
+    architecture        qwen2
+    parameters          7.6B
+    context length      32768
+    embedding length    3584
+    quantization        Q4_K_M
+
+  Capabilities
+    completion
+    tools
+
+  System
+    You are Qwen, created by Alibaba Cloud. You are a helpful assistant.
+
+  License
+    Apache License
+    Version 2.0, January 2004
+    ...
+
+>>> /show parameters
+Model defined parameters:
+  No additional parameters were specified for this model.
+
+User defined parameters:
+  num_gpu                        99
+  num_ctx                        4096
+
+>>> Write a long essay on why the sky is blue. Include scientific explanations, historical context, and practical exampl
+... es. Make it detailed and well-structured.
+**The Enigma of the Blue Sky: A Comprehensive Exploration**
+
+**Introduction**
+The phenomenon of the blue sky has captivated human curiosity for centuries, with its vivid color evoking wonder
+and inspiring numerous artistic depictions. The scientific explanation behind this natural spectacle involves
+complex interactions between light and Earth's atmosphere. This essay delves into the reasons why the sky appears
+blue, exploring both the science and historical context that have shaped our understanding of this phenomenon.
+
+**Historical Context**
+Understanding the modern explanation for a blue sky requires tracing back to ancient civilizations where
+philosophers and scientists began to ponder these observations. For instance, the ancient Greeks postulated
+theories about atmospheric phenomena. Aristotle suggested that the atmosphere acted like a prism, separating light
+into its colors as it passed through. However, this explanation was rudimentary compared to our current
+understanding.
+
+The scientific revolution brought significant advancements in optics and astronomy during the 17th century. René
+Descartes and Isaac Newton contributed pivotal theories, though their explanations were not fully accurate
+regarding the physics of the blue sky. It wasn't until the 19th and early 20th centuries that James Clerk Maxwell
+and John William Strutt (Lord Rayleigh) provided a more precise explanation based on scattering theory.
+
+**The Science Behind the Blue Sky**
+To comprehend why the sky appears blue, one must delve into the principles of light interaction with gases and
+particles in the atmosphere. Light enters Earth’s atmosphere from the sun, consisting primarily of white light,
+which is a combination of all visible wavelengths: red, orange, yellow, green, blue, indigo, and violet.
+
+When sunlight encounters gas molecules or small particles like dust, it interacts through a process known as
+Rayleigh scattering. This occurs because gases in Earth's atmosphere have smaller dimensions relative to the
+wavelength of light. According to Lord Rayleigh’s calculations, shorter wavelengths (blue and violet) are
+scattered more than longer wavelengths (red, orange, yellow).
+
+The reason why blue appears more prominently is due to its shorter wavelength compared to other colors. The blue
+light is scattered in all directions by the air molecules and small particles in the atmosphere. This scattering
+of blue light happens at a much higher rate than that of red light, which passes through the atmosphere with
+minimal interference.
+
+However, human eyes are more sensitive to green and blue light, but due to the way our visual systems process
+colors, we perceive the sky as predominantly blue during clear days. The sun's angle in the sky also plays a role;
+at sunrise or sunset, when sunlight travels through a thicker layer of atmosphere, the shorter wavelengths (blue
+and violet) scatter away more efficiently, leaving mostly longer wavelengths like red and orange to reach our
+eyes.
+
+**Practical Examples**
+Observations can illustrate these scientific principles. For example, during sunrise and sunset, the sky often
+appears orange or pink because the sun's light has to pass through a thicker layer of atmosphere, resulting in
+less blue light being scattered. Additionally, cities with significant air pollution may sometimes exhibit redder
+skies due to additional particulates that enhance scattering at shorter wavelengths.
+
+**Conclusion**
+The beauty and complexity of why the sky is blue offer a fascinating glimpse into atmospheric science and optics.
+From ancient philosophical musings to contemporary scientific theories, understanding this natural phenomenon has
+evolved significantly. As our technological capabilities improve, so too will our ability to further explore and
+appreciate these fundamental aspects of our environment.
+
+By continuously exploring and documenting such phenomena, we not only deepen our scientific knowledge but also
+enrich the human experience with awe-inspiring visual revelations that continue to spark curiosity and inspire
+artistic expression across cultures and generations.
+
+total duration:       1m57.286296408s
+load duration:        14.33399182s
+prompt eval count:    59 token(s)
+prompt eval duration: 1.45881s
+prompt eval rate:     40.44 tokens/s
+eval count:           724 token(s)
+eval duration:        1m41.478247s
+eval rate:            7.13 tokens/s
+>>> Send a message (/? for help)

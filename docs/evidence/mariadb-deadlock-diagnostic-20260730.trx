@@ -1,0 +1,352 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="54e72005-83ee-4fd6-9062-2129a5b81065" name="GBServerPH@GBSERVERPH 2026-07-30 21:42:07" runUser="GBSERVERPH\GBServerPH" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-07-30T21:42:07.1748520+08:00" queuing="2026-07-30T21:42:07.1748523+08:00" start="2026-07-30T21:40:54.5107368+08:00" finish="2026-07-30T21:42:08.3802067+08:00" />
+  <TestSettings name="default" id="7e995337-8794-4f37-a84c-a4d82f65cd97">
+    <Deployment runDeploymentRoot="GBServerPH_GBSERVERPH_2026-07-30_21_42_07" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="8a42150f-b2ee-41c0-995d-ce1985099865" testId="f6375e59-d72c-f1ab-47cc-07cfef6a05eb" testName="Roms.IntegrationTests.ResilienceStressTests.Twenty_four_competing_tickets_cannot_spend_more_than_twelve_units" computerName="GBSERVERPH" duration="00:00:26.6552501" startTime="2026-07-30T21:41:40.1434034+08:00" endTime="2026-07-30T21:42:06.7840915+08:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8a42150f-b2ee-41c0-995d-ce1985099865">
+      <Output>
+        <StdOut>Initial surge: 5 committed, 19 rejected; captured MariaDB transaction conflicts: 19.&#xD;
+MariaDB error 1213, SQLSTATE , occurrences 19: Deadlock found when trying to get lock; try restarting transaction&#xD;
+InnoDB latest-deadlock excerpt:&#xD;
+LATEST DETECTED DEADLOCK
+------------------------
+2026-07-30 13:42:03 0x783e641206c0
+*** (1) TRANSACTION:
+TRANSACTION 563, ACTIVE 0 sec inserting
+mysql tables in use 1, locked 1
+LOCK WAIT 30 lock struct(s), heap size 3488, 29 row lock(s), undo log entries 3
+MariaDB thread id 6, OS thread handle 132209362208448, query id 1649 172.17.0.1 root Update
+INSERT INTO `StockMovements` (`ActorId`, `IdempotencyKey`, `InventoryItemId`, `OccurredUtc`, `OrderId`, `QuantityDelta`, `Reason`, `Type`)&#xD;
+VALUES ('stress-kitchen', 'order:c5e3da5b-170f-486d-97ff-d25dc9125a09:preparing:8d05d050-f3e4-4abe-8d03-58b83fe21dd7', '8d05d050-f3e4-4abe-8d03-58b83fe21dd7', timestamp('2026-07-30 14:00:00'), 'c5e3da5b-170f-486d-97ff-d25dc9125a09', -1.000, 'Order c5e3da5b-170f-486d-97ff-d25dc9125a09 entered Preparing', 'Consumption')
+*** WAITING FOR THIS LOCK TO BE GRANTED:
+RECORD LOCKS space id 21 page no 3 n bits 72 index PRIMARY of table `roms_f4142234c90e4c15826d91c92141c041`.`StockMovements` trx id 563 lock_mode X insert intention waiting
+Record lock, heap no 1 PHYSICAL RECORD: n_fields 1; compact format; info bits 0
+ 0: len 8; hex 73757072656d756d; asc supremum;;
+
+*** CONFLICTING WITH:
+RECORD LOCKS space id 21 page no 3 n bits 72 index PRIMARY of table `roms_f4142234c90e4c15826d91c92141c041`.`StockMovements` trx id 564 lock mode S
+Record lock, heap no 1 PHYSICAL RECORD: n_fields 1; compact format; info bits 0
+ 0: len 8; hex 73757072656d756d; asc supremum;;
+
+Record lock, heap no 2 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 8000000000000001; asc         ;;
+ 1: len 6; hex 00000000016d; asc      m;;
+ 2: len 7; hex c40000002d0732; asc     - 2;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 7; hex 52656365697074; asc Receipt;;
+ 5: len 7; hex 800000000c0000; asc        ;;
+ 6: len 25; hex 5374726573732d74657374206f70656e696e672073746f636b; asc Stress-test opening stock;;
+ 7: SQL NULL;
+ 8: len 30; hex 7374726573732d6f70656e696e673a38643035643035302d663365342d34; asc stress-opening:8d05d050-f3e4-4; (total 51 bytes);
+ 9: len 5; hex 61646d696e; asc admin;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+Record lock, heap no 3 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 8000000000000002; asc         ;;
+ 1: len 6; hex 00000000020c; asc       ;;
+ 2: len 7; hex 960000003401e4; asc     4  ;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 11; hex 436f6e73756d7074696f6e; asc Consumption;;
+ 5: len 7; hex 7ffffffffeffff; asc        ;;
+ 6: len 30; hex 4f726465722039366339643565362d396539362d346635392d386237392d; asc Order 96c9d5e6-9e96-4f59-8b79-; (total 60 bytes);
+ 7: len 30; hex 39366339643565362d396539362d346635392d386237392d643934343166; asc 96c9d5e6-9e96-4f59-8b79-d9441f; (total 36 bytes);
+ 8: len 30; hex 6f726465723a39366339643565362d396539362d346635392d386237392d; asc order:96c9d5e6-9e96-4f59-8b79-; (total 89 bytes);
+ 9: len 14; hex 7374726573732d6b69746368656e; asc stress-kitchen;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+Record lock, heap no 4 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 800000000000000b; asc         ;;
+ 1: len 6; hex 00000000021a; asc       ;;
+ 2: len 7; hex 9b0000003501e4; asc     5  ;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 11; hex 436f6e73756d7074696f6e; asc Consumption;;
+ 5: len 7; hex 7ffffffffeffff; asc        ;;
+ 6: len 30; hex 4f726465722063663138636463632d323863342d343263392d626462392d; asc Order cf18cdcc-28c4-42c9-bdb9-; (total 60 bytes);
+ 7: len 30; hex 63663138636463632d323863342d343263392d626462392d656162633337; asc cf18cdcc-28c4-42c9-bdb9-eabc37; (total 36 bytes);
+ 8: len 30; hex 6f726465723a63663138636463632d323863342d343263392d626462392d; asc order:cf18cdcc-28c4-42c9-bdb9-; (total 89 bytes);
+ 9: len 14; hex 7374726573732d6b69746368656e; asc stress-kitchen;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+Record lock, heap no 5 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 8000000000000013; asc         ;;
+ 1: len 6; hex 00000000022a; asc      *;;
+ 2: len 7; hex a50000003a01e3; asc     :  ;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 11; hex 436f6e73756d7074696f6e; asc Consumption;;
+ 5: len 7; hex 7ffffffffeffff; asc        ;;
+ 6: len 30; hex 4f726465722035656636386363662d396334652d343366632d393833612d; asc Order 5ef68ccf-9c4e-43fc-983a-; (total 60 bytes);
+ 7: len 30; hex 35656636386363662d396334652d343366632d393833612d663133623435; asc 5ef68ccf-9c4e-43fc-983a-f13b45; (total 36 bytes);
+ 8: len 30; hex 6f726465723a35656636386363662d396334652d343366632d393833612d; asc order:5ef68ccf-9c4e-43fc-983a-; (total 89 bytes);
+ 9: len 14; hex 7374726573732d6b69746368656e; asc stress-kitchen;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+RECORD LOCKS space id 21 page no 3 n bits 72 index PRIMARY of table `roms_f4142234c90e4c15826d91c92141c041`.`StockMovements` trx id 563 lock mode S
+Record lock, heap no 1 PHYSICAL RECORD: n_fields 1; compact format; info bits 0
+ 0: len 8; hex 73757072656d756d; asc supremum;;
+
+Record lock, heap no 2 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 8000000000000001; asc         ;;
+ 1: len 6; hex 00000000016d; asc      m;;
+ 2: len 7; hex c40000002d0732; asc     - 2;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 7; hex 52656365697074; asc Receipt;;
+ 5: len 7; hex 800000000c0000; asc        ;;
+ 6: len 25; hex 5374726573732d74657374206f70656e696e672073746f636b; asc Stress-test opening stock;;
+ 7: SQL NULL;
+ 8: len 30; hex 7374726573732d6f70656e696e673a38643035643035302d663365342d34; asc stress-opening:8d05d050-f3e4-4; (total 51 bytes);
+ 9: len 5; hex 61646d696e; asc admin;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+Record lock, heap no 3 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 8000000000000002; asc         ;;
+ 1: len 6; hex 00000000020c; asc       ;;
+ 2: len 7; hex 960000003401e4; asc     4  ;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 11; hex 436f6e73756d7074696f6e; asc Consumption;;
+ 5: len 7; hex 7ffffffffeffff; asc        ;;
+ 6: len 30; hex 4f726465722039366339643565362d396539362d346635392d386237392d; asc Order 96c9d5e6-9e96-4f59-8b79-; (total 60 bytes);
+ 7: len 30; hex 39366339643565362d396539362d346635392d386237392d643934343166; asc 96c9d5e6-9e96-4f59-8b79-d9441f; (total 36 bytes);
+ 8: len 30; hex 6f726465723a39366339643565362d396539362d346635392d386237392d; asc order:96c9d5e6-9e96-4f59-8b79-; (total 89 bytes);
+ 9: len 14; hex 7374726573732d6b69746368656e; asc stress-kitchen;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+Record lock, heap no 4 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 800000000000000b; asc         ;;
+ 1: len 6; hex 00000000021a; asc       ;;
+ 2: len 7; hex 9b0000003501e4; asc     5  ;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 11; hex 436f6e73756d7074696f6e; asc Consumption;;
+ 5: len 7; hex 7ffffffffeffff; asc        ;;
+ 6: len 30; hex 4f726465722063663138636463632d323863342d343263392d626462392d; asc Order cf18cdcc-28c4-42c9-bdb9-; (total 60 bytes);
+ 7: len 30; hex 63663138636463632d323863342d343263392d626462392d656162633337; asc cf18cdcc-28c4-42c9-bdb9-eabc37; (total 36 bytes);
+ 8: len 30; hex 6f726465723a63663138636463632d323863342d343263392d626462392d; asc order:cf18cdcc-28c4-42c9-bdb9-; (total 89 bytes);
+ 9: len 14; hex 7374726573732d6b69746368656e; asc stress-kitchen;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+Record lock, heap no 5 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 8000000000000013; asc         ;;
+ 1: len 6; hex 00000000022a; asc      *;;
+ 2: len 7; hex a50000003a01e3; asc     :  ;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 11; hex 436f6e73756d7074696f6e; asc Consumption;;
+ 5: len 7; hex 7ffffffffeffff; asc        ;;
+ 6: len 30; hex 4f726465722035656636386363662d396334652d343366632d393833612d; asc Order 5ef68ccf-9c4e-43fc-983a-; (total 60 bytes);
+ 7: len 30; hex 35656636386363662d396334652d343366632d393833612d663133623435; asc 5ef68ccf-9c4e-43fc-983a-f13b45; (total 36 bytes);
+ 8: len 30; hex 6f726465723a35656636386363662d396334652d343366632d393833612d; asc order:5ef68ccf-9c4e-43fc-983a-; (total 89 bytes);
+ 9: len 14; hex 7374726573732d6b69746368656e; asc stress-kitchen;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+
+*** (2) TRANSACTION:
+TRANSACTION 564, ACTIVE 0 sec inserting
+mysql tables in use 1, locked 1
+LOCK WAIT 30 lock struct(s), heap size 3488, 29 row lock(s), undo log entries 3
+MariaDB thread id 7, OS thread handle 132209361901248, query id 1648 172.17.0.1 root Update
+INSERT INTO `StockMovements` (`ActorId`, `IdempotencyKey`, `InventoryItemId`, `OccurredUtc`, `OrderId`, `QuantityDelta`, `Reason`, `Type`)&#xD;
+VALUES ('stress-kitchen', 'order:a2d9082d-2a58-4125-9d4c-f5daf8e38cfc:preparing:8d05d050-f3e4-4abe-8d03-58b83fe21dd7', '8d05d050-f3e4-4abe-8d03-58b83fe21dd7', timestamp('2026-07-30 14:00:00'), 'a2d9082d-2a58-4125-9d4c-f5daf8e38cfc', -1.000, 'Order a2d9082d-2a58-4125-9d4c-f5daf8e38cfc entered Preparing', 'Consumption')
+*** WAITING FOR THIS LOCK TO BE GRANTED:
+RECORD LOCKS space id 21 page no 3 n bits 72 index PRIMARY of table `roms_f4142234c90e4c15826d91c92141c041`.`StockMovements` trx id 564 lock_mode X insert intention waiting
+Record lock, heap no 1 PHYSICAL RECORD: n_fields 1; compact format; info bits 0
+ 0: len 8; hex 73757072656d756d; asc supremum;;
+
+*** CONFLICTING WITH:
+RECORD LOCKS space id 21 page no 3 n bits 72 index PRIMARY of table `roms_f4142234c90e4c15826d91c92141c041`.`StockMovements` trx id 564 lock mode S
+Record lock, heap no 1 PHYSICAL RECORD: n_fields 1; compact format; info bits 0
+ 0: len 8; hex 73757072656d756d; asc supremum;;
+
+Record lock, heap no 2 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 8000000000000001; asc         ;;
+ 1: len 6; hex 00000000016d; asc      m;;
+ 2: len 7; hex c40000002d0732; asc     - 2;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 7; hex 52656365697074; asc Receipt;;
+ 5: len 7; hex 800000000c0000; asc        ;;
+ 6: len 25; hex 5374726573732d74657374206f70656e696e672073746f636b; asc Stress-test opening stock;;
+ 7: SQL NULL;
+ 8: len 30; hex 7374726573732d6f70656e696e673a38643035643035302d663365342d34; asc stress-opening:8d05d050-f3e4-4; (total 51 bytes);
+ 9: len 5; hex 61646d696e; asc admin;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+Record lock, heap no 3 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 8000000000000002; asc         ;;
+ 1: len 6; hex 00000000020c; asc       ;;
+ 2: len 7; hex 960000003401e4; asc     4  ;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 11; hex 436f6e73756d7074696f6e; asc Consumption;;
+ 5: len 7; hex 7ffffffffeffff; asc        ;;
+ 6: len 30; hex 4f726465722039366339643565362d396539362d346635392d386237392d; asc Order 96c9d5e6-9e96-4f59-8b79-; (total 60 bytes);
+ 7: len 30; hex 39366339643565362d396539362d346635392d386237392d643934343166; asc 96c9d5e6-9e96-4f59-8b79-d9441f; (total 36 bytes);
+ 8: len 30; hex 6f726465723a39366339643565362d396539362d346635392d386237392d; asc order:96c9d5e6-9e96-4f59-8b79-; (total 89 bytes);
+ 9: len 14; hex 7374726573732d6b69746368656e; asc stress-kitchen;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+Record lock, heap no 4 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 800000000000000b; asc         ;;
+ 1: len 6; hex 00000000021a; asc       ;;
+ 2: len 7; hex 9b0000003501e4; asc     5  ;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 11; hex 436f6e73756d7074696f6e; asc Consumption;;
+ 5: len 7; hex 7ffffffffeffff; asc        ;;
+ 6: len 30; hex 4f726465722063663138636463632d323863342d343263392d626462392d; asc Order cf18cdcc-28c4-42c9-bdb9-; (total 60 bytes);
+ 7: len 30; hex 63663138636463632d323863342d343263392d626462392d656162633337; asc cf18cdcc-28c4-42c9-bdb9-eabc37; (total 36 bytes);
+ 8: len 30; hex 6f726465723a63663138636463632d323863342d343263392d626462392d; asc order:cf18cdcc-28c4-42c9-bdb9-; (total 89 bytes);
+ 9: len 14; hex 7374726573732d6b69746368656e; asc stress-kitchen;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+Record lock, heap no 5 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 8000000000000013; asc         ;;
+ 1: len 6; hex 00000000022a; asc      *;;
+ 2: len 7; hex a50000003a01e3; asc     :  ;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 11; hex 436f6e73756d7074696f6e; asc Consumption;;
+ 5: len 7; hex 7ffffffffeffff; asc        ;;
+ 6: len 30; hex 4f726465722035656636386363662d396334652d343366632d393833612d; asc Order 5ef68ccf-9c4e-43fc-983a-; (total 60 bytes);
+ 7: len 30; hex 35656636386363662d396334652d343366632d393833612d663133623435; asc 5ef68ccf-9c4e-43fc-983a-f13b45; (total 36 bytes);
+ 8: len 30; hex 6f726465723a35656636386363662d396334652d343366632d393833612d; asc order:5ef68ccf-9c4e-43fc-983a-; (total 89 bytes);
+ 9: len 14; hex 7374726573732d6b69746368656e; asc stress-kitchen;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+RECORD LOCKS space id 21 page no 3 n bits 72 index PRIMARY of table `roms_f4142234c90e4c15826d91c92141c041`.`StockMovements` trx id 563 lock mode S
+Record lock, heap no 1 PHYSICAL RECORD: n_fields 1; compact format; info bits 0
+ 0: len 8; hex 73757072656d756d; asc supremum;;
+
+Record lock, heap no 2 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 8000000000000001; asc         ;;
+ 1: len 6; hex 00000000016d; asc      m;;
+ 2: len 7; hex c40000002d0732; asc     - 2;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 7; hex 52656365697074; asc Receipt;;
+ 5: len 7; hex 800000000c0000; asc        ;;
+ 6: len 25; hex 5374726573732d74657374206f70656e696e672073746f636b; asc Stress-test opening stock;;
+ 7: SQL NULL;
+ 8: len 30; hex 7374726573732d6f70656e696e673a38643035643035302d663365342d34; asc stress-opening:8d05d050-f3e4-4; (total 51 bytes);
+ 9: len 5; hex 61646d696e; asc admin;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+Record lock, heap no 3 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 8000000000000002; asc         ;;
+ 1: len 6; hex 00000000020c; asc       ;;
+ 2: len 7; hex 960000003401e4; asc     4  ;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 11; hex 436f6e73756d7074696f6e; asc Consumption;;
+ 5: len 7; hex 7ffffffffeffff; asc        ;;
+ 6: len 30; hex 4f726465722039366339643565362d396539362d346635392d386237392d; asc Order 96c9d5e6-9e96-4f59-8b79-; (total 60 bytes);
+ 7: len 30; hex 39366339643565362d396539362d346635392d386237392d643934343166; asc 96c9d5e6-9e96-4f59-8b79-d9441f; (total 36 bytes);
+ 8: len 30; hex 6f726465723a39366339643565362d396539362d346635392d386237392d; asc order:96c9d5e6-9e96-4f59-8b79-; (total 89 bytes);
+ 9: len 14; hex 7374726573732d6b69746368656e; asc stress-kitchen;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+Record lock, heap no 4 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 800000000000000b; asc         ;;
+ 1: len 6; hex 00000000021a; asc       ;;
+ 2: len 7; hex 9b0000003501e4; asc     5  ;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 11; hex 436f6e73756d7074696f6e; asc Consumption;;
+ 5: len 7; hex 7ffffffffeffff; asc        ;;
+ 6: len 30; hex 4f726465722063663138636463632d323863342d343263392d626462392d; asc Order cf18cdcc-28c4-42c9-bdb9-; (total 60 bytes);
+ 7: len 30; hex 63663138636463632d323863342d343263392d626462392d656162633337; asc cf18cdcc-28c4-42c9-bdb9-eabc37; (total 36 bytes);
+ 8: len 30; hex 6f726465723a63663138636463632d323863342d343263392d626462392d; asc order:cf18cdcc-28c4-42c9-bdb9-; (total 89 bytes);
+ 9: len 14; hex 7374726573732d6b69746368656e; asc stress-kitchen;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+Record lock, heap no 5 PHYSICAL RECORD: n_fields 11; compact format; info bits 0
+ 0: len 8; hex 8000000000000013; asc         ;;
+ 1: len 6; hex 00000000022a; asc      *;;
+ 2: len 7; hex a50000003a01e3; asc     :  ;;
+ 3: len 30; hex 38643035643035302d663365342d346162652d386430332d353862383366; asc 8d05d050-f3e4-4abe-8d03-58b83f; (total 36 bytes);
+ 4: len 11; hex 436f6e73756d7074696f6e; asc Consumption;;
+ 5: len 7; hex 7ffffffffeffff; asc        ;;
+ 6: len 30; hex 4f726465722035656636386363662d396334652d343366632d393833612d; asc Order 5ef68ccf-9c4e-43fc-983a-; (total 60 bytes);
+ 7: len 30; hex 35656636386363662d396334652d343366632d393833612d663133623435; asc 5ef68ccf-9c4e-43fc-983a-f13b45; (total 36 bytes);
+ 8: len 30; hex 6f726465723a35656636386363662d396334652d343366632d393833612d; asc order:5ef68ccf-9c4e-43fc-983a-; (total 89 bytes);
+ 9: len 14; hex 7374726573732d6b69746368656e; asc stress-kitchen;;
+ 10: len 8; hex 99ba7ce000000000; asc   |     ;;
+
+*** WE ROLL BACK TRANSACTION (2)</StdOut>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Roms.IntegrationTests.ResilienceStressTests.Twenty_four_competing_tickets_cannot_spend_more_than_twelve_units" storage="d:\arcworks_restaurant suite\tests\roms.integrationtests\bin\debug\net10.0\roms.integrationtests.dll" id="f6375e59-d72c-f1ab-47cc-07cfef6a05eb">
+      <Execution id="8a42150f-b2ee-41c0-995d-ce1985099865" />
+      <TestMethod codeBase="D:\ARCWorks_Restaurant Suite\tests\Roms.IntegrationTests\bin\Debug\net10.0\Roms.IntegrationTests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Roms.IntegrationTests.ResilienceStressTests" name="Twenty_four_competing_tickets_cannot_spend_more_than_twelve_units" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="f6375e59-d72c-f1ab-47cc-07cfef6a05eb" executionId="8a42150f-b2ee-41c0-995d-ce1985099865" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.12]   Discovering: Roms.IntegrationTests&#xD;
+[xUnit.net 00:00:00.16]   Discovered:  Roms.IntegrationTests&#xD;
+[xUnit.net 00:00:00.20]   Starting:    Roms.IntegrationTests&#xD;
+[testcontainers.org 00:00:00.21] Connected to Docker:&#xD;
+  Host: npipe://./pipe/docker_engine&#xD;
+  Server Version: 29.6.2&#xD;
+  Kernel Version: 6.18.33.2-microsoft-standard-WSL2&#xD;
+  API Version: 1.55&#xD;
+  Operating System: Docker Desktop&#xD;
+  Total Memory: 31.30 GB&#xD;
+  Labels: &#xD;
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli&#xD;
+[testcontainers.org 00:00:01.41] Docker container a024f88d05d0 created&#xD;
+[testcontainers.org 00:00:01.48] Start Docker container a024f88d05d0&#xD;
+[testcontainers.org 00:00:03.08] Wait for Docker container a024f88d05d0 to complete readiness checks&#xD;
+[testcontainers.org 00:00:03.10] Docker container a024f88d05d0 ready&#xD;
+[testcontainers.org 00:00:04.54] Docker container faf4f6549b1f created&#xD;
+[testcontainers.org 00:00:04.55] Start Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:05.66] Add file to tar archive: Content length: 79 byte(s), Target file: "/etc/mysql/my.cnf", UID: 0, GID: 0, Mode: 0600&#xD;
+[testcontainers.org 00:00:05.67] Copy tar archive to container: Content length: 79 byte(s), Docker container: faf4f6549b1f&#xD;
+[testcontainers.org 00:00:05.77] Wait for Docker container faf4f6549b1f to complete readiness checks&#xD;
+[testcontainers.org 00:00:05.79] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:06.89] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:07.97] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:09.05] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:10.12] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:11.19] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:12.27] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:13.34] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:14.41] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:15.50] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:16.58] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:17.65] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:18.72] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:19.80] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:20.89] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:21.97] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:23.06] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:24.14] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:25.23] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:26.32] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:27.38] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:28.46] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:29.54] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:30.61] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:31.69] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:32.79] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:33.85] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:34.91] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:35.99] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:37.06] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:38.12] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:39.20] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:40.28] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:41.36] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:42.44] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:43.53] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:44.60] Execute "mariadb roms_fixture --wait --silent --execute=SELECT 1;" at Docker container faf4f6549b1f&#xD;
+[testcontainers.org 00:00:44.68] Docker container faf4f6549b1f ready&#xD;
+[testcontainers.org 00:01:11.38] Delete Docker container faf4f6549b1f&#xD;
+[xUnit.net 00:01:13.26]   Finished:    Roms.IntegrationTests&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

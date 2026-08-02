@@ -11,10 +11,13 @@ using Roms.Web.Components;
 using Roms.Web.Components.Account;
 using Roms.Web.Realtime;
 using Roms.Web;
+using Roms.Web.Ai;
+using Roms.Application.Commands;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole();
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
 var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"] ?? "DataProtection-Keys";
 if (!Path.IsPathRooted(dataProtectionKeysPath))
@@ -47,6 +50,17 @@ builder.Services.ConfigureApplicationCookie(options =>
 {
     options.ExpireTimeSpan = TimeSpan.FromHours(12);
     options.SlidingExpiration = false;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
+builder.Services.AddAntiforgery(options =>
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest);
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(180);
+    options.IncludeSubDomains = false;
+    options.Preload = false;
 });
 
 builder.Services.AddRomsInfrastructure(builder.Configuration);
@@ -71,10 +85,31 @@ builder.Services.AddSingleton<OrderEventBus>();
 builder.Services.AddScoped<IOrderEventPublisher, SignalROrderEventPublisher>();
 builder.Services.AddHealthChecks();
 builder.Services.Configure<SeedOptions>(builder.Configuration.GetSection("Seed"));
+builder.Services.AddHttpClient<ICommandGatewayClient, CommandGatewayClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Ai:CommandGatewayBaseUrl"]
+        ?? "http://command-gateway:8080/");
+    client.Timeout = TimeSpan.FromSeconds(50);
+});
 
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        var headers = context.Response.Headers;
+        headers["X-Content-Type-Options"] = "nosniff";
+        headers["X-Frame-Options"] = "SAMEORIGIN";
+        headers["Referrer-Policy"] = "no-referrer";
+        headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+        headers["Content-Security-Policy"] =
+            "frame-ancestors 'self'; base-uri 'self'; object-src 'none'";
+        return Task.CompletedTask;
+    });
+    await next();
+});
 
 if (app.Environment.IsDevelopment()) app.UseMigrationsEndPoint();
 else

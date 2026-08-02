@@ -20,11 +20,61 @@ public sealed record MenuItemChoice(Guid Id, string Name, string Category, decim
 public sealed record OrderItemView(Guid Id, string Name, decimal UnitPrice, int Quantity, string Notes, bool IsRemoved);
 public sealed record OrderView(Guid Id, Guid TableId, string TableNumber, string WaiterId, string WaiterName, OrderStatus Status,
     DateTime CreatedUtc, DateTime? SubmittedUtc, DateTime? CompletedUtc, DateTime? PaymentConfirmedUtc,
-    int Revision, long Version, decimal Total, IReadOnlyList<OrderItemView> Items);
+    int Revision, long Version, decimal Total, string? CancellationReason,
+    IReadOnlyList<OrderItemView> Items);
 public sealed record DashboardReport(decimal CompletedOrderValue, int OrderCount, decimal AverageOrderValue,
     IReadOnlyList<BestSeller> BestSellers);
 public sealed record BestSeller(string Name, int Quantity, decimal Value);
 public sealed record InventoryBalance(Guid Id, string Name, string Unit, decimal CurrentStock, decimal MinimumStock, bool IsLow);
+public sealed record StockMovementView(
+    long Id,
+    Guid InventoryItemId,
+    string InventoryItemName,
+    string Unit,
+    StockMovementType Type,
+    decimal QuantityDelta,
+    string Reason,
+    string ActorId,
+    DateTime OccurredUtc);
+public sealed record InventoryCountView(
+    Guid Id,
+    Guid InventoryItemId,
+    string InventoryItemName,
+    string Unit,
+    decimal LedgerQuantity,
+    decimal CountedQuantity,
+    decimal Variance,
+    string Reason,
+    string CountedBy,
+    DateTime CountedUtc);
+public sealed record InventoryLossRequestView(
+    Guid Id,
+    Guid InventoryItemId,
+    string InventoryItemName,
+    string Unit,
+    InventoryLossType Type,
+    decimal Quantity,
+    string Reason,
+    string ReportedBy,
+    DateTime ReportedUtc,
+    InventoryLossStatus Status,
+    string? ReviewedBy,
+    DateTime? ReviewedUtc,
+    string? ReviewReason);
+public enum InventoryReadinessStatus { Pass, Blocked, Manual }
+public sealed record InventoryReadinessCheck(
+    string Code,
+    string Name,
+    InventoryReadinessStatus Status,
+    string Evidence);
+public sealed record InventoryReadinessReport(
+    DateTime EvaluatedUtc,
+    int ActiveInventoryItemCount,
+    IReadOnlyList<InventoryReadinessCheck> Checks)
+{
+    public bool TechnicalChecksPassed => Checks.All(x => x.Status != InventoryReadinessStatus.Blocked);
+    public int BlockingIssueCount => Checks.Count(x => x.Status == InventoryReadinessStatus.Blocked);
+}
 public sealed record StaffMemberView(string Id, string Username, string DisplayName);
 public sealed record StaffScheduleView(Guid Id, string UserId, string Username, string DisplayName,
     DateTime ScheduledStartUtc, DateTime ScheduledEndUtc, string Notes);
@@ -46,10 +96,13 @@ public interface IOrderService
     Task<Guid> GetOrCreateDraftAsync(Guid tableId, string waiterId, CancellationToken cancellationToken = default);
     Task AddItemAsync(Guid orderId, Guid menuItemId, int quantity, string? notes, string actorId, CancellationToken cancellationToken = default);
     Task RemoveDraftItemAsync(Guid orderId, Guid itemId, string actorId, CancellationToken cancellationToken = default);
-    Task AmendAddItemAsync(Guid orderId, Guid menuItemId, int quantity, string? notes, string reason, string actorId, CancellationToken cancellationToken = default);
-    Task AmendRemoveItemAsync(Guid orderId, Guid itemId, string reason, string actorId, CancellationToken cancellationToken = default);
+    Task AmendAddItemAsync(Guid orderId, Guid menuItemId, int quantity, string? notes, string reason, string actorId,
+        CancellationToken cancellationToken = default);
+    Task AmendRemoveItemAsync(Guid orderId, Guid itemId, string reason, string actorId,
+        CancellationToken cancellationToken = default);
     Task<Guid> SubmitAsync(Guid orderId, string idempotencyKey, string actorId, CancellationToken cancellationToken = default);
-    Task TransitionAsync(Guid orderId, OrderStatus next, string actorId, string? reason = null, CancellationToken cancellationToken = default);
+    Task TransitionAsync(Guid orderId, OrderStatus next, string actorId, string? reason = null,
+        CancellationToken cancellationToken = default);
     Task ConfirmPaymentAsync(Guid orderId, string adminId, CancellationToken cancellationToken = default);
 }
 
@@ -72,8 +125,21 @@ public interface IInventoryService
     Task<IReadOnlyList<InventoryBalance>> GetBalancesAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<InventoryItem>> GetItemsAsync(CancellationToken cancellationToken = default);
     Task SaveItemAsync(InventoryItem item, string actorId, CancellationToken cancellationToken = default);
-    Task SetRecipeIngredientAsync(Guid menuItemId, Guid inventoryItemId, decimal quantity, string actorId, CancellationToken cancellationToken = default);
-    Task AdjustAsync(Guid itemId, decimal delta, string reason, string actorId, string idempotencyKey, CancellationToken cancellationToken = default);
+    Task ReceiveAsync(Guid itemId, decimal quantity, string deliveryReference, string? note, string actorId,
+        string idempotencyKey, CancellationToken cancellationToken = default);
+    Task<Guid> ReconcileCountAsync(Guid itemId, decimal countedQuantity, string reason, string actorId,
+        string idempotencyKey, CancellationToken cancellationToken = default);
+    Task AdjustAsync(Guid itemId, decimal delta, string reason, string actorId, string idempotencyKey,
+        CancellationToken cancellationToken = default, bool allowNegativeStock = false, string? inventoryOverrideReason = null);
+    Task<IReadOnlyList<StockMovementView>> GetRecentMovementsAsync(int take = 50, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<InventoryCountView>> GetRecentCountsAsync(int take = 25, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<InventoryLossRequestView>> GetLossRequestsAsync(CancellationToken cancellationToken = default);
+    Task<Guid> ReportLossAsync(Guid itemId, InventoryLossType type, decimal quantity, string reason, string actorId,
+        string idempotencyKey, CancellationToken cancellationToken = default);
+    Task ReviewLossAsync(Guid requestId, bool approve, string? reviewReason, string adminId,
+        CancellationToken cancellationToken = default);
+    Task<InventoryReadinessReport> EvaluateReadinessAsync(string adminId,
+        CancellationToken cancellationToken = default);
 }
 
 public interface IAttendanceService

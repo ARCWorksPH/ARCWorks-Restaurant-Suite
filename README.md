@@ -7,7 +7,7 @@ ROMS is a single-location, touch-first restaurant workflow for waiters, kitchen 
 - Role-protected Admin, Waiter, and Kitchen experiences.
 - Table status, draft ordering, price/name snapshots, idempotent submission, KDS status flow, waiter completion, audit history, and real-time updates.
 - Menu/table/user administration and completed order-value reporting.
-- Feature-gated inventory ledger, recipes, low-stock balances, and transactional deduction on Preparing.
+- Independent-item inventory ledger, low-stock balances, structured receiving, witnessed physical-count reconciliation, protected adjustments, and waste/spoilage approvals.
 - MariaDB migration, Docker Compose deployment, HTTPS reverse proxy, health monitoring, encrypted-backup script, and manual failover runbook.
 
 ## Run locally with Docker
@@ -22,7 +22,7 @@ ROMS is a single-location, touch-first restaurant workflow for waiters, kitchen 
    `ADMIN_USERNAME` and `ADMIN_PASSWORD`. The optional direct-Caddy edge can be
    started with the `direct-https` Compose profile.
 
-The first start applies EF migrations and creates the three roles plus the initial administrator. Inventory defaults to disabled.
+The first start applies EF migrations and creates the three roles plus the initial administrator. Inventory is a manual, independent-item ledger; orders do not deduct ingredients.
 
 ## Lightweight attendance
 
@@ -41,18 +41,21 @@ dotnet run --project src/Roms.Web
 See `docs/OPERATIONS.md`, `docs/FAILOVER_RUNBOOK.md`, and `docs/WORK_LOG.md`
 before a production rollout or inventory enablement.
 
-## Isolated natural-language command lab
+## Feature-gated read-only assistant lab
 
-The optional `ai-lab` profile runs a private Ollama service and a non-executing
-command gateway. Neither service is connected to the database network or
-published to the host.
+The optional `ai-lab` profile runs a private Ollama service and command
+interpreter. The model and gateway have no database network or credentials.
+The authenticated ROMS app derives a role-specific function list, submits only
+role-permitted bounded catalogs for interpretation, then executes only an
+approved permission-checked read and formats the database facts itself. AI
+writes and arbitrary SQL do not exist. Per-user and global inference limits
+protect the application from accidental or abusive model saturation.
 
 ```powershell
 docker compose --profile ai-lab up -d ollama command-gateway
 scripts\Evaluate-CommandGateway.ps1
 ```
 
-The gateway currently proposes and validates only `InventoryLookup`,
-`InventoryReceive`, and `Unknown`. It cannot execute commands or change
-inventory. See `docs/AI_COMMAND_PROTOCOL.md` and
-`docs/AI_SECURITY_BOUNDARY.md` before extending or connecting the lab.
+`AI_ENABLED` defaults to `false`. See `docs/AI_FUNCTIONS.md`,
+`docs/AI_COMMAND_PROTOCOL.md`, and `docs/AI_SECURITY_BOUNDARY.md` before
+enabling or extending the lab.

@@ -1,0 +1,54 @@
+------------------------------------------------------------------------------
+[1] Q1 | Tagalog | category A
+Question: Magkano ang isang order ng Bicol Express?
+Review aid: ₱195
+Answer:
+Ang isang serving ng Bicol Express ay may presyo na PHP185. Ang referensya data ay hindi magbibigay sa bilang exacto ng servings, kaya't hindi ko maunawaan kung gusto mo bang malaman ang halaga ng isang full order o set of servings. Ipakit-kita ka: ano po ang iyong interes? (1) Halaga ng isang serving, (2) Halaga ng isang full order na may 4 servings, at kilala na ang bawat serving ay may PHP185.
+Human review: unreviewed
+Error: None
+Metrics: 21.812s | 103 tokens | 8.16 t/s
+------------------------------------------------------------------------------
+[2] Q2 | Tagalog | category A
+Question: Ano ang presyo ng Pork Sisig?
+Review aid: ₱210
+Answer:
+The price of Pork Sisig is 210 Philippine Pesos.
+Human review: unreviewed
+Error: None
+Metrics: 2.086s | 14 tokens | 8.77 t/s
+------------------------------------------------------------------------------
+[3] Q3 | Tagalog | category A
+Question: Ilang kilo ng manok ang kasalukuyang nasa inventory?
+Review aid: 12 kg
+Answer:
+There are currently 12 kg of chicken in the inventory.
+Human review: unreviewed
+Error: None
+Metrics: 2.179s | 13 tokens | 8.92 t/s
+------------------------------------------------------------------------------
+[4] Q4 | Tagalog | category A
+Question: Ilang serving ng Beef Pares ang maaaring gawin gamit ang 8 kilo ng beef?
+Review aid: 32 servings (8 / 0.25)
+Answer:
+One can prepare approximately 32 servings of Beef Pares using the available 8 kilograms of beef. Each serving requires 0.250 kg, so with an inventory sufficient for about 32 servings (8kg / 0.25kg per serving), you would have enough to fulfill this order without needing additional stock.
+Human review: unreviewed
+Error: None
+Metrics: 8.697s | 65 tokens | 8.13 t/s
+------------------------------------------------------------------------------
+[5] Q5 | Tagalog | category A
+Question: Gaano karaming baboy ang kailangan para sa limang order ng Pork Sisig?
+Review aid: 1 kg (5 × 0.2)
+Answer:
+To calculate the total amount of pork needed for five orders, we first need to determine how much pork one serving uses. According to your reference data:
+
+Pork Sisig recipe: Uses 0.200 kg Pork per serving.
+
+Now let's multiply this by six (for each person in a group):
+
+6 servings * 0.200 kg/pork = 1.2 kg of Pork needed for five orders.
+
+
+Please note that we are assuming one order is meant to serve the entire party, hence 'six' instead of just 'five'. If you mean only pork per serving without considering six people at once or if there was a misunderstanding in your request about how many servings each person gets (i.e., not necessarily 6), please clarify.
+Human review: unreviewed
+Error: None
+Metrics: 19.505s | 151 tokens | 8.04 t/s

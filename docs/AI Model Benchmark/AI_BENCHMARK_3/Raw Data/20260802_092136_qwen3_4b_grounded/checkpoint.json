@@ -1,0 +1,291 @@
+{
+  "schema_version": 3,
+  "script_version": "3.1.0",
+  "run_id": "20260802_092136_qwen3_4b_grounded",
+  "state": "complete",
+  "updated_at_utc": "2026-08-02T01:24:47.945646+00:00",
+  "config": {
+    "model": "qwen3:4b",
+    "mode": "grounded",
+    "question_ids": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "question_count": 5,
+    "shuffle": false,
+    "seed": 20260802,
+    "num_predict": 256,
+    "num_ctx": 4096,
+    "temperature": 0,
+    "request_timeout_seconds": 180.0,
+    "keep_alive": "10m",
+    "review_mode": "off",
+    "ollama_container": "arcworks-resto-ollama-1"
+  },
+  "provenance": {
+    "script_sha256": "99a336976e1949dbcddd2226ece393e78b7cbc03746ba4140fdc14d1b88567d3",
+    "question_source": "Arkworks_AI_Benchmark.py",
+    "question_source_sha256": "47b9a1d59338acf6e56ab5606ef8e1d60f4cf6068ec272578cd24c16293bcce2",
+    "model_record": {
+      "model": "qwen3:4b",
+      "modified_at": "2026-08-02T01:01:01.262571Z",
+      "digest": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+      "size": 2497293931,
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "4.0B",
+        "quantization_level": "Q4_K_M"
+      }
+    }
+  },
+  "environment": {
+    "captured_at_utc": "2026-08-02T01:21:36.562339+00:00",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python_version": "3.14.6",
+    "logical_cpus": 16,
+    "physical_cpus": 8,
+    "host_ram_gib": 63.92,
+    "ollama_host_scope": "loopback",
+    "ollama_host_sha256": "b26993598dffd1f14aed97def57ef67f753518a9b773d8a12033c82b4fa545ca",
+    "ollama_version": "0.32.5",
+    "ollama_client_module": "__init__.py",
+    "installed_model_count": 9
+  },
+  "human_review_summary": {
+    "counts": {
+      "acceptable": 0,
+      "wrong": 0,
+      "safe_clarification": 0,
+      "unsafe": 0,
+      "unreviewed": 5
+    },
+    "reviewed": 0,
+    "accepted_or_safely_clarified": 0,
+    "human_acceptance_percent": null,
+    "unsafe_count": 0
+  },
+  "resources": {
+    "samples": 177,
+    "cpu_percent": {
+      "average": 77.35,
+      "maximum": 90.1
+    },
+    "ram_percent": {
+      "average": 50.56,
+      "maximum": 50.7
+    },
+    "ram_used_gib": {
+      "average": 32.31,
+      "maximum": 32.39
+    },
+    "ram_available_gib": {
+      "average": 31.61,
+      "maximum": 31.7
+    }
+  },
+  "results": [
+    {
+      "sequence": 1,
+      "question": {
+        "id": 1,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Magkano ang isang order ng Bicol Express?",
+        "expected": "₱195",
+        "eval_type": "exact"
+      },
+      "review_aid": "₱195",
+      "answer": "Okay, the user is asking \"Magkano ang isang order ng Bicol Express?\" which translates to \"How much is one order of Bicol Express?\" in Tagalog.\n\nFirst, I need to check the reference data for menu prices. The reference data says: \"Bicol Express 195\". So the price is 195 Philippine pesos.\n\nI should confirm that the user is asking about the price of a single order. The reference data lists Bicol Express as 195, so it's a standard price per order. There's no mention of any discounts or special conditions for this item in the reference data.\n\nThe user didn't specify any quantity, but since they asked for \"isang order\" (one order), and the menu price is per order, the answer should be 195 pesos.\n\nI don't see any ambiguity here. The reference data clearly states Bicol Express is 195. So the response should be straightforward.\n\nWait, let me double-check the reference data. The menu prices section says: \"Bicol Express 195\". Yes, that's correct. So the answer is 195 pesos.\n\nNo need for clarification here because the user is asking about the standard price of",
+      "metrics": {
+        "wall_time_seconds": 43.633,
+        "total_duration_seconds": 43.63,
+        "load_duration_seconds": 0.176,
+        "output_tokens": 256,
+        "generation_tokens_per_second": 7.72,
+        "prompt_tokens": 532,
+        "prompt_tokens_per_second": 51.67,
+        "done_reason": "length"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3184001022,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T01:32:27.318087Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "9.599GiB / 32GiB",
+        "memory_percent": "30.00%"
+      },
+      "completed_at_utc": "2026-08-02T01:22:28.381982+00:00"
+    },
+    {
+      "sequence": 2,
+      "question": {
+        "id": 2,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ano ang presyo ng Pork Sisig?",
+        "expected": "₱210",
+        "eval_type": "exact"
+      },
+      "review_aid": "₱210",
+      "answer": "Okay, the user is asking for the price of Pork Sisig in Filipino. Let me check the reference data.\n\nLooking at the menu prices section: Pork Sisig is listed as 210 Philippine pesos. The reference data clearly states \"Pork Sisig 210\". So the answer should be 210 pesos.\n\nI need to respond in the same language as the user, which is Tagalog (Filipino). The user wrote \"Ano ang presyo ng Pork Sisig?\" which translates to \"What is the price of Pork Sisig?\".\n\nSo the response should be \"210 pesos\" in Tagalog context. Wait, but the user is asking in Tagalog, so the answer should be in Tagalog too? Wait, the instructions say \"Respond in the same language as the user when practical.\" The user's message is in Tagalog, so I should respond in Tagalog.\n\nWait, the reference data uses English names for the dishes but the prices are in pesos. Let me think. The user is asking in Tagalog, so the response should be in Tagalog. But the price is a number. Hmm.\n\nWait, the user's question is in Tagalog: \"Ano",
+      "metrics": {
+        "wall_time_seconds": 33.393,
+        "total_duration_seconds": 33.391,
+        "load_duration_seconds": 0.2,
+        "output_tokens": 256,
+        "generation_tokens_per_second": 7.82,
+        "prompt_tokens": 531,
+        "prompt_tokens_per_second": 1201.37,
+        "done_reason": "length"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3184001022,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T01:33:01.917770Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "9.599GiB / 32GiB",
+        "memory_percent": "30.00%"
+      },
+      "completed_at_utc": "2026-08-02T01:23:02.977491+00:00"
+    },
+    {
+      "sequence": 3,
+      "question": {
+        "id": 3,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ilang kilo ng manok ang kasalukuyang nasa inventory?",
+        "expected": "12 kg",
+        "eval_type": "exact"
+      },
+      "review_aid": "12 kg",
+      "answer": "Okay, let's tackle this user query. The user is asking in Tagalog: \"Ilang kilo ng manok ang kasalukuyang nasa inventory?\" which translates to \"How many kilograms of chicken are currently in the inventory?\"\n\nFirst, I need to check the reference data provided. The inventory section states: \"Chicken 12 kg\". So the current inventory for chicken is 12 kilograms. \n\nI should make sure there's no ambiguity here. The user is specifically asking about chicken (manok) in kilograms. The reference data clearly lists Chicken as 12 kg. There's no mention of any other chicken items or variations. \n\nThe rules say to use only the reference data and not invent anything. Since the reference data directly states \"Chicken 12 kg\", there's no need to ask for clarification. The answer should be straightforward.\n\nI need to respond in the same language as the user, which is Tagalog. The answer in Tagalog would be \"12 kilo\" or \"12 kilogram\". But the user used \"kilo\" so maybe \"12 kilo\". Wait, in Tagalog, they might use \"kilogram\" or \"kilo\" depending on context. The reference data uses",
+      "metrics": {
+        "wall_time_seconds": 33.276,
+        "total_duration_seconds": 33.275,
+        "load_duration_seconds": 0.145,
+        "output_tokens": 256,
+        "generation_tokens_per_second": 7.89,
+        "prompt_tokens": 537,
+        "prompt_tokens_per_second": 799.6,
+        "done_reason": "length"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3184001022,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T01:33:36.390049Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "9.6GiB / 32GiB",
+        "memory_percent": "30.00%"
+      },
+      "completed_at_utc": "2026-08-02T01:23:37.465059+00:00"
+    },
+    {
+      "sequence": 4,
+      "question": {
+        "id": 4,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ilang serving ng Beef Pares ang maaaring gawin gamit ang 8 kilo ng beef?",
+        "expected": "32 servings (8 / 0.25)",
+        "eval_type": "exact"
+      },
+      "review_aid": "32 servings (8 / 0.25)",
+      "answer": "Okay, let's tackle this problem. The user is asking, \"Ilang serving ng Beef Pares ang maaaring gawin gamit ang 8 kilo ng beef?\" which translates to \"How many servings of Beef Pares can be made with 8 kg of beef?\"\n\nFirst, I need to check the reference data. The menu prices are given, but the key info here is the per-serving recipe for Beef Pares. The reference says: \"Beef Pares uses 0.250 kg Beef\". So each serving requires 0.250 kg of beef.\n\nThe user has 8 kg of beef. To find out how many servings can be made, I divide the total beef available by the beef per serving. So that's 8 kg divided by 0.250 kg per serving.\n\nLet me calculate that: 8 / 0.250 = 32. So 32 servings.\n\nWait, but I should make sure there's no other constraints. The inventory shows Beef 8 kg, which matches the user's input. The per-serving recipe is clearly stated as 0.250 kg per serving. So the calculation seems straightforward.\n\nNo other factors mentioned here like discounts",
+      "metrics": {
+        "wall_time_seconds": 33.33,
+        "total_duration_seconds": 33.329,
+        "load_duration_seconds": 0.154,
+        "output_tokens": 256,
+        "generation_tokens_per_second": 7.91,
+        "prompt_tokens": 544,
+        "prompt_tokens_per_second": 689.96,
+        "done_reason": "length"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3184001022,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T01:34:10.951575Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "9.6GiB / 32GiB",
+        "memory_percent": "30.00%"
+      },
+      "completed_at_utc": "2026-08-02T01:24:12.013359+00:00"
+    },
+    {
+      "sequence": 5,
+      "question": {
+        "id": 5,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Gaano karaming baboy ang kailangan para sa limang order ng Pork Sisig?",
+        "expected": "1 kg (5 × 0.2)",
+        "eval_type": "exact"
+      },
+      "review_aid": "1 kg (5 × 0.2)",
+      "answer": "Okay, let's tackle this user query. The user is asking in Tagalog: \"Gaano karaming baboy ang kailangan para sa limang order ng Pork Sisig?\" which translates to \"How many pigs are needed for six orders of Pork Sisig?\"\n\nFirst, I need to check the reference data. The menu prices list Pork Sisig at 210 pesos. The per-serving recipes say Pork Sisig uses 0.200 kg Pork per serving. \n\nWait, the user is asking about \"baboy\" which means pig, but in the context of the restaurant, they probably mean pork. The reference data uses \"Pork\" as the ingredient, so I should clarify if they mean pork (the meat) or the whole pig. But in the menu, it's \"Pork Sisig\", so the ingredient is pork. \n\nThe user says \"limang order\" which is six orders. Wait, \"limang\" is five in Tagalog. Wait, no: \"limang\" means five. Wait, in Tagalog, numbers: \"isang\" (one), \"dalawa\" (two), \"tatló\" (three), \"apat\" (four), \"",
+      "metrics": {
+        "wall_time_seconds": 33.63,
+        "total_duration_seconds": 33.629,
+        "load_duration_seconds": 0.161,
+        "output_tokens": 256,
+        "generation_tokens_per_second": 7.83,
+        "prompt_tokens": 542,
+        "prompt_tokens_per_second": 699.64,
+        "done_reason": "length"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3184001022,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T01:34:45.771443Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "9.602GiB / 32GiB",
+        "memory_percent": "30.01%"
+      },
+      "completed_at_utc": "2026-08-02T01:24:46.849407+00:00"
+    }
+  ]
+}

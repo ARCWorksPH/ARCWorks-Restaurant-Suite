@@ -1,0 +1,103 @@
+@page "/assistant"
+@attribute [Authorize]
+@using Roms.Application.Ai
+@inject IAiAssistantService AssistantService
+@inject AuthenticationStateProvider Authentication
+@inject IConfiguration Configuration
+
+<PageTitle>ROMS Assistant</PageTitle>
+
+<h1>ROMS Assistant</h1>
+<p class="lead">Ask a read-only question about approved restaurant information.</p>
+
+@if (!IsEnabled)
+{
+    <div class="alert alert-warning" role="status">
+        The local AI assistant is disabled. ROMS ordering and inventory continue to operate normally.
+    </div>
+}
+else
+{
+    <section class="panel" aria-labelledby="assistant-question-heading">
+        <h2 id="assistant-question-heading">Question</h2>
+        <label class="form-label" for="assistant-question">Ask about menu prices, inventory balances, order status, or approved summaries.</label>
+        <textarea id="assistant-question"
+                  class="form-control"
+                  rows="3"
+                  maxlength="500"
+                  disabled="@busy"
+                  @bind="question"></textarea>
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+            <button class="btn btn-primary touch-button" disabled="@(busy || string.IsNullOrWhiteSpace(question))" @onclick="Ask">
+                @(busy ? "Checking..." : "Ask ROMS")
+            </button>
+            <small>@question.Length / 500 characters</small>
+        </div>
+    </section>
+
+    @if (answer is not null)
+    {
+        <section class="panel mt-4" aria-live="polite" aria-labelledby="assistant-answer-heading">
+            <h2 id="assistant-answer-heading">Verified response</h2>
+            <div class="alert @AnswerClass" role="status">@answer.Message</div>
+            @if (answer.Function is not null)
+            {
+                <small>Approved function: @answer.Function</small>
+            }
+        </section>
+    }
+
+    <section class="panel mt-4" aria-labelledby="assistant-boundaries-heading">
+        <h2 id="assistant-boundaries-heading">Current boundaries</h2>
+        <ul class="mb-0">
+            <li>Responses come from deterministic ROMS queries.</li>
+            <li>The assistant cannot change orders, payments, menu data, or inventory.</li>
+            <li>Recipes, yields, forecasts, staff evaluation, and unrestricted SQL are unsupported.</li>
+            <li>Permissions are inherited from your signed-in ROMS account.</li>
+        </ul>
+    </section>
+}
+
+@code {
+    private string question = "";
+    private string actor = "";
+    private bool busy;
+    private AiAssistantResponse? answer;
+
+    private bool IsEnabled => Configuration.GetValue<bool>("Ai:Enabled");
+
+    private string AnswerClass => answer?.Status switch
+    {
+        AiAssistantStatus.Success => "alert-success",
+        AiAssistantStatus.ClarificationRequired => "alert-warning",
+        AiAssistantStatus.RateLimited => "alert-warning",
+        AiAssistantStatus.Unsupported => "alert-secondary",
+        _ => "alert-danger"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Authentication.GetAuthenticationStateAsync();
+        actor = state.User.Identity?.Name ?? "";
+    }
+
+    private async Task Ask()
+    {
+        if (!IsEnabled || busy || string.IsNullOrWhiteSpace(question)) return;
+        busy = true;
+        answer = null;
+        try
+        {
+            answer = await AssistantService.AskAsync(question, actor);
+        }
+        catch (OperationCanceledException)
+        {
+            answer = new(AiAssistantStatus.InterpreterUnavailable,
+                "The request was cancelled. No database action was taken.");
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

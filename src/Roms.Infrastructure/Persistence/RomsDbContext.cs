@@ -17,8 +17,9 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
-    public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<InventoryCountRecord> InventoryCountRecords => Set<InventoryCountRecord>();
+    public DbSet<InventoryLossRequest> InventoryLossRequests => Set<InventoryLossRequest>();
     public DbSet<StaffSchedule> StaffSchedules => Set<StaffSchedule>();
     public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
 
@@ -81,11 +82,6 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
             e.Ignore(x => x.CurrentStock);
             e.Property(x => x.MinimumStock).HasPrecision(14, 3);
         });
-        builder.Entity<RecipeIngredient>(e =>
-        {
-            e.Property(x => x.Quantity).HasPrecision(14, 3);
-            e.HasIndex(x => new { x.MenuItemId, x.InventoryItemId }).IsUnique();
-        });
         builder.Entity<StockMovement>(e =>
         {
             e.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
@@ -93,6 +89,32 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
             e.Property(x => x.IdempotencyKey).HasMaxLength(150);
             e.HasIndex(x => x.IdempotencyKey).IsUnique();
             e.HasIndex(x => new { x.InventoryItemId, x.OccurredUtc });
+        });
+        builder.Entity<InventoryCountRecord>(e =>
+        {
+            e.Property(x => x.LedgerQuantity).HasPrecision(14, 3);
+            e.Property(x => x.CountedQuantity).HasPrecision(14, 3);
+            e.Property(x => x.Variance).HasPrecision(14, 3);
+            e.Property(x => x.Reason).HasMaxLength(500);
+            e.Property(x => x.CountedBy).HasMaxLength(256);
+            e.Property(x => x.IdempotencyKey).HasMaxLength(150);
+            e.HasIndex(x => x.IdempotencyKey).IsUnique();
+            e.HasIndex(x => new { x.InventoryItemId, x.CountedUtc });
+            e.HasOne(x => x.InventoryItem).WithMany().HasForeignKey(x => x.InventoryItemId).OnDelete(DeleteBehavior.Restrict);
+        });
+        builder.Entity<InventoryLossRequest>(e =>
+        {
+            e.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Quantity).HasPrecision(14, 3);
+            e.Property(x => x.Reason).HasMaxLength(500);
+            e.Property(x => x.ReportedBy).HasMaxLength(256);
+            e.Property(x => x.ReviewedBy).HasMaxLength(256);
+            e.Property(x => x.ReviewReason).HasMaxLength(500);
+            e.Property(x => x.IdempotencyKey).HasMaxLength(150);
+            e.HasIndex(x => x.IdempotencyKey).IsUnique();
+            e.HasIndex(x => new { x.Status, x.ReportedUtc });
+            e.HasOne(x => x.InventoryItem).WithMany().HasForeignKey(x => x.InventoryItemId).OnDelete(DeleteBehavior.Restrict);
         });
         builder.Entity<StaffSchedule>(e =>
         {

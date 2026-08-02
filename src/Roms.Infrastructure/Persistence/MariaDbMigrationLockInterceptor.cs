@@ -11,8 +11,9 @@ namespace Roms.Infrastructure.Persistence;
 /// </summary>
 public sealed class MariaDbMigrationLockInterceptor : DbCommandInterceptor
 {
-    private const string EfLock = "GET_LOCK('__EFMigrationsLock',-1)";
-    private const string MariaDbCompatibleLock = "GET_LOCK('__EFMigrationsLock',60)";
+    private const string EfLockCommand = "SELECT GET_LOCK('__EFMigrationsLock',-1)";
+    private const string MariaDbCompatibleLockCommand =
+        "SELECT GET_LOCK('__EFMigrationsLock',@romsMigrationLockTimeout)";
 
     public override InterceptionResult<object> ScalarExecuting(
         DbCommand command,
@@ -52,8 +53,15 @@ public sealed class MariaDbMigrationLockInterceptor : DbCommandInterceptor
 
     private static void RewriteMigrationLock(DbCommand command)
     {
-        if (command.CommandText.Contains(EfLock, StringComparison.Ordinal))
-            command.CommandText = command.CommandText.Replace(EfLock, MariaDbCompatibleLock, StringComparison.Ordinal);
+        var normalized = command.CommandText.Trim().TrimEnd(';');
+        if (!string.Equals(normalized, EfLockCommand, StringComparison.Ordinal))
+            return;
+
+        command.CommandText = MariaDbCompatibleLockCommand;
+        var timeout = command.CreateParameter();
+        timeout.ParameterName = "@romsMigrationLockTimeout";
+        timeout.Value = 60;
+        command.Parameters.Add(timeout);
     }
 
     private static object? NormalizeMigrationLockResult(DbCommand command, object? result)

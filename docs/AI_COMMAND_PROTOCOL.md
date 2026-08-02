@@ -1,94 +1,98 @@
 # ROMS Natural-Language Command Protocol
 
-Status: experimental, non-production
-Schema version: 1
+Status: implemented laboratory protocol; feature disabled by default
+
+Schema version: 4
 
 ## Governing rule
 
-The database owns the truth. The model only proposes a structured command.
-Model output is untrusted and must never be executed directly.
+The database owns the truth. The model only proposes one structured read-only
+function. Model output is untrusted and is never executed directly.
 
-## Version 1 commands
+The authoritative function behavior and role matrix are in
+`docs/AI_FUNCTIONS.md`.
 
-### `InventoryLookup`
+## Approved proposals
 
-- Purpose: request the current balance of one exact inventory item.
-- Required model fields: catalog item name or alias.
-- Forbidden model fields: quantity and unit.
-- Execution class: read-only.
-- Production confirmation: not required.
+Schema 4 recognizes these proposal names:
 
-### `InventoryReceive`
+- `GetMenuItem`
+- `ListMenu`
+- `GetInventoryBalance`
+- `ListInventoryBalances`
+- `ListLowStockItems`
+- `GetOrderStatus`
+- `ListOrdersByStatus`
+- `GetDailyOrderSummary`
+- `GetOrderStatusSummary`
+- `GetLowStockSummary`
+- `GetMenuAvailabilitySummary`
+- `GetOperationalSummary`
+- `Unknown` for safe refusal
 
-- Purpose: propose receiving an explicit positive quantity of one exact item.
-- Required model fields: catalog item name or alias, quantity, and compatible unit.
-- Execution class: write.
-- Production confirmation: always required.
-- Production requirements not implemented in the gateway: authenticated actor,
-  authorized role, server-generated confirmation token, reason/source,
-  idempotency key, transaction, and audit entry.
+The only proposal fields are item, category, availability, order ID, table
+number, exact ROMS order status, and one business date. Quantity, unit, SQL,
+role, actor, price, totals, arbitrary filters, write values, and database facts
+are not accepted model fields.
 
-### `Unknown`
+## Request limits and grounding
 
-- Purpose: reject unsupported requests.
-- It never produces an executable proposal.
+- User text is limited to 500 characters.
+- ROMS derives an explicit permitted-function list from the active user's
+  current roles before contacting the gateway.
+- The gateway rejects a proposal absent from that permitted-function list, and
+  ROMS repeats the check before dispatch.
+- Catalog context is limited to 500 entries, is supplied by ROMS, and is
+  filtered by role. Waiters receive no inventory catalog.
+- Proposed item names, category names, table numbers, and statuses must match a
+  bounded current catalog exactly.
+- The original user text must contain the proposed identifying value; a model
+  cannot introduce a hidden item, table, order ID, status, or date.
+- Relative `today` requests leave the date empty so ROMS determines the Manila
+  business date. Unsupported or ambiguous relative dates require clarification.
+- Every proposal is revalidated before conversion to an `AiFunctionRequest`.
 
 ## Gateway outcomes
 
-- `Recognized`: model output passed deterministic catalog and field validation.
-  This is still only a proposal.
-- `ClarificationRequired`: the model selected an ambiguous or invalid item,
-  quantity, or unit.
-- `Unsupported`: the model explicitly rejected the request or proposed a command
-  outside this schema version.
-- `InterpreterError`: timeout, malformed response, unavailable model, or other
-  safe failure.
+- `Recognized`: the proposal passed deterministic field and catalog validation.
+  ROMS must still apply current authentication, authorization, and data rules.
+- `ClarificationRequired`: intent or an identifying argument is missing,
+  ambiguous, conflicting, or unsupported.
+- `Unsupported`: the request or proposed command is outside schema 4 or the
+  caller's permitted-function list.
+- `InterpreterError`: timeout, unavailable model, malformed response, or other
+  safe interpreter failure.
+
+Only `Recognized` can reach the ROMS function dispatcher. All other outcomes
+return without a database function query.
 
 ## Trust boundary
 
 The command gateway:
 
 - has no database provider, connection string, credentials, or backend network;
-- cannot execute inventory operations;
-- accepts a bounded catalog supplied for the request;
-- requires exact deterministic catalog and unit matching;
-- requires the original text to explicitly name the proposed catalog item;
-- permits a receipt proposal only when the original text contains an explicit
-  receipt verb, exactly one numeric quantity equal to the proposal, and an
-  explicit compatible unit;
-- applies quantity safety limits;
-- returns application DTOs rather than model-authored user messages;
-- logs request identifiers and outcomes, not database data or credentials.
+- accepts only a bounded catalog supplied for the current request;
+- returns a validated application DTO, never a model-authored factual answer;
+- rejects every write, recipe, arbitrary SQL, payroll, discount, refund,
+  approval, receiving, adjustment, and deletion request;
+- logs request identifiers and outcomes, not credentials or raw database data.
 
-ROMS must revalidate every future recognized proposal using current database
-state, authorization, and command-specific policies.
+ROMS performs the database read and formats the deterministic factual response
+after the proposal passes the gateway and the signed-in user passes the
+function's authorization policy.
 
 ## Evaluation gates
 
-A candidate model must be measured on a locked corpus. Two metrics are separate:
+Passing JSON is not acceptance. The locked corpus and runtime acceptance must
+cover:
 
-1. Exact interpretation: correct status, command, item, quantity, and unit.
-2. Safety: no unsupported, ambiguous, or incorrect input produces a recognized
-   executable proposal.
+1. exact function and argument interpretation;
+2. zero unauthorized or unsupported execution;
+3. multilingual ambiguity and nonsense-input clarification;
+4. prompt injection and invented-catalog rejection;
+5. model timeout, malformed output, and offline fallback;
+6. stale-catalog revalidation by current ROMS state;
+7. concurrent staff requests without cross-user data leakage.
 
-Valid JSON alone is not a passing result. The initial 20-case corpus is a
-baseline and must grow to include real item names, spelling variations, Taglish,
-voice transcripts, prompt injection, boundary quantities, and ambiguous units.
-
-## TinyLlama baseline
-
-The first valid container evaluation produced:
-
-- exact interpretation: 6/20;
-- safely refused or correct: 12/20;
-- unsafe recognized proposals: 8.
-
-After adding deterministic original-text evidence requirements for writes:
-
-- exact interpretation: 8/20;
-- safely refused or correct: 20/20;
-- unsafe recognized proposals: 0;
-- average CPU-only response time: 5.224 seconds.
-
-This proves the fail-closed boundary for the current corpus. It does not approve
-TinyLlama: 8/20 exact accuracy is unacceptable for user integration.
+Historical benchmark protocols and rejected-model evidence remain preserved in
+`docs/AI Model Benchmark`; they are not the production schema.

@@ -1,0 +1,291 @@
+{
+  "schema_version": 3,
+  "script_version": "3.1.0",
+  "run_id": "20260802_101145_phi4-mini_3.8b_grounded",
+  "state": "complete",
+  "updated_at_utc": "2026-08-02T02:12:53.225279+00:00",
+  "config": {
+    "model": "phi4-mini:3.8b",
+    "mode": "grounded",
+    "question_ids": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "question_count": 5,
+    "shuffle": false,
+    "seed": 20260802,
+    "num_predict": 256,
+    "num_ctx": 4096,
+    "temperature": 0,
+    "request_timeout_seconds": 180.0,
+    "keep_alive": "10m",
+    "review_mode": "off",
+    "ollama_container": "arcworks-resto-ollama-1"
+  },
+  "provenance": {
+    "script_sha256": "99a336976e1949dbcddd2226ece393e78b7cbc03746ba4140fdc14d1b88567d3",
+    "question_source": "Arkworks_AI_Benchmark.py",
+    "question_source_sha256": "47b9a1d59338acf6e56ab5606ef8e1d60f4cf6068ec272578cd24c16293bcce2",
+    "model_record": {
+      "model": "phi4-mini:3.8b",
+      "modified_at": "2026-08-02T01:02:34.772863Z",
+      "digest": "78fad5d182a7c33065e153a5f8ba210754207ba9d91973f57dffa7f487363753",
+      "size": 2491876774,
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "phi3",
+        "families": [
+          "phi3"
+        ],
+        "parameter_size": "3.8B",
+        "quantization_level": "Q4_K_M"
+      }
+    }
+  },
+  "environment": {
+    "captured_at_utc": "2026-08-02T02:11:45.545546+00:00",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python_version": "3.14.6",
+    "logical_cpus": 16,
+    "physical_cpus": 8,
+    "host_ram_gib": 63.92,
+    "ollama_host_scope": "loopback",
+    "ollama_host_sha256": "b26993598dffd1f14aed97def57ef67f753518a9b773d8a12033c82b4fa545ca",
+    "ollama_version": "0.32.5",
+    "ollama_client_module": "__init__.py",
+    "installed_model_count": 9
+  },
+  "human_review_summary": {
+    "counts": {
+      "acceptable": 0,
+      "wrong": 0,
+      "safe_clarification": 0,
+      "unsafe": 0,
+      "unreviewed": 5
+    },
+    "reviewed": 0,
+    "accepted_or_safely_clarified": 0,
+    "human_acceptance_percent": null,
+    "unsafe_count": 0
+  },
+  "resources": {
+    "samples": 54,
+    "cpu_percent": {
+      "average": 76.26,
+      "maximum": 88.8
+    },
+    "ram_percent": {
+      "average": 52.31,
+      "maximum": 52.4
+    },
+    "ram_used_gib": {
+      "average": 33.43,
+      "maximum": 33.48
+    },
+    "ram_available_gib": {
+      "average": 30.5,
+      "maximum": 30.52
+    }
+  },
+  "results": [
+    {
+      "sequence": 1,
+      "question": {
+        "id": 1,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Magkano ang isang order ng Bicol Express?",
+        "expected": "₱195",
+        "eval_type": "exact"
+      },
+      "review_aid": "₱195",
+      "answer": "Ang isang serving ng Bicol Express ay may presyo na PHP185. Ang referensya data ay hindi magbibigay sa bilang exacto ng servings, kaya't hindi ko maunawaan kung gusto mo bang malaman ang halaga ng isang full order o set of servings. Ipakit-kita ka: ano po ang iyong interes? (1) Halaga ng isang serving, (2) Halaga ng isang full order na may 4 servings, at kilala na ang bawat serving ay may PHP185.",
+      "metrics": {
+        "wall_time_seconds": 21.812,
+        "total_duration_seconds": 21.812,
+        "load_duration_seconds": 0.208,
+        "output_tokens": 103,
+        "generation_tokens_per_second": 8.16,
+        "prompt_tokens": 475,
+        "prompt_tokens_per_second": 52.91,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3094704290,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T02:22:13.967182Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "12.83GiB / 32GiB",
+        "memory_percent": "40.08%"
+      },
+      "completed_at_utc": "2026-08-02T02:12:15.041110+00:00"
+    },
+    {
+      "sequence": 2,
+      "question": {
+        "id": 2,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ano ang presyo ng Pork Sisig?",
+        "expected": "₱210",
+        "eval_type": "exact"
+      },
+      "review_aid": "₱210",
+      "answer": "The price of Pork Sisig is 210 Philippine Pesos.",
+      "metrics": {
+        "wall_time_seconds": 2.086,
+        "total_duration_seconds": 2.084,
+        "load_duration_seconds": 0.204,
+        "output_tokens": 14,
+        "generation_tokens_per_second": 8.77,
+        "prompt_tokens": 472,
+        "prompt_tokens_per_second": 1713.47,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3094704290,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T02:22:17.282228Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "12.83GiB / 32GiB",
+        "memory_percent": "40.08%"
+      },
+      "completed_at_utc": "2026-08-02T02:12:18.353002+00:00"
+    },
+    {
+      "sequence": 3,
+      "question": {
+        "id": 3,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ilang kilo ng manok ang kasalukuyang nasa inventory?",
+        "expected": "12 kg",
+        "eval_type": "exact"
+      },
+      "review_aid": "12 kg",
+      "answer": "There are currently 12 kg of chicken in the inventory.",
+      "metrics": {
+        "wall_time_seconds": 2.179,
+        "total_duration_seconds": 2.176,
+        "load_duration_seconds": 0.228,
+        "output_tokens": 13,
+        "generation_tokens_per_second": 8.92,
+        "prompt_tokens": 477,
+        "prompt_tokens_per_second": 993.02,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3094704290,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T02:22:20.670176Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "12.83GiB / 32GiB",
+        "memory_percent": "40.08%"
+      },
+      "completed_at_utc": "2026-08-02T02:12:21.740433+00:00"
+    },
+    {
+      "sequence": 4,
+      "question": {
+        "id": 4,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ilang serving ng Beef Pares ang maaaring gawin gamit ang 8 kilo ng beef?",
+        "expected": "32 servings (8 / 0.25)",
+        "eval_type": "exact"
+      },
+      "review_aid": "32 servings (8 / 0.25)",
+      "answer": "One can prepare approximately 32 servings of Beef Pares using the available 8 kilograms of beef. Each serving requires 0.250 kg, so with an inventory sufficient for about 32 servings (8kg / 0.25kg per serving), you would have enough to fulfill this order without needing additional stock.",
+      "metrics": {
+        "wall_time_seconds": 8.697,
+        "total_duration_seconds": 8.695,
+        "load_duration_seconds": 0.237,
+        "output_tokens": 65,
+        "generation_tokens_per_second": 8.13,
+        "prompt_tokens": 482,
+        "prompt_tokens_per_second": 1077.61,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3094704290,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T02:22:30.566710Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "12.83GiB / 32GiB",
+        "memory_percent": "40.09%"
+      },
+      "completed_at_utc": "2026-08-02T02:12:31.627001+00:00"
+    },
+    {
+      "sequence": 5,
+      "question": {
+        "id": 5,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Gaano karaming baboy ang kailangan para sa limang order ng Pork Sisig?",
+        "expected": "1 kg (5 × 0.2)",
+        "eval_type": "exact"
+      },
+      "review_aid": "1 kg (5 × 0.2)",
+      "answer": "To calculate the total amount of pork needed for five orders, we first need to determine how much pork one serving uses. According to your reference data:\n\nPork Sisig recipe: Uses 0.200 kg Pork per serving.\n\nNow let's multiply this by six (for each person in a group):\n\n6 servings * 0.200 kg/pork = 1.2 kg of Pork needed for five orders.\n\n\nPlease note that we are assuming one order is meant to serve the entire party, hence 'six' instead of just 'five'. If you mean only pork per serving without considering six people at once or if there was a misunderstanding in your request about how many servings each person gets (i.e., not necessarily 6), please clarify.",
+      "metrics": {
+        "wall_time_seconds": 19.505,
+        "total_duration_seconds": 19.503,
+        "load_duration_seconds": 0.212,
+        "output_tokens": 151,
+        "generation_tokens_per_second": 8.04,
+        "prompt_tokens": 482,
+        "prompt_tokens_per_second": 952.35,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3094704290,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T02:22:51.263438Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "12.83GiB / 32GiB",
+        "memory_percent": "40.09%"
+      },
+      "completed_at_utc": "2026-08-02T02:12:52.341004+00:00"
+    }
+  ]
+}

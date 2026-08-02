@@ -16,7 +16,7 @@ namespace Roms.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -256,6 +256,54 @@ namespace Roms.Infrastructure.Persistence.Migrations
                     b.ToTable("IdempotencyRecords");
                 });
 
+            modelBuilder.Entity("Roms.Domain.InventoryCountRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("CountedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<decimal>("CountedQuantity")
+                        .HasPrecision(14, 3)
+                        .HasColumnType("decimal(14,3)");
+
+                    b.Property<DateTime>("CountedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<Guid>("InventoryItemId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("LedgerQuantity")
+                        .HasPrecision(14, 3)
+                        .HasColumnType("decimal(14,3)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<decimal>("Variance")
+                        .HasPrecision(14, 3)
+                        .HasColumnType("decimal(14,3)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("InventoryItemId", "CountedUtc");
+
+                    b.ToTable("InventoryCountRecords");
+                });
+
             modelBuilder.Entity("Roms.Domain.InventoryItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -279,6 +327,69 @@ namespace Roms.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("InventoryItems");
+                });
+
+            modelBuilder.Entity("Roms.Domain.InventoryLossRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<Guid>("InventoryItemId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(14, 3)
+                        .HasColumnType("decimal(14,3)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("ReportedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<DateTime>("ReportedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ReviewReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("ReviewedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<DateTime?>("ReviewedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("InventoryItemId");
+
+                    b.HasIndex("Status", "ReportedUtc");
+
+                    b.ToTable("InventoryLossRequests");
                 });
 
             modelBuilder.Entity("Roms.Domain.MenuCategory", b =>
@@ -462,31 +573,6 @@ namespace Roms.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrderId");
 
                     b.ToTable("OrderStatusHistory");
-                });
-
-            modelBuilder.Entity("Roms.Domain.RecipeIngredient", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("char(36)");
-
-                    b.Property<Guid>("InventoryItemId")
-                        .HasColumnType("char(36)");
-
-                    b.Property<Guid>("MenuItemId")
-                        .HasColumnType("char(36)");
-
-                    b.Property<decimal>("Quantity")
-                        .HasPrecision(14, 3)
-                        .HasColumnType("decimal(14,3)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InventoryItemId");
-
-                    b.HasIndex("MenuItemId", "InventoryItemId")
-                        .IsUnique();
-
-                    b.ToTable("RecipeIngredients");
                 });
 
             modelBuilder.Entity("Roms.Domain.RestaurantTable", b =>
@@ -741,6 +827,28 @@ namespace Roms.Infrastructure.Persistence.Migrations
                     b.Navigation("StaffSchedule");
                 });
 
+            modelBuilder.Entity("Roms.Domain.InventoryCountRecord", b =>
+                {
+                    b.HasOne("Roms.Domain.InventoryItem", "InventoryItem")
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("InventoryItem");
+                });
+
+            modelBuilder.Entity("Roms.Domain.InventoryLossRequest", b =>
+                {
+                    b.HasOne("Roms.Domain.InventoryItem", "InventoryItem")
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("InventoryItem");
+                });
+
             modelBuilder.Entity("Roms.Domain.MenuItem", b =>
                 {
                     b.HasOne("Roms.Domain.MenuCategory", "Category")
@@ -785,25 +893,6 @@ namespace Roms.Infrastructure.Persistence.Migrations
                     b.Navigation("Order");
                 });
 
-            modelBuilder.Entity("Roms.Domain.RecipeIngredient", b =>
-                {
-                    b.HasOne("Roms.Domain.InventoryItem", "InventoryItem")
-                        .WithMany()
-                        .HasForeignKey("InventoryItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Roms.Domain.MenuItem", "MenuItem")
-                        .WithMany("RecipeIngredients")
-                        .HasForeignKey("MenuItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("InventoryItem");
-
-                    b.Navigation("MenuItem");
-                });
-
             modelBuilder.Entity("Roms.Domain.StaffSchedule", b =>
                 {
                     b.HasOne("Roms.Infrastructure.Identity.ApplicationUser", null)
@@ -832,11 +921,6 @@ namespace Roms.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Roms.Domain.MenuCategory", b =>
                 {
                     b.Navigation("Items");
-                });
-
-            modelBuilder.Entity("Roms.Domain.MenuItem", b =>
-                {
-                    b.Navigation("RecipeIngredients");
                 });
 
             modelBuilder.Entity("Roms.Domain.Order", b =>

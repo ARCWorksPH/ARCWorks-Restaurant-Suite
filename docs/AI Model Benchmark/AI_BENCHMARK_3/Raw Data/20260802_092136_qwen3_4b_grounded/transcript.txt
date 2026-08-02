@@ -1,0 +1,91 @@
+------------------------------------------------------------------------------
+[1] Q1 | Tagalog | category A
+Question: Magkano ang isang order ng Bicol Express?
+Review aid: ₱195
+Answer:
+Okay, the user is asking "Magkano ang isang order ng Bicol Express?" which translates to "How much is one order of Bicol Express?" in Tagalog.
+
+First, I need to check the reference data for menu prices. The reference data says: "Bicol Express 195". So the price is 195 Philippine pesos.
+
+I should confirm that the user is asking about the price of a single order. The reference data lists Bicol Express as 195, so it's a standard price per order. There's no mention of any discounts or special conditions for this item in the reference data.
+
+The user didn't specify any quantity, but since they asked for "isang order" (one order), and the menu price is per order, the answer should be 195 pesos.
+
+I don't see any ambiguity here. The reference data clearly states Bicol Express is 195. So the response should be straightforward.
+
+Wait, let me double-check the reference data. The menu prices section says: "Bicol Express 195". Yes, that's correct. So the answer is 195 pesos.
+
+No need for clarification here because the user is asking about the standard price of
+Human review: unreviewed
+Error: None
+Metrics: 43.633s | 256 tokens | 7.72 t/s
+------------------------------------------------------------------------------
+[2] Q2 | Tagalog | category A
+Question: Ano ang presyo ng Pork Sisig?
+Review aid: ₱210
+Answer:
+Okay, the user is asking for the price of Pork Sisig in Filipino. Let me check the reference data.
+
+Looking at the menu prices section: Pork Sisig is listed as 210 Philippine pesos. The reference data clearly states "Pork Sisig 210". So the answer should be 210 pesos.
+
+I need to respond in the same language as the user, which is Tagalog (Filipino). The user wrote "Ano ang presyo ng Pork Sisig?" which translates to "What is the price of Pork Sisig?".
+
+So the response should be "210 pesos" in Tagalog context. Wait, but the user is asking in Tagalog, so the answer should be in Tagalog too? Wait, the instructions say "Respond in the same language as the user when practical." The user's message is in Tagalog, so I should respond in Tagalog.
+
+Wait, the reference data uses English names for the dishes but the prices are in pesos. Let me think. The user is asking in Tagalog, so the response should be in Tagalog. But the price is a number. Hmm.
+
+Wait, the user's question is in Tagalog: "Ano
+Human review: unreviewed
+Error: None
+Metrics: 33.393s | 256 tokens | 7.82 t/s
+------------------------------------------------------------------------------
+[3] Q3 | Tagalog | category A
+Question: Ilang kilo ng manok ang kasalukuyang nasa inventory?
+Review aid: 12 kg
+Answer:
+Okay, let's tackle this user query. The user is asking in Tagalog: "Ilang kilo ng manok ang kasalukuyang nasa inventory?" which translates to "How many kilograms of chicken are currently in the inventory?"
+
+First, I need to check the reference data provided. The inventory section states: "Chicken 12 kg". So the current inventory for chicken is 12 kilograms. 
+
+I should make sure there's no ambiguity here. The user is specifically asking about chicken (manok) in kilograms. The reference data clearly lists Chicken as 12 kg. There's no mention of any other chicken items or variations. 
+
+The rules say to use only the reference data and not invent anything. Since the reference data directly states "Chicken 12 kg", there's no need to ask for clarification. The answer should be straightforward.
+
+I need to respond in the same language as the user, which is Tagalog. The answer in Tagalog would be "12 kilo" or "12 kilogram". But the user used "kilo" so maybe "12 kilo". Wait, in Tagalog, they might use "kilogram" or "kilo" depending on context. The reference data uses
+Human review: unreviewed
+Error: None
+Metrics: 33.276s | 256 tokens | 7.89 t/s
+------------------------------------------------------------------------------
+[4] Q4 | Tagalog | category A
+Question: Ilang serving ng Beef Pares ang maaaring gawin gamit ang 8 kilo ng beef?
+Review aid: 32 servings (8 / 0.25)
+Answer:
+Okay, let's tackle this problem. The user is asking, "Ilang serving ng Beef Pares ang maaaring gawin gamit ang 8 kilo ng beef?" which translates to "How many servings of Beef Pares can be made with 8 kg of beef?"
+
+First, I need to check the reference data. The menu prices are given, but the key info here is the per-serving recipe for Beef Pares. The reference says: "Beef Pares uses 0.250 kg Beef". So each serving requires 0.250 kg of beef.
+
+The user has 8 kg of beef. To find out how many servings can be made, I divide the total beef available by the beef per serving. So that's 8 kg divided by 0.250 kg per serving.
+
+Let me calculate that: 8 / 0.250 = 32. So 32 servings.
+
+Wait, but I should make sure there's no other constraints. The inventory shows Beef 8 kg, which matches the user's input. The per-serving recipe is clearly stated as 0.250 kg per serving. So the calculation seems straightforward.
+
+No other factors mentioned here like discounts
+Human review: unreviewed
+Error: None
+Metrics: 33.33s | 256 tokens | 7.91 t/s
+------------------------------------------------------------------------------
+[5] Q5 | Tagalog | category A
+Question: Gaano karaming baboy ang kailangan para sa limang order ng Pork Sisig?
+Review aid: 1 kg (5 × 0.2)
+Answer:
+Okay, let's tackle this user query. The user is asking in Tagalog: "Gaano karaming baboy ang kailangan para sa limang order ng Pork Sisig?" which translates to "How many pigs are needed for six orders of Pork Sisig?"
+
+First, I need to check the reference data. The menu prices list Pork Sisig at 210 pesos. The per-serving recipes say Pork Sisig uses 0.200 kg Pork per serving. 
+
+Wait, the user is asking about "baboy" which means pig, but in the context of the restaurant, they probably mean pork. The reference data uses "Pork" as the ingredient, so I should clarify if they mean pork (the meat) or the whole pig. But in the menu, it's "Pork Sisig", so the ingredient is pork. 
+
+The user says "limang order" which is six orders. Wait, "limang" is five in Tagalog. Wait, no: "limang" means five. Wait, in Tagalog, numbers: "isang" (one), "dalawa" (two), "tatló" (three), "apat" (four), "
+Human review: unreviewed
+Error: None
+Metrics: 33.63s | 256 tokens | 7.83 t/s

@@ -29,23 +29,22 @@ public static class DbInitializer
             if (!await roleManager.RoleExistsAsync(role)) await roleManager.CreateAsync(new IdentityRole(role));
 
         var options = scope.ServiceProvider.GetRequiredService<IOptions<SeedOptions>>().Value;
-        if (string.IsNullOrWhiteSpace(options.AdminPassword))
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var admin = await userManager.FindByNameAsync(options.AdminUsername);
+        if (admin is null && string.IsNullOrWhiteSpace(options.AdminPassword))
         {
             if (!environment.IsDevelopment())
-                throw new InvalidOperationException("Seed:AdminPassword (or ROMS_Seed__AdminPassword) is required in production.");
+                throw new InvalidOperationException(
+                    "Seed:AdminPassword is required only for the initial production administrator bootstrap.");
         }
-        else
+        else if (admin is null)
         {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var admin = await userManager.FindByNameAsync(options.AdminUsername);
-            if (admin is null)
-            {
-                admin = new ApplicationUser { UserName = options.AdminUsername, DisplayName = options.AdminDisplayName, EmailConfirmed = true };
-                var result = await userManager.CreateAsync(admin, options.AdminPassword);
-                if (!result.Succeeded) throw new InvalidOperationException(string.Join("; ", result.Errors.Select(x => x.Description)));
-            }
-            if (!await userManager.IsInRoleAsync(admin, RomsRoles.Admin)) await userManager.AddToRoleAsync(admin, RomsRoles.Admin);
+            admin = new ApplicationUser { UserName = options.AdminUsername, DisplayName = options.AdminDisplayName, EmailConfirmed = true };
+            var result = await userManager.CreateAsync(admin, options.AdminPassword);
+            if (!result.Succeeded) throw new InvalidOperationException(string.Join("; ", result.Errors.Select(x => x.Description)));
         }
+        if (admin is not null && !await userManager.IsInRoleAsync(admin, RomsRoles.Admin))
+            await userManager.AddToRoleAsync(admin, RomsRoles.Admin);
 
         if (options.DemoData && !await db.RestaurantTables.AnyAsync())
         {

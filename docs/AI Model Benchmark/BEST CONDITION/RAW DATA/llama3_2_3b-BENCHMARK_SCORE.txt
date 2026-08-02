@@ -1,0 +1,394 @@
+PS C:\Users\REDACTED> docker exec -it arcworks-resto-ollama-1 ollama run tinyllama:1.1b
+>>> /set verbose
+Set 'verbose' mode.
+>>> /set parameter num_gpu 99
+Set parameter 'num_gpu' to '99'
+>>> /set parameter num_ctx 4096
+Set parameter 'num_ctx' to '4096'
+>>> /show info
+  Model
+    architecture        llama
+    parameters          1B
+    context length      2048
+    embedding length    2048
+    quantization        Q4_0
+
+  Capabilities
+    completion
+
+  Parameters
+    stop    "<|system|>"
+    stop    "<|user|>"
+    stop    "<|assistant|>"
+    stop    "</s>"
+
+  System
+    You are a helpful AI assistant.
+
+>>> /show parameters
+Model defined parameters:
+  stop                           "<|system|>"
+  stop                           "<|user|>"
+  stop                           "<|assistant|>"
+  stop                           "</s>"
+
+User defined parameters:
+  num_gpu                        99
+  num_ctx                        4096
+
+>>> Write a long essay on why the sky is blue. Include scientific explanations, historical context, and practical exampl
+... es. Make it detailed and well-structured.
+The Mysterious Blue Sky: An Exploration of the Science Behind Why It's Blue
+
+For millions of years, the sky has been a colorful and mysterious canvas, filled with secrets to be unraveled.
+From the clouds that form in the morning and mingle with the sea air at noon, to the sunset that paints the sky in
+vibrant hues and shapes, the sky is a natural wonderland of colors and patterns.
+
+But why does the sky look blue? This is one of the most vexing questions of nature, and scientists are working
+hard to shed some light on this enigma. Here's a look at how we came to understand the mysterious color of the
+sky.
+
+The Blue Sky: A Historical Perspective
+
+The first sightings of the blue sky can be traced back to ancient Greece, where it was known as a “phantasma” - an
+optical illusion caused by refraction and distortion. In 1675, the philosopher Baron Hermann von Helmholtz
+observed that the sun's rays are bent as they strike the earth's atmosphere, creating a colorful halo around the
+horizon.
+
+In the 19th century, astronomers began to study this phenomenon in greater detail, finding that the blue light
+from the sun is absorbed by the oxygen atoms in the Earth's upper atmosphere before being scattered and refracted
+by water vapor. This scattering creates a pattern of colors seen in the sky, from deep blues and purples at night
+to shades of green, gold, and brown in daylight.
+
+The Science Behind Blue Skies: The Physics of the Sun's Light
+
+Understanding the physics of blue skies is essential for understanding how they form. In fact, the sun's light
+itself generates these colors - it's the Earth's atmosphere that refracts and bends this light.
+
+When the sun rises in the morning sky, warm, high-altitude air is being blown out by the sun's heat. This heated
+air rushes down through the troposphere (the lowest layer of Earth's atmosphere) and into the stratosphere (the
+upper layers beyond 10 km). As it flows upward, the air cools, creating a cooler, lower atmospheric pressure.
+
+This cooler air rises, but its density is still relatively high compared to water vapor in the atmosphere. When
+the air passes through a wavelength of blue light, the molecules bend and scatter this light. The shorter
+wavelengths (blue light) are scattered more than the longer wavelengths, resulting in a pattern of colors that
+appears blue at night.
+
+The Science Behind Blue Skies: The Chemistry of Water Vapor
+
+As well as the Earth's atmosphere, water vapor also plays an essential role in generating blue skies. This is
+because as warm air rises, it cools and expands due to its increased pressure. This expansion creates a high
+amount of humidity (water vapor mixed with air) as the air rises upwards.
+
+When this humidified air reaches the upper levels of Earth's atmosphere, it causes clouds to form. Clouds are
+formed by a dense layer of water droplets that rise and condense in response to increased pressure. The water
+droplets create tiny drops that eventually fall back down to earth as rain or snow.
+
+This process continues until the air reaches the stratosphere, where the humidity is much lower and clouds
+dissipate. From there, cooler, higher altitude air rushes upwards again, producing new cloud formations.
+
+The Science Behind Blue Skies: The Chemistry of Oxygen and Water Vapor
+
+Oxygen (O2) is another important component in the formation of blue skies. As mentioned earlier, oxygen atoms are
+scattered by blue light, producing a pattern of colors that appears blue. This scattering is caused by the
+interference of blue light with water vapor in the atmosphere. The resulting pattern is what we see as the blue
+sky.
+
+Scientists have discovered that when oxygen atoms hit water vapor in the atmosphere, they are absorbed and then
+bounced back. This creates a pattern of colors called a "blue moon," where each point on the sky has an alternate
+pattern. The blue moon effect is so strong that it can be detected from space!
+
+Practical Examples of Blue Skies: From Scenic Landscapes to Air Traffic Control Systems
+
+The blue sky is not just a pretty sight - it also has practical applications in our everyday lives. In air traffic
+control, the colors seen in the sky can be an indicator of incoming or outgoing flights, allowing pilots to make
+informed decisions based on weather conditions. Similarly, in scenic landscapes, blue skies can create a stunning
+visual effect that draws travelers and tourists alike.
+
+Conclusion: The Science Behind Blue Skies
+
+The science of why the sky is blue is complex and fascinating. It's a testament to the power of nature to amaze us
+with its mysterious beauty. Whether we appreciate it from above or below, we can all agree that the colors seen in
+the sky are a sight to behold - and it's an experience that continues to inspire wonder and exploration in people
+across the world.
+
+total duration:       28.063498961s
+load duration:        863.481324ms
+prompt eval count:    69 token(s)
+prompt eval duration: 241.817ms
+prompt eval rate:     285.34 tokens/s
+eval count:           1177 token(s)
+eval duration:        26.95542s
+eval rate:            43.66 tokens/s
+>>> Write a long essay on why the sky is blue. Include scientific explanations, historical context, and practical exampl
+... es. Make it detailed and well-structured.
+The Mysterious Blue Sky: An Explicatvie of Science Behind Why It's Blue
+
+For millions of years, the sky has been a colorful and mysterious canvas, filled with secret sights to be
+unraveled. From the clouds that form in the morning and mingle with the sea air at noon, to the sunset that paints
+the sky in vibrant hues of blue, the sky is a natural wonderland of colors and patterns.
+
+The Blue Sky: A Historical Perspective
+
+The first sightings of the blue sky can be traced back to ancient Greece, where it was known as a "phanthos" - an
+optical illusion caused by refraction and distortion of light by airborne particles. In 1675, the Swiss astronomer
+Baron Hermann von Helmholtz observed that the sun's rays are bent as they strike the Earth's upper atmosphere
+before being scattered and refracted by water vapor in the atmosphere.
+
+The Science Behind Blue Skies: The Physics of Light Refraction
+
+Understanding the physics of blue skies is essential for understanding how they form. In fact, the sun's light
+itself generates these colors - it's the Earth's atmosphere that refracts and bends this light.
+
+When the sun rises in the morning sky, warm, high-altitude air is being blown out by the sun's heat. This
+high-altitude air rosees down into the stratosphere (the upper layers beyond 10 km), where it meets water vapor
+mixed with air. The warmer, denser air rises faster than cooler, lighter air in this layer.
+
+This expanding and condensing process creates a high amount of humidity as warm air rises into the air that is
+higher up. When this humid air reaches the upper levels of Earth's atmosphere, it causes clouds to form.
+
+The Science Behind Blue Skies: The Chemistry of Water Vapor and Oxygen
+
+As well as the Earth's atmosphere, water vapor also plays a critical role in generating blue skies. This is
+because as warm air rises, it cools and expands due to its increased pressure. This expansion creates tiny
+droplets that eventually fall back down to earth as rain or snow.
+
+This process continues until the air reaches the stratosphere, where the humidity is much lower than at higher
+altitudes. From there, cooler, higher altitude air rushes upwards again, producing new cloud formation in the sky.
+
+The Science Behind Blue Skies: The Chemistry of Oxygen and Water Vapor
+
+Oxygen (O2) is another important component in the formation of blue skies. As mentioned earlier, when oxygen atoms
+hit water vapor in the atmosphere, they are absorbed and then bombarded by a series of alternate patterns called
+"moons."
+
+The moons appear as alternating points on the sky because they're created during a chemical reaction called
+photochemistry - where sunlight is bounced off oxygen atoms. The photochemical reaction causes the water vapor to
+break down into its various components, including the oxygen and carbon dioxide that we see in blue skies.
+
+Pratical Examples: Air Traffic Control and Landscapes
+
+The blue sky is not just a pretty sight - it also has practical applications in our everyday lives. In air traffic
+control, the colors seen in the sky provide pilots with essential information about weather conditions, allowing
+them to navigate safely. Similarly, in scenic landscape photography, capturing the beauty of blue skies can
+inspire and motivate us to capture their magic.
+
+Conclusion: The Science Behind Why the Sky Is Blue
+
+In conclusion, the science behind why the sky is blue is fascinating and complex. From the clouds that form in the
+morning and paint the sky in vibrant hues of blue, to the sun's light causing droplets to fall back down into
+lower altitudes, the complex process is the result of an interplay between physics, chemistry, and atmospheric
+processes. This scientific understanding has led to advancements in technologies such as satellite imaging and air
+traffic control, which have improved our daily lives.
+
+total duration:       29.654908112s
+load duration:        46.274958ms
+prompt eval count:    1316 token(s)
+prompt eval duration: 4.854137s
+prompt eval rate:     271.11 tokens/s
+eval count:           925 token(s)
+eval duration:        24.718833s
+eval rate:            37.42 tokens/s
+>>> Write a long essay on why the sky is blue. Include scientific explanations, historical context, and practical exampl
+... es. Make it detailed and well-structured.
+The Mystery of Blue Sky: An Explaination of Science Behind Why It's Blue
+
+For millions of years, the sky has been a colorful and mysterious canvas, filled with secret sightings to be
+unraveld. From the clouds that form in the morning and mingle with the sea air at noon, to the sunset that
+paintings the sky in vibrant hues of blue, the sky is a natural wonderland of colors and patterns.
+
+The Blue Sky: A Historical Perspective
+
+The first sightings of the blue sky can be traced back to ancient Greece, where it was known as a "phanthos" - an
+optical illusion caused by refraction and distortion of light by airborne particles. In 1675, the Swiss astronomer
+Baron Hermann von Helmholtz observed that the sun's rays are bent as they strike the Earth's upper atmosphere
+before being scattered and refracted by water vapor in the atmosphere.
+
+Understanding the Physics of Blue Skies: The Physics of Light Refraction
+
+Understanding the physics of blue skies is essential for understaning how they form. In fact, the sun's light
+itself generates these colors - it's the Earth's atmosphere that refracts and bends this light. When the sun rises
+in the morning sky, warm, high-altitude air is being blown out by the sun's heat. This high-altitude air rosees
+down into the stratosphere (the upper layers beyond 10 km), where it meets water vapor mixed with air. The warm
+air risees faster than cooler, lighter air in this layer.
+
+The Science Behind Blue Skies: The Chemistry of Water Vapor and Oxygen
+
+As well as the Earth's atmosphere, water vapor plays a critical role in generating blue skies. This is because as
+warm air risess, it cooles and expands due to its increased pressure. This expansion creates tiny droplets that
+eventually fall back down to earth as rain or snow. This process continues until the air reaches the stratosphere,
+where the humidiity is much lower than at higher altitudes. From there, cooler, higher altitude air rushes upwards
+again, producing new cloud formation in the sky.
+
+The Science Behind Blue Skies: The Chemistry of Oxygen and Water Vapor
+
+Oxygen (O2) is another important component in the formation of blue skies. As mentioned earlier, when oxygen atoms
+hit water vapor in the atmosphere, they are absorbed and then bombarded by a series of alternate patterns called
+"moons." The moons appear as alternating points on the sky because they're created during a chemical reaction
+called photochemistry - where sunlight is bounced off oxygen atoms.
+
+Pratical Example: Air Traffic Control and Landscapes
+
+The blue sky is not just a pretty sight - it also has practical applications in our everyday lives. In air traffic
+control, the colors seen in the sky provide pilotsthat with essential information about weather conditions,
+allowing them to navigate safely. Similarly, in scenic landscape photography, capturing the beauty of blue skies
+can inspirer and motivate us to capture their magic.
+
+Conclusion: The Science Behind Why the Sky Is Blue
+
+In conclusion, the science behind why the sky is blue is fascinaating and complex. From the clouds that form in
+the morning and paint the sky in vibrant hues of blue, to the sun's light causing droplets to fall back down into
+lower altitudes, the complex process is the result of an interplay between physics, chemistry, and atmospheric
+processes. This scientific understanding has led to advancements in technologies such as satellite imaging and air
+traffic control, which have improved our daily lives.
+
+total duration:       25.757412859s
+load duration:        46.40682ms
+prompt eval count:    1057 token(s)
+prompt eval duration: 4.035921s
+prompt eval rate:     261.90 tokens/s
+eval count:           829 token(s)
+eval duration:        21.633877s
+eval rate:            38.32 tokens/s
+>>> /bye
+
+What's next:
+    Try Docker Debug for seamless, persistent debugging tools in any container or image → docker debug arcworks-resto-ollama-1
+    Learn more at https://docs.docker.com/go/debug-cli/
+PS C:\Users\REDACTED> docker exec -it arcworks-resto-ollama-1 ollama run llama3.2:3b
+>>> /set verbose
+Set 'verbose' mode.
+>>> /set parameter num_gpu 99
+Set parameter 'num_gpu' to '99'
+>>> /set parameter num_ctx 4096
+Set parameter 'num_ctx' to '4096'
+>>> /show info
+  Model
+    architecture        llama
+    parameters          3.2B
+    context length      131072
+    embedding length    3072
+    quantization        Q4_K_M
+
+  Capabilities
+    completion
+    tools
+
+  Parameters
+    stop    "<|start_header_id|>"
+    stop    "<|end_header_id|>"
+    stop    "<|eot_id|>"
+
+  License
+    LLAMA 3.2 COMMUNITY LICENSE AGREEMENT
+    Llama 3.2 Version Release Date: September 25, 2024
+    ...
+
+>>> /show parameters
+Model defined parameters:
+  stop                           "<|start_header_id|>"
+  stop                           "<|end_header_id|>"
+  stop                           "<|eot_id|>"
+
+User defined parameters:
+  num_ctx                        4096
+  num_gpu                        99
+
+>>> Write a long essay on why the sky is blue. Include scientific explanations, historical context, and practical exampl
+... es. Make it detailed and well-structured.
+The Color of the Sky: A Scientific Exploration of Why the Sky Appears Blue
+
+The sky has been a subject of human fascination for centuries, with artists, scientists, and philosophers alike
+attempting to explain its mysterious hue. One of the most enduring questions about the sky is why it appears blue,
+a color that has captivated our imagination and inspired countless works of art throughout history. In this essay,
+we will delve into the scientific explanations behind the blue color of the sky, exploring the historical context,
+physical principles, and practical examples that underlie this phenomenon.
+
+Historical Context: The Ancient Greeks to Modern Physics
+
+The ancient Greeks were among the first to observe and record the color of the sky, with philosophers such as
+Aristotle and Plato proposing various theories to explain its hue. Aristotle suggested that the blue color of the
+sky was caused by the reflection of sunlight off the surface of the Earth, while Plato believed it was a result of
+the presence of tiny, invisible particles in the air.
+
+In the 17th century, the English scientist Isaac Newton laid the foundation for our modern understanding of light
+and color with his groundbreaking work on the nature of light. Newton's experiment with prisms revealed that white
+light is composed of a spectrum of colors, each corresponding to a specific wavelength. He proposed that the blue
+color of the sky is caused by the scattering of sunlight as it passes through the atmosphere.
+
+However, it wasn't until the 19th century that the British scientist Joseph von Fraunhofer developed a more
+comprehensive theory to explain the color of the sky. Fraunhofer's research led him to propose that the blue color
+of the sky is caused by the scattering of sunlight as it interacts with tiny molecules and particles in the
+atmosphere, such as nitrogen (N2) and oxygen (O2). This theory was later supported by the American physicist
+Rayleigh, who demonstrated that the blue color of the sky is a result of the scattering of shorter-wavelength
+light (such as blue and violet) by these tiny particles.
+
+Modern Physics: The Role of Scattering
+
+The blue color of the sky can be explained by the principles of physics, specifically the phenomenon of
+scattering. When sunlight enters the Earth's atmosphere, it encounters various particles and molecules that
+scatter the light in different directions. The shorter-wavelength light (such as blue and violet) is scattered
+more than the longer-wavelength light (such as red and orange), due to its smaller size and greater velocity.
+
+This phenomenon is known as Rayleigh scattering, named after Lord Rayleigh, who first described it in 1871.
+According to Rayleigh's theory, the blue color of the sky is a result of the scattering of sunlight by nitrogen
+molecules in the atmosphere. The tiny nitrogen molecules scatter the shorter-wavelength light more efficiently
+than the longer-wavelength light, which is why we see the sky as blue.
+
+Practical Examples: Observations and Experiments
+
+There are numerous practical examples that demonstrate the scientific principles behind the blue color of the sky.
+One example is the observation that the sky appears more intense during sunrise and sunset, when the sun's rays
+have to travel longer distances through the atmosphere. This increased scattering of light results in a more vivid
+blue color.
+
+Another example is the phenomenon known as "twilight," which occurs when the sun is below the horizon but still
+visible above the horizon. During twilight, the sky can take on a range of colors, from pink to orange to purple,
+due to the scattering of sunlight by atmospheric particles and molecules.
+
+Experiments have also been conducted to measure the color of the sky under various conditions. For example, the
+American physicist Gustav Kirchhoff measured the spectral distribution of light scattered by different gases in
+the atmosphere, providing valuable insights into the physics underlying the blue color of the sky.
+
+Real-World Applications: Colorimetry and Atmospheric Science
+
+The study of the color of the sky has numerous real-world applications in fields such as colorimetry and
+atmospheric science. In colorimetry, the understanding of how light interacts with matter is crucial for
+developing new pigments and coatings that can accurately reproduce colors.
+
+In atmospheric science, the study of the blue color of the sky provides valuable insights into the composition and
+properties of the atmosphere. By analyzing the spectral distribution of light scattered by different gases in the
+atmosphere, scientists can gain a better understanding of air pollution, climate change, and other environmental
+phenomena.
+
+Conclusion
+
+The blue color of the sky is a fascinating phenomenon that has captivated human imagination for centuries. Through
+scientific explanations, historical context, and practical examples, we have explored the physics underlying this
+phenomenon. The study of the color of the sky continues to be an active area of research, with ongoing discoveries
+in atmospheric science and colorimetry shedding new light on the properties of the atmosphere.
+
+As we continue to explore and understand the natural world around us, it is essential to recognize the intricate
+web of scientific principles that underlie our everyday experiences. The blue color of the sky serves as a
+powerful reminder of the beauty and complexity of the physical world, inspiring us to pursue further research and
+discovery in this captivating field.
+
+References:
+
+* Newton, I. (1672). Opticks: Or, A Treatise of Reflections, Refractions, Inflections and Colours.
+* Fraunhofer, J. H. (1826). Beiträge zur optischen Physik und der Lehre von den Farben.
+* Rayleigh, L. (1871). On the light from the sky, its polarization and colour.
+* Kirchhoff, G. (1860). On the theory of spectra, particularly that of gases.
+
+Note: The references provided are a selection of key works in the history of scientific thought on the color of
+the sky. A more comprehensive list of references would be required for a full academic treatment of this topic.
+
+total duration:       1m25.734854079s
+load duration:        3.381560973s
+prompt eval count:    55 token(s)
+prompt eval duration: 586.794ms
+prompt eval rate:     93.73 tokens/s
+eval count:           1176 token(s)
+eval duration:        1m21.764162s
+eval rate:            14.38 tokens/s
+>>> Send a message (/? for help)

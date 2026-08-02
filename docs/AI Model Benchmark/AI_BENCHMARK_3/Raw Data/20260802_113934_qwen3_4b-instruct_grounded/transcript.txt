@@ -1,0 +1,60 @@
+------------------------------------------------------------------------------
+[1] Q1 | Tagalog | category A
+Question: Magkano ang isang order ng Bicol Express?
+Review aid: ₱195
+Answer:
+Isang order ng Bicol Express ay magkano **195** Philippine pesos.
+Human review: unreviewed
+Error: None
+Metrics: 11.586s | 20 tokens | 9.76 t/s
+------------------------------------------------------------------------------
+[2] Q2 | Tagalog | category A
+Question: Ano ang presyo ng Pork Sisig?
+Review aid: ₱210
+Answer:
+Ang presyo ng Pork Sisig ay 210 pesos.
+Human review: unreviewed
+Error: None
+Metrics: 2.227s | 16 tokens | 9.62 t/s
+------------------------------------------------------------------------------
+[3] Q3 | Tagalog | category A
+Question: Ilang kilo ng manok ang kasalukuyang nasa inventory?
+Review aid: 12 kg
+Answer:
+Kasalukuyang nasa inventory ay **12 kilo** ng manok.
+Human review: unreviewed
+Error: None
+Metrics: 3.05s | 21 tokens | 8.99 t/s
+------------------------------------------------------------------------------
+[4] Q4 | Tagalog | category A
+Question: Ilang serving ng Beef Pares ang maaaring gawin gamit ang 8 kilo ng beef?
+Review aid: 32 servings (8 / 0.25)
+Answer:
+Ang Beef Pares ay ginagamit 0.250 kg per serving.
+
+May 8 kg ng beef.
+
+Ilang serving:
+
+8 kg ÷ 0.250 kg per serving = 32 servings.
+
+✅ **32 serving** ng Beef Pares ang maaaring gawin gamit ang 8 kilo ng beef.
+Human review: unreviewed
+Error: None
+Metrics: 9.418s | 77 tokens | 9.01 t/s
+------------------------------------------------------------------------------
+[5] Q5 | Tagalog | category A
+Question: Gaano karaming baboy ang kailangan para sa limang order ng Pork Sisig?
+Review aid: 1 kg (5 × 0.2)
+Answer:
+Bawat order ng Pork Sisig kumakalat ng 0.200 kg baboy.  
+
+Para sa 5 orders:  
+5 × 0.200 kg = 1.000 kg baboy.  
+
+Kaya, kailangan ng **1.000 kg baboy** para sa limang order ng Pork Sisig.  
+
+✅ *Note: Ang inventory ng baboy ay 6 kg, kaya patay ang pagkakalat ng 1.000 kg baboy — ang kailangan ay mas malaki kaysa sa available.*
+Human review: unreviewed
+Error: None
+Metrics: 15.665s | 133 tokens | 8.98 t/s
