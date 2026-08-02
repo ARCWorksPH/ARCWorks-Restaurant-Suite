@@ -38,7 +38,6 @@ services:
       Seed__AdminUsername: ${ADMIN_USERNAME:-admin}
       Seed__AdminPassword: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
       Seed__AdminDisplayName: ${ADMIN_DISPLAY_NAME:-ROMS Administrator}
-      Features__Inventory__Enabled: ${INVENTORY_ENABLED:-false}
     volumes:
       - data-protection-keys:/app/keys
     # Cloudflare Tunnel publishes the application from this loopback-only port.

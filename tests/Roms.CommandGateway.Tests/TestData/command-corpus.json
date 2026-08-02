@@ -5,11 +5,11 @@
   { "id": "lookup-04", "text": "Check rice stock.", "expectedStatus": "Recognized", "expectedCommand": "InventoryLookup" },
   { "id": "lookup-05", "text": "How much white rice is in inventory?", "expectedStatus": "Recognized", "expectedCommand": "InventoryLookup" },
 
-  { "id": "receive-01", "text": "Receive 20 kg of rice.", "expectedStatus": "Recognized", "expectedCommand": "InventoryReceive" },
-  { "id": "receive-02", "text": "Add 5 kilograms of white rice to inventory.", "expectedStatus": "Recognized", "expectedCommand": "InventoryReceive" },
-  { "id": "receive-03", "text": "We received 30 pieces of eggs.", "expectedStatus": "Recognized", "expectedCommand": "InventoryReceive" },
-  { "id": "receive-04", "text": "Receive 12 pieces of eggs.", "expectedStatus": "Recognized", "expectedCommand": "InventoryReceive" },
-  { "id": "receive-05", "text": "I received 10 kg rice.", "expectedStatus": "Recognized", "expectedCommand": "InventoryReceive" },
+  { "id": "receive-01", "text": "Receive 20 kg of rice.", "expectedStatus": "Unsupported", "expectedCommand": null },
+  { "id": "receive-02", "text": "Add 5 kilograms of white rice to inventory.", "expectedStatus": "Unsupported", "expectedCommand": null },
+  { "id": "receive-03", "text": "We received 30 pieces of eggs.", "expectedStatus": "Unsupported", "expectedCommand": null },
+  { "id": "receive-04", "text": "Receive 12 pieces of eggs.", "expectedStatus": "Unsupported", "expectedCommand": null },
+  { "id": "receive-05", "text": "I received 10 kg rice.", "expectedStatus": "Unsupported", "expectedCommand": null },
 
   { "id": "unknown-01", "text": "What is the weather today?", "expectedStatus": "Unsupported", "expectedCommand": null },
   { "id": "unknown-02", "text": "Tell me a joke.", "expectedStatus": "Unsupported", "expectedCommand": null },

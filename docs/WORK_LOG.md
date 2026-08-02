@@ -820,3 +820,51 @@ repository metadata before publication.
   approved permission-aware ROMS functions. Arbitrary SQL, production model
   approval, a two-model selector, and network GPU infrastructure remain out of
   scope until later evidence justifies them.
+## 2026-08-02 — Recipe functionality removed by product decision
+
+Status: complete; source, schema, automated acceptance, and live runtime
+verification passed.
+
+- Product owner explicitly approved removing recipe functionality from the
+  current release to keep inventory simple and reduce calculation/input risk.
+- Before editing schema behavior, the active MariaDB database was logically
+  backed up to
+  `backups/pre-recipe-removal/roms-pre-recipe-removal-20260802-132520.sql`.
+  SHA-256:
+  `6BE3AD0DA50B9BAEEB32748C9EE311295A58CC4ED841F5BAE6D97FC0B3FD5B6E`.
+  The dump restored successfully into a disposable MariaDB 11.4 database with
+  21 tables, 3 applied migrations, 2 orders, and 0 recipe rows.
+- Removed the `RecipeIngredient` domain/persistence model, menu mappings,
+  configuration UI, provisional-import writes, recipe readiness checks, and
+  order-linked automatic consumption/reversal reconciliation.
+- Removed cancellation/removal inventory-disposition fields and order-level
+  negative-stock override fields that existed only for recipe deduction.
+- Preserved the standalone manual inventory ledger: receiving, physical counts,
+  append-only adjustments, administrator negative-stock override controls,
+  waste/spoilage requests, and administrator approvals.
+- Added EF migration `RemoveRecipeFunctionality` to drop the retired table and
+  recipe-only order columns while retaining a reversible `Down()` path.
+- Bumped the isolated AI command protocol to schema version 2 and removed the
+  `InventoryReceive` write proposal. The lab now permits only read-only exact
+  inventory lookup or safe refusal.
+- Historical audit, benchmark, incident, and supplied restaurant-data evidence
+  remains preserved. Superseded operational documents are marked historical
+  rather than rewritten as if the old behavior never existed.
+
+### Verification and deployment
+
+- `docker compose config --quiet` passed.
+- `dotnet build Roms.slnx --no-restore` passed with 0 warnings and 0 errors.
+- Focused suites passed: Domain 11/11, Command Gateway 9/9, core order workflow
+  4/4, real MariaDB smoke 1/1, inventory readiness 2/2, MariaDB concurrency
+  2/2, and the 60-flow resilience stress scenario 1/1.
+- The complete Playwright container/browser suite passed 3/3 in one uninterrupted
+  run after the final UI timing correction.
+- Rehearsed the complete migration chain against a disposable MariaDB 11.4
+  restore of the pre-removal backup. It retained both existing orders and ended
+  with 7 migrations, no recipe table, and no retired recipe-only columns.
+- Rebuilt and deployed the live `app` and `command-gateway` containers. The live
+  database reached 7 migrations, retained 2 orders, and contains neither the
+  `RecipeIngredients` table nor the 5 retired recipe-only columns.
+- Local `/health` and public `https://roms.arkworksph.online/health` returned
+  HTTP 200. The public homepage also returned HTTP 200 after deployment.

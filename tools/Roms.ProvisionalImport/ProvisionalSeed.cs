@@ -17,8 +17,6 @@ public sealed class ProvisionalSeed
     [JsonPropertyName("menu_items")]
     public List<ProvisionalMenuItem> MenuItems { get; init; } = [];
 
-    [JsonPropertyName("recipes")]
-    public List<ProvisionalRecipe> Recipes { get; init; } = [];
 }
 
 public sealed class ProvisionalInventoryItem
@@ -75,37 +73,12 @@ public sealed class ProvisionalMenuItem
     public bool IsAvailable { get; init; }
 }
 
-public sealed class ProvisionalRecipe
-{
-    [JsonPropertyName("Recipe_ID")]
-    public string ExternalId { get; init; } = "";
-
-    [JsonPropertyName("Menu_Item_ID")]
-    public string MenuItemExternalId { get; init; } = "";
-
-    [JsonPropertyName("Menu_Item_Name")]
-    public string MenuItemName { get; init; } = "";
-
-    [JsonPropertyName("Inventory_Item_ID")]
-    public string InventoryItemExternalId { get; init; } = "";
-
-    [JsonPropertyName("Inventory_Item_Name")]
-    public string InventoryItemName { get; init; } = "";
-
-    [JsonPropertyName("Quantity_Used_Per_Serving")]
-    public decimal Quantity { get; init; }
-
-    [JsonPropertyName("Canonical_Unit")]
-    public string Unit { get; init; } = "";
-}
-
 public sealed record ProvisionalImportPreview(
     string SourceSha256,
     bool IsValid,
     int InventoryItemCount,
     int MenuCategoryCount,
     int MenuItemCount,
-    int RecipeCount,
     int OpeningBalanceCount,
     IReadOnlyList<string> Errors,
     IReadOnlyList<string> Warnings);
@@ -115,7 +88,6 @@ public sealed record ProvisionalImportResult(
     int InventoryItemsCreated,
     int MenuCategoriesCreated,
     int MenuItemsCreated,
-    int RecipesCreated,
     int OpeningBalancesCreated);
 
 public static class ProvisionalSeedLoader
@@ -153,6 +125,7 @@ public static class ProvisionalSeedValidator
             "All source values are provisional and require restaurant confirmation before production use.",
             "Inventory category, unit cost, and storage location are validated but not imported by the Phase 1 schema.",
             "Serving size is validated but not imported by the Phase 1 schema.",
+            "Recipe data is intentionally ignored because recipe functionality is outside the approved product scope.",
             "Employee permissions, waste scenarios, contact information, and negative-stock policy are not imported."
         };
         if (sourceSha256.Length != 64 || sourceSha256.Any(character => !Uri.IsHexDigit(character)))
@@ -160,16 +133,6 @@ public static class ProvisionalSeedValidator
 
         ValidateUnique(seed.InventoryItems, item => item.ExternalId, "inventory item", errors);
         ValidateUnique(seed.MenuItems, item => item.ExternalId, "menu item", errors);
-        ValidateUnique(seed.Recipes, item => item.ExternalId, "recipe", errors);
-
-        var inventoryById = seed.InventoryItems
-            .Where(item => !string.IsNullOrWhiteSpace(item.ExternalId))
-            .GroupBy(item => item.ExternalId, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-        var menuById = seed.MenuItems
-            .Where(item => !string.IsNullOrWhiteSpace(item.ExternalId))
-            .GroupBy(item => item.ExternalId, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
         foreach (var item in seed.InventoryItems)
         {
@@ -202,50 +165,12 @@ public static class ProvisionalSeedValidator
                 errors.Add($"Menu item {item.ExternalId} has an invalid price.");
         }
 
-        foreach (var recipe in seed.Recipes)
-        {
-            Length(recipe.ExternalId, 50, "Recipe ID", errors);
-            if (!menuById.TryGetValue(recipe.MenuItemExternalId, out var menuItem))
-                errors.Add($"Recipe {recipe.ExternalId} references missing menu item {recipe.MenuItemExternalId}.");
-            else if (!string.Equals(menuItem.Name, recipe.MenuItemName, StringComparison.Ordinal))
-                errors.Add($"Recipe {recipe.ExternalId} menu name does not match {recipe.MenuItemExternalId}.");
-
-            if (!inventoryById.TryGetValue(recipe.InventoryItemExternalId, out var inventoryItem))
-                errors.Add($"Recipe {recipe.ExternalId} references missing inventory item {recipe.InventoryItemExternalId}.");
-            else
-            {
-                if (!string.Equals(inventoryItem.Name, recipe.InventoryItemName, StringComparison.Ordinal))
-                    errors.Add($"Recipe {recipe.ExternalId} inventory name does not match {recipe.InventoryItemExternalId}.");
-                if (!string.Equals(inventoryItem.Unit, recipe.Unit, StringComparison.Ordinal))
-                    errors.Add($"Recipe {recipe.ExternalId} unit does not match {recipe.InventoryItemExternalId}.");
-            }
-
-            if (!FitsQuantity(recipe.Quantity) || recipe.Quantity <= 0)
-                errors.Add($"Recipe {recipe.ExternalId} quantity must be greater than zero.");
-        }
-
-        foreach (var menuId in menuById.Keys)
-        {
-            if (!seed.Recipes.Any(recipe =>
-                    string.Equals(recipe.MenuItemExternalId, menuId, StringComparison.Ordinal)))
-                errors.Add($"Menu item {menuId} has no recipe.");
-        }
-
-        var duplicateRecipeLinks = seed.Recipes
-            .GroupBy(recipe => $"{recipe.MenuItemExternalId}\u001f{recipe.InventoryItemExternalId}",
-                StringComparer.Ordinal)
-            .Where(group => group.Count() > 1)
-            .Select(group => group.First().ExternalId);
-        foreach (var recipeId in duplicateRecipeLinks)
-            errors.Add($"Recipe {recipeId} duplicates a menu/inventory relationship.");
-
         return new ProvisionalImportPreview(
             sourceSha256,
             errors.Count == 0,
             seed.InventoryItems.Count,
             seed.MenuItems.Select(item => item.Category).Distinct(StringComparer.Ordinal).Count(),
             seed.MenuItems.Count,
-            seed.Recipes.Count,
             seed.InventoryItems.Count(item => item.OpeningQuantity != 0),
             errors,
             warnings);
@@ -310,7 +235,6 @@ public static class ProvisionalSeedImporter
                 await db.MenuCategories.AnyAsync(cancellationToken) ||
                 await db.MenuItems.AnyAsync(cancellationToken) ||
                 await db.InventoryItems.AnyAsync(cancellationToken) ||
-                await db.RecipeIngredients.AnyAsync(cancellationToken) ||
                 await db.StockMovements.AnyAsync(cancellationToken);
             if (hasOperationalData)
                 throw new InvalidOperationException("Import is allowed only into an empty sandbox database.");
@@ -361,14 +285,6 @@ public static class ProvisionalSeedImporter
                 IsAvailable = item.IsAvailable
             }));
 
-            db.RecipeIngredients.AddRange(seed.Recipes.Select(recipe => new RecipeIngredient
-            {
-                Id = StableGuid($"recipe:{recipe.ExternalId}"),
-                MenuItemId = menuIds[recipe.MenuItemExternalId],
-                InventoryItemId = inventoryIds[recipe.InventoryItemExternalId],
-                Quantity = recipe.Quantity
-            }));
-
             var openingBalances = seed.InventoryItems
                 .Where(item => item.OpeningQuantity != 0)
                 .Select(item => new StockMovement
@@ -395,7 +311,6 @@ public static class ProvisionalSeedImporter
                     preview.InventoryItemCount,
                     preview.MenuCategoryCount,
                     preview.MenuItemCount,
-                    preview.RecipeCount,
                     preview.OpeningBalanceCount
                 }),
                 OccurredUtc = DateTime.UtcNow
@@ -408,7 +323,6 @@ public static class ProvisionalSeedImporter
                 seed.InventoryItems.Count,
                 categories.Count,
                 seed.MenuItems.Count,
-                seed.Recipes.Count,
                 openingBalances.Count);
         });
         return result!;

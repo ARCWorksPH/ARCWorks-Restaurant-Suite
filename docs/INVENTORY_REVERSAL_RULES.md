@@ -1,6 +1,9 @@
 # ROMS Inventory Reversal Rules
 
-Status: implementation baseline for inventory-readiness testing. Inventory remains disabled in the active deployment.
+> **Retired historical design (2026-08-02):** Recipe-based consumption and
+> order-linked inventory reversal were removed from the approved product.
+> This file remains only as evidence of the superseded behavior. Current
+> inventory operations are documented in `INVENTORY_OPERATIONS.md`.
 
 ## Required invariants
 

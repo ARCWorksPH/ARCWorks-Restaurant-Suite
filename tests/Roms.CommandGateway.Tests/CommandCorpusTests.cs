@@ -22,7 +22,7 @@ public sealed class CommandCorpusTests
                 new[] { "Recognized", "Unsupported", "ClarificationRequired" });
             if (test.ExpectedStatus == "Recognized")
                 Assert.Contains(test.ExpectedCommand,
-                    new[] { "InventoryLookup", "InventoryReceive" });
+                    new[] { "InventoryLookup" });
             else
                 Assert.Null(test.ExpectedCommand);
         });

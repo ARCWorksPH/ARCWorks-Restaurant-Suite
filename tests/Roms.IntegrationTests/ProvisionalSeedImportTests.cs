@@ -19,34 +19,10 @@ public sealed class ProvisionalSeedImportTests(MariaDbFixture fixture)
         Assert.Equal(1, preview.InventoryItemCount);
         Assert.Equal(1, preview.MenuCategoryCount);
         Assert.Equal(1, preview.MenuItemCount);
-        Assert.Equal(1, preview.RecipeCount);
         Assert.Equal(1, preview.OpeningBalanceCount);
         Assert.Empty(preview.Errors);
         Assert.Contains(preview.Warnings, warning => warning.Contains("unit cost", StringComparison.Ordinal));
         Assert.Contains(preview.Warnings, warning => warning.Contains("provisional", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void Preview_fails_closed_for_broken_recipe_relationships()
-    {
-        var seed = CreateValidSeed();
-        seed.Recipes[0] = new ProvisionalRecipe
-        {
-            ExternalId = "REC-001",
-            MenuItemExternalId = "MISSING",
-            MenuItemName = "Sample Dish",
-            InventoryItemExternalId = "INV-001",
-            InventoryItemName = "Sample Ingredient",
-            Quantity = 0,
-            Unit = "kg"
-        };
-
-        var preview = ProvisionalSeedValidator.Preview(seed, SourceHash);
-
-        Assert.False(preview.IsValid);
-        Assert.Contains(preview.Errors, error => error.Contains("missing menu item", StringComparison.Ordinal));
-        Assert.Contains(preview.Errors, error => error.Contains("quantity", StringComparison.Ordinal));
-        Assert.Contains(preview.Errors, error => error.Contains("unit does not match", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -65,7 +41,6 @@ public sealed class ProvisionalSeedImportTests(MariaDbFixture fixture)
         Assert.Equal(1, result.InventoryItemsCreated);
         Assert.Equal(1, result.MenuCategoriesCreated);
         Assert.Equal(1, result.MenuItemsCreated);
-        Assert.Equal(1, result.RecipesCreated);
         Assert.Equal(1, result.OpeningBalancesCreated);
         await using var db = database.CreateContext();
         var movement = await db.StockMovements.SingleAsync();
@@ -124,19 +99,6 @@ public sealed class ProvisionalSeedImportTests(MariaDbFixture fixture)
                 Description = "A provisional test dish.",
                 ServingSize = "1 plate",
                 IsAvailable = true
-            }
-        ],
-        Recipes =
-        [
-            new ProvisionalRecipe
-            {
-                ExternalId = "REC-001",
-                MenuItemExternalId = "MENU-001",
-                MenuItemName = "Sample Dish",
-                InventoryItemExternalId = "INV-001",
-                InventoryItemName = "Sample Ingredient",
-                Quantity = 10m,
-                Unit = "g"
             }
         ]
     };

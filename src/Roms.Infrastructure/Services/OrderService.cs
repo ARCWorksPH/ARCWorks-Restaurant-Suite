@@ -2,7 +2,6 @@ using System.Data;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using MySql.Data.MySqlClient;
 using Roms.Application;
 using Roms.Domain;
@@ -10,13 +9,10 @@ using Roms.Infrastructure.Persistence;
 
 namespace Roms.Infrastructure.Services;
 
-public sealed class InventoryOptions { public bool Enabled { get; set; } }
-
 public sealed class OrderService(
     IDbContextFactory<RomsDbContext> factory,
     IClock clock,
     IOrderEventPublisher publisher,
-    IOptions<InventoryOptions> inventoryOptions,
     ILogger<OrderService> logger) : IOrderService
 {
     private static readonly OrderStatus[] ActiveStatuses = [OrderStatus.Draft, OrderStatus.New, OrderStatus.Preparing, OrderStatus.Ready];
@@ -124,9 +120,7 @@ public sealed class OrderService(
         string? notes,
         string reason,
         string actorId,
-        CancellationToken ct = default,
-        bool allowNegativeStock = false,
-        string? inventoryOverrideReason = null)
+        CancellationToken ct = default)
     {
         await using var strategyContext = await factory.CreateDbContextAsync(ct);
         var strategy = strategyContext.Database.CreateExecutionStrategy();
@@ -139,10 +133,6 @@ public sealed class OrderService(
             await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
             var menuItem = await db.MenuItems.SingleAsync(x => x.Id == menuItemId, ct);
             order.AmendAddItem(menuItem, quantity, notes, actorId, reason, clock.UtcNow);
-            if (inventoryOptions.Value.Enabled && order.Status == OrderStatus.Preparing)
-                await ReconcileInventoryAsync(db, order, actorId, consume: true,
-                    $"Order {order.Id} revision {order.Revision} added an item", $"revision:{order.Revision}", ct,
-                    allowNegativeStock, inventoryOverrideReason);
             db.AuditEntries.Add(Audit(actorId, "AmendAddOrderItem", order.Id,
                 JsonSerializer.Serialize(new { menuItemId, quantity, notes, reason, order.Revision })));
             await db.SaveChangesAsync(ct);
@@ -157,26 +147,15 @@ public sealed class OrderService(
         Guid itemId,
         string reason,
         string actorId,
-        CancellationToken ct = default,
-        InventoryDisposition? inventoryDisposition = null)
+        CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == orderId, ct);
         await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
         var verifiedIsAdmin = await IsInRoleAsync(db, actorId, RomsRoles.Admin, ct);
-        order.AmendRemoveItem(itemId, actorId, reason, verifiedIsAdmin, inventoryDisposition, clock.UtcNow);
-        var effectiveDisposition = order.Items.Single(x => x.Id == itemId).RemovalInventoryDisposition;
-        if (inventoryOptions.Value.Enabled && order.Status == OrderStatus.Preparing)
-            await ReconcileInventoryAsync(db, order, actorId, consume: true,
-                $"Order {order.Id} revision {order.Revision} removed an item", $"revision:{order.Revision}", ct);
+        order.AmendRemoveItem(itemId, actorId, reason, verifiedIsAdmin, clock.UtcNow);
         db.AuditEntries.Add(Audit(actorId, "AmendRemoveOrderItem", order.Id,
-            JsonSerializer.Serialize(new
-            {
-                itemId,
-                reason,
-                inventoryDisposition = effectiveDisposition?.ToString(),
-                order.Revision
-            })));
+            JsonSerializer.Serialize(new { itemId, reason, order.Revision })));
         await db.SaveChangesAsync(ct);
         await Publish(order, "OrderAmended", ct);
     }
@@ -202,10 +181,7 @@ public sealed class OrderService(
         OrderStatus next,
         string actorId,
         string? reason = null,
-        CancellationToken ct = default,
-        InventoryDisposition? inventoryDisposition = null,
-        bool allowNegativeStock = false,
-        string? inventoryOverrideReason = null)
+        CancellationToken ct = default)
     {
         await using var strategyContext = await factory.CreateDbContextAsync(ct);
         var strategy = strategyContext.Database.CreateExecutionStrategy();
@@ -227,28 +203,14 @@ public sealed class OrderService(
                     await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
                 else
                     await EnsureKitchenOrAdminAsync(db, actorId, ct);
-                order.TransitionTo(next, actorId, reason, clock.UtcNow, inventoryDisposition);
-
-                if (inventoryOptions.Value.Enabled)
-                {
-                    if (next == OrderStatus.Preparing)
-                        await ReconcileInventoryAsync(db, order, actorId, consume: true,
-                            $"Order {order.Id} entered Preparing", "preparing", ct,
-                            allowNegativeStock, inventoryOverrideReason);
-                    else if (next == OrderStatus.Cancelled &&
-                             previous is OrderStatus.Preparing or OrderStatus.Ready &&
-                             order.CancellationInventoryDisposition == InventoryDisposition.ReturnToStock)
-                        await ReconcileInventoryAsync(db, order, actorId, consume: false,
-                            $"Order {order.Id} was cancelled: {reason}", "cancelled", ct);
-                }
+                order.TransitionTo(next, actorId, reason, clock.UtcNow);
 
                 db.AuditEntries.Add(Audit(actorId, next == OrderStatus.Cancelled ? "CancelOrder" : "ChangeOrderStatus", order.Id,
                     JsonSerializer.Serialize(new
                     {
                         from = previous,
                         to = next,
-                        reason,
-                        inventoryDisposition = order.CancellationInventoryDisposition?.ToString()
+                        reason
                     })));
                 await db.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
@@ -260,7 +222,7 @@ public sealed class OrderService(
             logger.LogWarning(exception,
                 "Order {OrderId} hit a transient database concurrency conflict.", orderId);
             throw new DomainException(
-                "Another inventory update happened at the same time. Reload and try this action again.");
+                "Another order update happened at the same time. Reload and try this action again.");
         }
         await Publish(changedOrder!, "OrderStatusChanged", ct);
     }
@@ -276,113 +238,6 @@ public sealed class OrderService(
             JsonSerializer.Serialize(new { order.PaymentConfirmedUtc, order.Total })));
         await db.SaveChangesAsync(ct);
         await Publish(order, "PaymentConfirmed", ct);
-    }
-
-    private async Task ReconcileInventoryAsync(
-        RomsDbContext db,
-        Order order,
-        string actorId,
-        bool consume,
-        string reason,
-        string operation,
-        CancellationToken ct,
-        bool allowNegativeStock = false,
-        string? inventoryOverrideReason = null)
-    {
-        var desired = new Dictionary<Guid, decimal>();
-        if (consume)
-        {
-            var consumedItems = order.Items
-                .Where(x => !x.IsRemoved ||
-                            x.RemovalInventoryDisposition == InventoryDisposition.ConsumedAsWasteOrStaffMeal)
-                .ToList();
-            var menuIds = consumedItems.Select(x => x.MenuItemId).Distinct().ToList();
-            var recipes = new List<RecipeIngredient>();
-            foreach (var menuId in menuIds)
-            {
-                recipes.AddRange(await db.RecipeIngredients
-                    .Where(x => x.MenuItemId == menuId)
-                    .ToListAsync(ct));
-            }
-            foreach (var group in recipes.GroupBy(x => x.InventoryItemId))
-                desired[group.Key] = -consumedItems.Join(group, i => i.MenuItemId, r => r.MenuItemId,
-                    (i, r) => i.Quantity * r.Quantity).Sum();
-        }
-
-        var existing = await db.StockMovements.Where(x => x.OrderId == order.Id).ToListAsync(ct);
-        var inventoryItemIds = desired.Keys.Concat(existing.Select(x => x.InventoryItemId)).Distinct().ToList();
-        var planned = new List<StockMovement>();
-        foreach (var inventoryItemId in inventoryItemIds)
-        {
-            var current = existing.Where(x => x.InventoryItemId == inventoryItemId).Sum(x => x.QuantityDelta);
-            var target = desired.GetValueOrDefault(inventoryItemId);
-            var delta = target - current;
-            if (delta == 0) continue;
-
-            var key = operation == "preparing"
-                ? $"order:{order.Id}:preparing:{inventoryItemId}"
-                : $"order:{order.Id}:{operation}:{inventoryItemId}";
-            if (await db.StockMovements.AnyAsync(x => x.IdempotencyKey == key, ct)) continue;
-            planned.Add(new StockMovement { InventoryItemId = inventoryItemId,
-                Type = delta < 0 ? StockMovementType.Consumption : StockMovementType.Reversal,
-                QuantityDelta = delta, Reason = reason, OrderId = order.Id,
-                IdempotencyKey = key, ActorId = actorId, OccurredUtc = clock.UtcNow });
-        }
-
-        var negativeDeltas = planned.Where(x => x.QuantityDelta < 0).ToList();
-        if (negativeDeltas.Count > 0)
-        {
-            var negativeIds = negativeDeltas.Select(x => x.InventoryItemId).Distinct().ToList();
-            var balances = new Dictionary<Guid, decimal>();
-            var inventoryItems = new Dictionary<Guid, InventoryItem>();
-            // Connector/NET cannot reliably type-map parameterized Guid collections on MariaDB.
-            // The recipe set for one order is small, and individual reads also establish the
-            // serializable-range locks needed to prevent two tickets spending the same stock.
-            foreach (var inventoryItemId in negativeIds)
-            {
-                balances[inventoryItemId] = await db.StockMovements
-                    .Where(x => x.InventoryItemId == inventoryItemId)
-                    .SumAsync(x => x.QuantityDelta, ct);
-                inventoryItems[inventoryItemId] = await db.InventoryItems
-                    .SingleAsync(x => x.Id == inventoryItemId, ct);
-            }
-            var shortages = negativeDeltas
-                .Select(x => new
-                {
-                    x.InventoryItemId,
-                    Required = -x.QuantityDelta,
-                    Available = balances.GetValueOrDefault(x.InventoryItemId),
-                    Projected = balances.GetValueOrDefault(x.InventoryItemId) + x.QuantityDelta
-                })
-                .Where(x => x.Projected < 0)
-                .ToList();
-
-            if (shortages.Count > 0)
-            {
-                var details = string.Join("; ", shortages.Select(x =>
-                {
-                    var item = inventoryItems[x.InventoryItemId];
-                    return $"{item.Name} needs {x.Required:0.###} {item.Unit} but {x.Available:0.###} is available";
-                }));
-                if (!allowNegativeStock)
-                    throw new DomainException($"Insufficient stock: {details}.");
-
-                await EnsureAdminAsync(db, actorId, ct);
-                order.RecordInventoryOverride(actorId, inventoryOverrideReason ?? string.Empty, clock.UtcNow);
-                db.AuditEntries.Add(new AuditEntry
-                {
-                    ActorId = actorId,
-                    Action = "INVENTORY_DISCREPANCY_ALERT",
-                    EntityType = nameof(Order),
-                    EntityId = order.Id.ToString(),
-                    Reason = inventoryOverrideReason!.Trim(),
-                    NewValuesJson = JsonSerializer.Serialize(shortages),
-                    OccurredUtc = clock.UtcNow
-                });
-            }
-        }
-
-        db.StockMovements.AddRange(planned);
     }
 
     private AuditEntry Audit(string actor, string action, Guid id, string? values) => new()
@@ -471,16 +326,11 @@ public sealed class OrderService(
         x.Id, x.TableId, x.Table?.Number ?? "?", x.WaiterId, WaiterName(x.WaiterId, waiterNames), x.Status,
         x.CreatedUtc, x.SubmittedUtc, x.CompletedUtc, x.PaymentConfirmedUtc, x.Revision, x.Version, x.Total,
         x.CancellationReason,
-        x.CancellationInventoryDisposition,
-        x.InventoryOverrideReason,
-        x.InventoryOverriddenBy,
-        x.InventoryOverrideUtc,
         x.Items.OrderBy(i => i.MenuItemName).Select(i => new OrderItemView(
             i.Id,
             i.MenuItemName,
             i.UnitPrice,
             i.Quantity,
             i.Notes,
-            i.IsRemoved,
-            i.RemovalInventoryDisposition)).ToList());
+            i.IsRemoved)).ToList());
 }

@@ -74,41 +74,27 @@ public sealed class OrderTests
         var order = WithItem(); order.Submit(Now); order.TransitionTo(OrderStatus.Preparing, "kitchen", null, Now);
         var itemId = order.Items[0].Id;
         Assert.Throws<DomainException>(() => order.AmendRemoveItem(
-            itemId, "waiter", "Customer changed mind", false, null, Now));
-        Assert.Throws<DomainException>(() => order.AmendRemoveItem(
-            itemId, "admin", "Approved correction", true, null, Now));
+            itemId, "waiter", "Customer changed mind", false, Now));
         order.AmendRemoveItem(
             itemId,
             "admin",
             "Approved correction",
             true,
-            InventoryDisposition.ReturnToStock,
             Now);
         Assert.True(order.Items[0].IsRemoved);
-        Assert.Equal(InventoryDisposition.ReturnToStock, order.Items[0].RemovalInventoryDisposition);
         Assert.Equal(2, order.Revision);
     }
 
     [Fact]
-    public void Prepared_cancellation_requires_and_records_inventory_disposition()
+    public void Prepared_order_can_be_cancelled_with_a_reason()
     {
         var order = WithItem();
         order.Submit(Now);
         order.TransitionTo(OrderStatus.Preparing, "kitchen", null, Now);
 
-        Assert.Throws<DomainException>(() =>
-            order.TransitionTo(OrderStatus.Cancelled, "admin", "Customer left", Now));
-
-        order.TransitionTo(
-            OrderStatus.Cancelled,
-            "admin",
-            "Converted to staff meal",
-            Now,
-            InventoryDisposition.ConsumedAsWasteOrStaffMeal);
-
-        Assert.Equal(
-            InventoryDisposition.ConsumedAsWasteOrStaffMeal,
-            order.CancellationInventoryDisposition);
+        order.TransitionTo(OrderStatus.Cancelled, "admin", "Customer left", Now);
+        Assert.Equal(OrderStatus.Cancelled, order.Status);
+        Assert.Equal("Customer left", order.CancellationReason);
     }
 
     [Fact]

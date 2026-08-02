@@ -36,24 +36,11 @@ public sealed class CommandProposalValidatorTests
     }
 
     [Fact]
-    public void Accepts_receipt_with_catalog_unit_alias()
-    {
-        var result = validator.Validate(request with
-            { Text = "Receive 20 kilograms of white rice." },
-            new(RestaurantCommandName.InventoryReceive, "white rice", 20, "kilograms"));
-
-        Assert.Equal(InterpretationStatus.Recognized, result.Status);
-        Assert.Equal(RestaurantCommandName.InventoryReceive, result.Proposal?.Command);
-        Assert.Equal(20m, result.Proposal?.Quantity);
-        Assert.Equal("kg", result.Proposal?.Unit);
-    }
-
-    [Fact]
     public void Rejects_unknown_inventory_item()
     {
         var result = validator.Validate(request with
             { Text = "Receive 20 kg of rice." },
-            new(RestaurantCommandName.InventoryReceive, "receive", 20, "kg"));
+            new(RestaurantCommandName.InventoryLookup, "receive", 0, ""));
 
         Assert.Equal(InterpretationStatus.ClarificationRequired, result.Status);
         Assert.Null(result.Proposal);
@@ -67,27 +54,6 @@ public sealed class CommandProposalValidatorTests
 
         Assert.Equal(InterpretationStatus.Unsupported, result.Status);
         Assert.Null(result.Proposal);
-    }
-
-    [Fact]
-    public void Rejects_write_when_original_text_is_a_lookup()
-    {
-        var result = validator.Validate(request with { Text = "Egg stock" },
-            new(RestaurantCommandName.InventoryReceive, "Eggs", 1, "piece"));
-
-        Assert.Equal(InterpretationStatus.ClarificationRequired, result.Status);
-        Assert.Contains(result.Issues, x => x.Contains("receipt verb"));
-    }
-
-    [Fact]
-    public void Rejects_write_when_model_changes_quantity()
-    {
-        var result = validator.Validate(request with
-            { Text = "Receive 20 kg of rice." },
-            new(RestaurantCommandName.InventoryReceive, "Rice", 10, "kg"));
-
-        Assert.Equal(InterpretationStatus.ClarificationRequired, result.Status);
-        Assert.Contains(result.Issues, x => x.Contains("exactly match"));
     }
 
     [Fact]

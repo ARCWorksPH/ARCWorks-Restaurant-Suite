@@ -1,7 +1,7 @@
 # ROMS Inventory Receiving and Physical Counts
 
-Status: implemented baseline for sandbox and supervised acceptance. Automatic
-inventory deduction remains disabled in the active deployment.
+Status: implemented manual independent-item ledger for sandbox and supervised
+acceptance. Orders do not deduct inventory ingredients.
 
 ## Receiving
 
@@ -18,7 +18,7 @@ the same idempotency key returns the original result and does not post another
 receipt. Concurrent duplicate submissions are protected by the database unique
 constraint and reconcile to one movement.
 
-Receiving does not change recipes, units, minimum levels, or previous
+Receiving does not change units, minimum levels, or previous
 movements. A mistaken receipt must be corrected by an append-only adjustment;
 the original receipt remains visible.
 
@@ -95,20 +95,17 @@ deliveries and count sheets.
 These controls are ready for disposable and supervised testing. They do not
 authorize production inventory activation.
 
-The administrator Inventory page now exposes a database-backed activation
-preflight. Its nine technical checks cover active items, unique names,
-canonical units, witnessed counts, non-negative balances, complete/valid
-recipes, active recipe references, and pending loss reviews. Restaurant
+The administrator Inventory page exposes a database-backed readiness check.
+Its six technical checks cover active items, unique names, canonical units,
+witnessed counts, non-negative balances, and pending loss reviews. Restaurant
 approval, external-audit acceptance, and the supervised pilot remain visibly
 manual gates. See `docs/EXTERNAL_AUDIT_HANDOFF_2026-07-30.md`.
 
-Before setting `Features:Inventory:Enabled=true`, obtain restaurant approval
-for:
+Before production inventory use, obtain restaurant approval for:
 
 - item names and units;
 - witnessed opening counts;
 - minimum levels;
-- every recipe quantity;
 - receiving/count authority;
-- waste, cancellation, and discrepancy policies;
+- waste, spoilage, and discrepancy policies;
 - a supervised multi-device workflow.

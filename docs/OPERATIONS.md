@@ -6,4 +6,4 @@
 - Run `scripts/backup.sh` daily from cron with `BACKUP_RECIPIENT`, `DB_ROOT_PASSWORD`, and off-site `BACKUP_DIR` configured. Protect the age private key outside both servers.
 - Alert on `/health` failure, MariaDB failure, replication lag over 60 seconds, disk use over 80%, repeated failed logins, unhandled exceptions, and missed backups.
 - Review audit entries weekly and before investigating any disputed order.
-- Keep inventory disabled until the workflow pilot, units, recipes, and opening stock are signed off.
+- Keep production inventory use supervised until the workflow pilot, units, opening stock, and approval policies are signed off. Orders never deduct ingredients.

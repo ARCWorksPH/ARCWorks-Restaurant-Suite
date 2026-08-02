@@ -7,7 +7,7 @@ It does not modify ROMS, the production MariaDB database, or the model volume.
 
 - Tagalog, Central Bikol, and Simplified Chinese understanding.
 - Translation of everyday item names into exact English database names.
-- Read-only menu, inventory, recipe, and policy lookup.
+- Read-only menu, inventory, and policy lookup. Recipe data is outside scope.
 - Grounding: factual answers must follow a successful database lookup.
 - Clarification, refusal, not-found, unavailable-tool, timeout, and
   permission-denied behavior.

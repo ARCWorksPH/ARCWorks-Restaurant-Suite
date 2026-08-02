@@ -17,7 +17,6 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
-    public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<InventoryCountRecord> InventoryCountRecords => Set<InventoryCountRecord>();
     public DbSet<InventoryLossRequest> InventoryLossRequests => Set<InventoryLossRequest>();
@@ -44,9 +43,6 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
         builder.Entity<Order>(e =>
         {
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
-            e.Property(x => x.CancellationInventoryDisposition).HasConversion<string>().HasMaxLength(40);
-            e.Property(x => x.InventoryOverrideReason).HasMaxLength(500);
-            e.Property(x => x.InventoryOverriddenBy).HasMaxLength(256);
             e.Property(x => x.PaymentConfirmedBy).HasMaxLength(256);
             // The production relational provider enforces optimistic concurrency.
             // EF's in-memory test provider doesn't preserve manually incremented tokens reliably.
@@ -61,7 +57,6 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
             e.Property(x => x.MenuItemName).HasMaxLength(120);
             e.Property(x => x.UnitPrice).HasPrecision(12, 2);
             e.Property(x => x.Notes).HasMaxLength(500);
-            e.Property(x => x.RemovalInventoryDisposition).HasConversion<string>().HasMaxLength(40);
         });
         builder.Entity<OrderStatusHistory>(e =>
         {
@@ -86,11 +81,6 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
         {
             e.Ignore(x => x.CurrentStock);
             e.Property(x => x.MinimumStock).HasPrecision(14, 3);
-        });
-        builder.Entity<RecipeIngredient>(e =>
-        {
-            e.Property(x => x.Quantity).HasPrecision(14, 3);
-            e.HasIndex(x => new { x.MenuItemId, x.InventoryItemId }).IsUnique();
         });
         builder.Entity<StockMovement>(e =>
         {

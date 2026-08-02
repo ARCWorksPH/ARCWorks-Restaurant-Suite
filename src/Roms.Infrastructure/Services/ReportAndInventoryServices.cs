@@ -2,7 +2,6 @@ using System.Data;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using MySql.Data.MySqlClient;
 using Roms.Application;
 using Roms.Domain;
@@ -29,8 +28,7 @@ public sealed class ReportService(IDbContextFactory<RomsDbContext> factory) : IR
 public sealed class InventoryService(
     IDbContextFactory<RomsDbContext> factory,
     IClock clock,
-    ILogger<InventoryService>? logger = null,
-    IOptions<InventoryOptions>? inventoryOptions = null) : IInventoryService
+    ILogger<InventoryService>? logger = null) : IInventoryService
 {
     private static readonly HashSet<string> SupportedUnits =
         new(StringComparer.OrdinalIgnoreCase) { "piece", "g", "ml" };
@@ -65,25 +63,6 @@ public sealed class InventoryService(
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task SetRecipeIngredientAsync(Guid menuItemId, Guid inventoryItemId, decimal quantity, string actorId, CancellationToken ct = default)
-    {
-        if (quantity <= 0) throw new DomainException("Recipe quantity must be greater than zero.");
-        await using var db = await factory.CreateDbContextAsync(ct);
-        await EnsureAdminAsync(db, actorId, ct);
-        if (!await db.MenuItems.AnyAsync(x => x.Id == menuItemId, ct) || !await db.InventoryItems.AnyAsync(x => x.Id == inventoryItemId && x.IsActive, ct))
-            throw new DomainException("Menu or inventory item not found.");
-        var usedByActivePreparation = await db.Orders.AnyAsync(order =>
-            (order.Status == OrderStatus.Preparing || order.Status == OrderStatus.Ready) &&
-            order.Items.Any(item => !item.IsRemoved && item.MenuItemId == menuItemId), ct);
-        if (usedByActivePreparation)
-            throw new DomainException("This recipe cannot change while an active order is being prepared.");
-        var recipe = await db.RecipeIngredients.SingleOrDefaultAsync(x => x.MenuItemId == menuItemId && x.InventoryItemId == inventoryItemId, ct);
-        if (recipe is null) db.RecipeIngredients.Add(new RecipeIngredient { MenuItemId = menuItemId, InventoryItemId = inventoryItemId, Quantity = quantity });
-        else recipe.Quantity = quantity;
-        db.AuditEntries.Add(new AuditEntry { ActorId = actorId, Action = "SetRecipeIngredient", EntityType = nameof(RecipeIngredient), EntityId = $"{menuItemId}:{inventoryItemId}", Reason = $"Quantity {quantity}", OccurredUtc = clock.UtcNow });
-        await db.SaveChangesAsync(ct);
-    }
-
     public async Task<InventoryReadinessReport> EvaluateReadinessAsync(
         string adminId,
         CancellationToken ct = default)
@@ -104,20 +83,6 @@ public sealed class InventoryService(
         var countedItemIds = await db.InventoryCountRecords.AsNoTracking()
             .Select(x => x.InventoryItemId)
             .Distinct()
-            .ToListAsync(ct);
-        var activeMenuItems = await db.MenuItems.AsNoTracking()
-            .Where(x => x.IsActive && x.IsAvailable)
-            .Select(x => new
-            {
-                x.Id,
-                x.Name,
-                Recipes = x.RecipeIngredients.Select(recipe => new
-                {
-                    recipe.InventoryItemId,
-                    recipe.Quantity,
-                    InventoryItemActive = recipe.InventoryItem != null && recipe.InventoryItem.IsActive
-                }).ToList()
-            })
             .ToListAsync(ct);
         var pendingLosses = await db.InventoryLossRequests.AsNoTracking()
             .CountAsync(x => x.Status == InventoryLossStatus.Pending, ct);
@@ -143,26 +108,6 @@ public sealed class InventoryService(
             .Select(x => $"{x.Name} ({x.Balance:0.###} {x.Unit})")
             .OrderBy(x => x)
             .ToList();
-        var missingRecipes = activeMenuItems
-            .Where(x => x.Recipes.Count == 0)
-            .Select(x => x.Name)
-            .OrderBy(x => x)
-            .ToList();
-        var invalidRecipes = activeMenuItems
-            .SelectMany(menu => menu.Recipes.Select(recipe => new { Menu = menu.Name, Recipe = recipe }))
-            .Where(x => x.Recipe.Quantity <= 0 || x.Recipe.Quantity > 99_999_999_999.999m)
-            .Select(x => x.Menu)
-            .Distinct()
-            .OrderBy(x => x)
-            .ToList();
-        var inactiveRecipeReferences = activeMenuItems
-            .SelectMany(menu => menu.Recipes.Select(recipe => new { Menu = menu.Name, Recipe = recipe }))
-            .Where(x => !x.Recipe.InventoryItemActive)
-            .Select(x => x.Menu)
-            .Distinct()
-            .OrderBy(x => x)
-            .ToList();
-
         var checks = new List<InventoryReadinessCheck>
         {
             Check("INV-001", "Active inventory catalog exists", activeItems.Count > 0,
@@ -185,37 +130,21 @@ public sealed class InventoryService(
                 negativeBalances.Count == 0
                     ? "No active item has a negative ledger balance."
                     : $"Negative balances: {ListEvidence(negativeBalances)}."),
-            Check("REC-001", "Active and available menu items have recipes", activeMenuItems.Count > 0 && missingRecipes.Count == 0,
-                activeMenuItems.Count == 0
-                    ? "No active and available menu items were found."
-                    : missingRecipes.Count == 0
-                        ? $"All {activeMenuItems.Count} active and available menu item(s) have recipe ingredients."
-                        : $"Missing recipes: {ListEvidence(missingRecipes)}."),
-            Check("REC-002", "Recipe quantities are valid", invalidRecipes.Count == 0,
-                invalidRecipes.Count == 0
-                    ? "All configured recipe quantities are positive and within the database range."
-                    : $"Invalid recipe quantities affect: {ListEvidence(invalidRecipes)}."),
-            Check("REC-003", "Recipes reference active inventory items", inactiveRecipeReferences.Count == 0,
-                inactiveRecipeReferences.Count == 0
-                    ? "All active menu recipes reference active inventory items."
-                    : $"Inactive inventory references affect: {ListEvidence(inactiveRecipeReferences)}."),
             Check("LOSS-001", "No waste or spoilage reports await review", pendingLosses == 0,
                 pendingLosses == 0
                     ? "No pending inventory loss requests."
                     : $"{pendingLosses} loss request(s) still require an administrator decision."),
             Manual("MAN-001", "Restaurant data-owner sign-off",
-                "A restaurant representative must confirm item names, canonical units, opening counts, minimum levels, and recipe quantities."),
+                "A restaurant representative must confirm item names, canonical units, opening counts, and minimum levels."),
             Manual("MAN-002", "Independent external audit acceptance",
                 "The external reviewer must accept the evidence and record any required remediation."),
             Manual("MAN-003", "Supervised multi-device pilot and rollback approval",
-                "Run the waiter-kitchen-cashier pilot against a backed-up disposable environment before changing the deployment flag.")
+                "Run the waiter-kitchen-cashier pilot against a backed-up disposable environment before production use.")
         };
 
         return new InventoryReadinessReport(
             clock.UtcNow,
-            inventoryOptions?.Value.Enabled ?? false,
             activeItems.Count,
-            activeMenuItems.Count,
             checks);
     }
 

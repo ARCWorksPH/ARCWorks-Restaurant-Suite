@@ -65,7 +65,7 @@ public sealed class RomsApplicationSmokeTests : PageTest
                 .ToBeVisibleAsync();
             var preflightPanel = Page.Locator("section.panel").Filter(new()
             {
-                Has = Page.GetByRole(AriaRole.Heading, new() { Name = "Inventory activation preflight" })
+                Has = Page.GetByRole(AriaRole.Heading, new() { Name = "Inventory readiness" })
             });
             await Expect(preflightPanel).ToBeVisibleAsync();
             await Expect(preflightPanel.GetByText("blocker(s)")).ToBeVisibleAsync();
@@ -110,7 +110,7 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Expect(preflightPanel.GetByText("Every active item has a witnessed opening count"))
                 .ToBeVisibleAsync();
             await Expect(preflightPanel.GetByText("Pass", new() { Exact = true }))
-                .ToHaveCountAsync(8);
+                .ToHaveCountAsync(6);
 
             var navigationToggle = Page.GetByRole(AriaRole.Button, new() { Name = "Toggle navigation menu" });
             await Expect(navigationToggle).ToHaveAttributeAsync("aria-expanded", "false");
@@ -166,17 +166,19 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Page.GotoAsync($"{baseAddress}/kitchen");
             await Page.GetByRole(AriaRole.Button, new() { Name = "Start preparing" }).ClickAsync();
             await Page.GotoAsync(orderUrl);
+            await Expect(Page.Locator("#roms-connection-indicator"))
+                .ToContainTextAsync("Connected");
+            // The Preparing notification can arrive just after navigation and
+            // legitimately reload authoritative order state. Let that settle
+            // before exercising user-entered cancellation text.
+            await Page.WaitForTimeoutAsync(1000);
 
-            await Expect(Page.GetByLabel("Inventory disposition for cancellation"))
-                .ToBeVisibleAsync();
-            await Page.GetByPlaceholder("Cancellation reason (required)")
-                .FillAsync("Converted to staff meal");
-            await Page.GetByLabel("Inventory disposition for cancellation")
-                .SelectOptionAsync(InventoryDisposition.ConsumedAsWasteOrStaffMeal.ToString());
+            var cancellationReasonInput = Page.GetByPlaceholder("Cancellation reason (required)");
+            await cancellationReasonInput.FillAsync("Customer left");
+            await cancellationReasonInput.PressAsync("Tab");
+            await Expect(cancellationReasonInput).ToHaveValueAsync("Customer left");
             await Page.GetByRole(AriaRole.Button, new() { Name = "Cancel order" }).ClickAsync();
             await Expect(Page.GetByText("Order cancelled."))
-                .ToBeVisibleAsync();
-            await Expect(Page.GetByText("ingredients retained as consumed waste or staff meal"))
                 .ToBeVisibleAsync();
         }
         finally
@@ -320,7 +322,6 @@ public sealed class RomsApplicationSmokeTests : PageTest
         startInfo.Environment["ASPNETCORE_URLS"] = baseAddress;
         startInfo.Environment["ConnectionStrings__DefaultConnection"] = connectionString;
         startInfo.Environment["DataProtection__KeysPath"] = keysPath;
-        startInfo.Environment["Features__Inventory__Enabled"] = "false";
         startInfo.Environment["Seed__AdminUsername"] = username;
         startInfo.Environment["Seed__AdminPassword"] = password;
         startInfo.Environment["Seed__DemoData"] = "true";

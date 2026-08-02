@@ -1,14 +1,14 @@
 # ROMS Natural-Language Command Protocol
 
 Status: experimental, non-production
-Schema version: 1
+Schema version: 2
 
 ## Governing rule
 
 The database owns the truth. The model only proposes a structured command.
 Model output is untrusted and must never be executed directly.
 
-## Version 1 commands
+## Version 2 commands
 
 ### `InventoryLookup`
 
@@ -17,16 +17,6 @@ Model output is untrusted and must never be executed directly.
 - Forbidden model fields: quantity and unit.
 - Execution class: read-only.
 - Production confirmation: not required.
-
-### `InventoryReceive`
-
-- Purpose: propose receiving an explicit positive quantity of one exact item.
-- Required model fields: catalog item name or alias, quantity, and compatible unit.
-- Execution class: write.
-- Production confirmation: always required.
-- Production requirements not implemented in the gateway: authenticated actor,
-  authorized role, server-generated confirmation token, reason/source,
-  idempotency key, transaction, and audit entry.
 
 ### `Unknown`
 
@@ -53,10 +43,7 @@ The command gateway:
 - accepts a bounded catalog supplied for the request;
 - requires exact deterministic catalog and unit matching;
 - requires the original text to explicitly name the proposed catalog item;
-- permits a receipt proposal only when the original text contains an explicit
-  receipt verb, exactly one numeric quantity equal to the proposal, and an
-  explicit compatible unit;
-- applies quantity safety limits;
+- rejects every write request, including inventory receiving;
 - returns application DTOs rather than model-authored user messages;
 - logs request identifiers and outcomes, not database data or credentials.
 

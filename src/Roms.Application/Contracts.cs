@@ -17,13 +17,10 @@ public interface IOrderEventPublisher { Task PublishAsync(OrderEvent message, Ca
 public sealed record TableCard(Guid Id, string Number, TableStatus Status, Guid? ActiveOrderId, decimal Total,
     string? WaiterId, string? WaiterName);
 public sealed record MenuItemChoice(Guid Id, string Name, string Category, decimal Price, string Description);
-public sealed record OrderItemView(Guid Id, string Name, decimal UnitPrice, int Quantity, string Notes, bool IsRemoved,
-    InventoryDisposition? RemovalInventoryDisposition);
+public sealed record OrderItemView(Guid Id, string Name, decimal UnitPrice, int Quantity, string Notes, bool IsRemoved);
 public sealed record OrderView(Guid Id, Guid TableId, string TableNumber, string WaiterId, string WaiterName, OrderStatus Status,
     DateTime CreatedUtc, DateTime? SubmittedUtc, DateTime? CompletedUtc, DateTime? PaymentConfirmedUtc,
     int Revision, long Version, decimal Total, string? CancellationReason,
-    InventoryDisposition? CancellationInventoryDisposition,
-    string? InventoryOverrideReason, string? InventoryOverriddenBy, DateTime? InventoryOverrideUtc,
     IReadOnlyList<OrderItemView> Items);
 public sealed record DashboardReport(decimal CompletedOrderValue, int OrderCount, decimal AverageOrderValue,
     IReadOnlyList<BestSeller> BestSellers);
@@ -72,9 +69,7 @@ public sealed record InventoryReadinessCheck(
     string Evidence);
 public sealed record InventoryReadinessReport(
     DateTime EvaluatedUtc,
-    bool InventoryEnabled,
     int ActiveInventoryItemCount,
-    int ActiveMenuItemCount,
     IReadOnlyList<InventoryReadinessCheck> Checks)
 {
     public bool TechnicalChecksPassed => Checks.All(x => x.Status != InventoryReadinessStatus.Blocked);
@@ -102,13 +97,12 @@ public interface IOrderService
     Task AddItemAsync(Guid orderId, Guid menuItemId, int quantity, string? notes, string actorId, CancellationToken cancellationToken = default);
     Task RemoveDraftItemAsync(Guid orderId, Guid itemId, string actorId, CancellationToken cancellationToken = default);
     Task AmendAddItemAsync(Guid orderId, Guid menuItemId, int quantity, string? notes, string reason, string actorId,
-        CancellationToken cancellationToken = default, bool allowNegativeStock = false, string? inventoryOverrideReason = null);
+        CancellationToken cancellationToken = default);
     Task AmendRemoveItemAsync(Guid orderId, Guid itemId, string reason, string actorId,
-        CancellationToken cancellationToken = default, InventoryDisposition? inventoryDisposition = null);
+        CancellationToken cancellationToken = default);
     Task<Guid> SubmitAsync(Guid orderId, string idempotencyKey, string actorId, CancellationToken cancellationToken = default);
     Task TransitionAsync(Guid orderId, OrderStatus next, string actorId, string? reason = null,
-        CancellationToken cancellationToken = default, InventoryDisposition? inventoryDisposition = null,
-        bool allowNegativeStock = false, string? inventoryOverrideReason = null);
+        CancellationToken cancellationToken = default);
     Task ConfirmPaymentAsync(Guid orderId, string adminId, CancellationToken cancellationToken = default);
 }
 
@@ -131,7 +125,6 @@ public interface IInventoryService
     Task<IReadOnlyList<InventoryBalance>> GetBalancesAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<InventoryItem>> GetItemsAsync(CancellationToken cancellationToken = default);
     Task SaveItemAsync(InventoryItem item, string actorId, CancellationToken cancellationToken = default);
-    Task SetRecipeIngredientAsync(Guid menuItemId, Guid inventoryItemId, decimal quantity, string actorId, CancellationToken cancellationToken = default);
     Task ReceiveAsync(Guid itemId, decimal quantity, string deliveryReference, string? note, string actorId,
         string idempotencyKey, CancellationToken cancellationToken = default);
     Task<Guid> ReconcileCountAsync(Guid itemId, decimal countedQuantity, string reason, string actorId,

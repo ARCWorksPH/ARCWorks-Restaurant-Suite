@@ -12,14 +12,6 @@
 else
 {
     <div class="page-heading"><div><h1>Table @order.TableNumber</h1><span class="status-pill status-@order.Status.ToString().ToLowerInvariant()">@order.Status</span> <small>Waiter: @order.WaiterName · Revision @order.Revision</small></div><button class="btn btn-outline-secondary touch-button" @onclick="Back">Back</button></div>
-    @if (!string.IsNullOrWhiteSpace(order.InventoryOverrideReason))
-    {
-        <div class="alert alert-danger">
-            <strong>Inventory discrepancy — manager override used.</strong>
-            @order.InventoryOverrideReason
-            <small>Authorized by @order.InventoryOverriddenBy at @order.InventoryOverrideUtc?.ToLocalTime().ToString("g").</small>
-        </div>
-    }
     <div class="order-layout">
         <section>
             <h2>Current order</h2>
@@ -38,26 +30,15 @@ else
                 <div class="alert alert-secondary">
                     <strong>Order cancelled.</strong>
                     @order.CancellationReason
-                    @if (order.CancellationInventoryDisposition is not null)
-                    {
-                        <span> Inventory: @DispositionLabel(order.CancellationInventoryDisposition.Value).</span>
-                    }
                 </div>
             }
             else { <div class="alert alert-info">Kitchen status: <strong>@order.Status</strong></div> }
             @if (order.Status is not (OrderStatus.Completed or OrderStatus.Cancelled) && (isAdmin || order.Status is OrderStatus.Draft or OrderStatus.New))
             {
                 <div class="cancel-panel">
-                    <input class="form-control" placeholder="Cancellation reason (required)" @bind="cancellationReason" />
-                    @if (order.Status is OrderStatus.Preparing or OrderStatus.Ready)
-                    {
-                        <label class="form-label" for="cancellation-inventory-disposition">Inventory disposition for cancellation</label>
-                        <select id="cancellation-inventory-disposition" class="form-select" @bind="cancellationInventoryDisposition">
-                            <option value="">Choose inventory disposition</option>
-                            <option value="@InventoryDisposition.ReturnToStock">Return ingredients to stock</option>
-                            <option value="@InventoryDisposition.ConsumedAsWasteOrStaffMeal">Consumed as waste or staff meal</option>
-                        </select>
-                    }
+                    <input class="form-control" placeholder="Cancellation reason (required)"
+                           value="@cancellationReason"
+                           @oninput="eventArgs => cancellationReason = eventArgs.Value?.ToString() ?? string.Empty" />
                     <button class="btn btn-outline-danger touch-button" disabled="@busy" @onclick="Cancel">Cancel order</button>
                 </div>
             }
@@ -70,23 +51,6 @@ else
                     <div class="alert alert-warning">
                         Kitchen will be notified.
                         <input class="form-control mt-2" placeholder="Amendment reason (required)" @bind="amendmentReason" />
-                        @if (order.Status == OrderStatus.Preparing && isAdmin)
-                        {
-                            <label class="form-label mt-2" for="removal-inventory-disposition">When removing a prepared item</label>
-                            <select id="removal-inventory-disposition" class="form-select" @bind="removalInventoryDisposition">
-                                <option value="">Choose inventory disposition</option>
-                                <option value="@InventoryDisposition.ReturnToStock">Return ingredients to stock</option>
-                                <option value="@InventoryDisposition.ConsumedAsWasteOrStaffMeal">Consumed as waste or staff meal</option>
-                            </select>
-                            <label class="form-check mt-2">
-                                <input class="form-check-input" type="checkbox" @bind="allowNegativeStock" />
-                                <span class="form-check-label">Manager override if added items would make stock negative</span>
-                            </label>
-                            @if (allowNegativeStock)
-                            {
-                                <input class="form-control mt-2" placeholder="Manager stock override reason (required)" @bind="inventoryOverrideReason" />
-                            }
-                        }
                     </div>
                 }
                 <div class="input-row"><input class="form-control" placeholder="Special instructions" @bind="notes" /><input class="form-control quantity" type="number" min="1" max="99" @bind="quantity" /></div>
@@ -98,18 +62,15 @@ else
 
 @code {
     [Parameter] public Guid OrderId { get; set; }
-    private OrderView? order; private IReadOnlyList<MenuItemChoice> menu = []; private string notes = "", amendmentReason = "", cancellationReason = "", inventoryOverrideReason = ""; private int quantity = 1; private bool busy, isAdmin, allowNegativeStock; private string? error; private string actor = "unknown"; private string submissionKey = Guid.NewGuid().ToString("N"); private InventoryDisposition? removalInventoryDisposition, cancellationInventoryDisposition;
+    private OrderView? order; private IReadOnlyList<MenuItemChoice> menu = []; private string notes = "", amendmentReason = "", cancellationReason = ""; private int quantity = 1; private bool busy, isAdmin; private string? error; private string actor = "unknown"; private string submissionKey = Guid.NewGuid().ToString("N");
     protected override async Task OnInitializedAsync() { var state = await Authentication.GetAuthenticationStateAsync(); actor = state.User.Identity?.Name ?? "unknown"; isAdmin = state.User.IsInRole(RomsRoles.Admin); Events.Changed += OnChanged; }
     protected override async Task OnParametersSetAsync() => await Load();
     private async Task Load() { try { order = await Orders.GetOrderAsync(OrderId, actor); menu = await Orders.GetMenuAsync(); if (order is null) error = "Order not found."; } catch (Exception ex) { order = null; error = ex.Message; } }
-    private async Task Add(Guid menuId) => await Run(async () => { if (order!.Status == OrderStatus.Draft) await Orders.AddItemAsync(OrderId, menuId, quantity, notes, actor); else await Orders.AmendAddItemAsync(OrderId, menuId, quantity, notes, amendmentReason, actor, allowNegativeStock: allowNegativeStock, inventoryOverrideReason: inventoryOverrideReason); notes = amendmentReason = inventoryOverrideReason = ""; allowNegativeStock = false; quantity = 1; });
-    private async Task Remove(Guid itemId) => await Run(async () => { if (order!.Status == OrderStatus.Draft) await Orders.RemoveDraftItemAsync(OrderId, itemId, actor); else await Orders.AmendRemoveItemAsync(OrderId, itemId, amendmentReason, actor, inventoryDisposition: removalInventoryDisposition); amendmentReason = ""; removalInventoryDisposition = null; });
+    private async Task Add(Guid menuId) => await Run(async () => { if (order!.Status == OrderStatus.Draft) await Orders.AddItemAsync(OrderId, menuId, quantity, notes, actor); else await Orders.AmendAddItemAsync(OrderId, menuId, quantity, notes, amendmentReason, actor); notes = amendmentReason = ""; quantity = 1; });
+    private async Task Remove(Guid itemId) => await Run(async () => { if (order!.Status == OrderStatus.Draft) await Orders.RemoveDraftItemAsync(OrderId, itemId, actor); else await Orders.AmendRemoveItemAsync(OrderId, itemId, amendmentReason, actor); amendmentReason = ""; });
     private async Task Submit() => await Run(async () => { await Orders.SubmitAsync(OrderId, submissionKey, actor); submissionKey = Guid.NewGuid().ToString("N"); });
     private async Task Complete() => await Run(() => Orders.TransitionAsync(OrderId, OrderStatus.Completed, actor));
-    private async Task Cancel() => await Run(async () => { await Orders.TransitionAsync(OrderId, OrderStatus.Cancelled, actor, cancellationReason, inventoryDisposition: cancellationInventoryDisposition); cancellationReason = ""; cancellationInventoryDisposition = null; });
-    private static string DispositionLabel(InventoryDisposition disposition) => disposition == InventoryDisposition.ReturnToStock
-        ? "ingredients returned to stock"
-        : "ingredients retained as consumed waste or staff meal";
+    private async Task Cancel() => await Run(async () => { await Orders.TransitionAsync(OrderId, OrderStatus.Cancelled, actor, cancellationReason); cancellationReason = ""; });
     private void OnChanged(OrderEvent message) { if(message.OrderId==OrderId) _=InvokeAsync(async()=>{await Load();StateHasChanged();}); }
     private void Back() => Navigation.NavigateTo("tables");
     private async Task Run(Func<Task> action) { if (busy) return; busy = true; error = null; try { await action(); await Load(); } catch (Exception ex) { error = ex.Message; } finally { busy = false; } }

@@ -9,7 +9,6 @@ The importer creates:
 
 - menu categories and menu items;
 - inventory items and minimum-stock levels;
-- recipe ingredient relationships;
 - opening balances as auditable `Receipt` stock movements; and
 - one audit record containing the source SHA-256 and imported counts.
 
@@ -18,8 +17,9 @@ Every opening balance is marked `UNVERIFIED`.
 ## Intentionally unmapped
 
 The Phase 1 model does not import inventory category, unit cost, storage
-location, serving size, contact details, employee permissions, scenario logs,
-or the proposed negative-stock policy. Preview mode reports these exclusions.
+location, serving size, recipe data, contact details, employee permissions,
+scenario logs, or the proposed negative-stock policy. Preview mode reports
+these exclusions.
 They must not be silently interpreted as implemented product behavior.
 
 ## Preview
@@ -35,9 +35,8 @@ Exit code `0` means validation passed. The JSON output includes the source hash,
 record counts, errors, and warnings.
 
 Validation covers required values, unique external IDs, supported canonical
-units, database precision and length limits, exact count timestamps, recipe
-foreign keys, recipe name/unit agreement, positive quantities, duplicate
-menu/ingredient pairs, and recipe coverage for every menu item.
+units, database precision and length limits, and exact count timestamps. Any
+recipe section in a supplied legacy JSON file is ignored.
 
 ## Apply to a disposable sandbox
 
@@ -70,7 +69,7 @@ partial import.
 ## Production boundary
 
 Do not point this utility at the production database, rename the production
-database to bypass the sandbox guard, or enable inventory based on its output.
+database to bypass the sandbox guard, or approve production inventory based on its output.
 Production onboarding requires confirmed restaurant values, a backup, an
 approved production migration procedure, reconciliation, and supervised
 acceptance testing.

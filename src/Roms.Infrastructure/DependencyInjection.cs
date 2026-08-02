@@ -20,7 +20,6 @@ public static class DependencyInjection
         services.AddDbContextFactory<RomsDbContext>((provider, options) => options
             .UseMySQL(connectionString, mySql => mySql.EnableRetryOnFailure())
             .AddInterceptors(provider.GetRequiredService<MariaDbMigrationLockInterceptor>()), ServiceLifetime.Scoped);
-        services.Configure<InventoryOptions>(configuration.GetSection("Features:Inventory"));
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<ICatalogService, CatalogService>();

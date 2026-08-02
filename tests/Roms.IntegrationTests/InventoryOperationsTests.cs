@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Roms.Application;
 using Roms.Domain;
 using Roms.Infrastructure.Identity;
@@ -161,27 +160,7 @@ public sealed class InventoryOperationsTests(MariaDbFixture fixture)
     {
         await using var database = await fixture.CreateDatabaseAsync();
         var scenario = await SeedAsync(database);
-        await using (var db = database.CreateContext())
-        {
-            var category = new MenuCategory { Name = "Mains" };
-            var menuItem = new MenuItem
-            {
-                Category = category,
-                Name = "Fried rice",
-                Price = 120m
-            };
-            menuItem.RecipeIngredients.Add(new RecipeIngredient
-            {
-                InventoryItemId = scenario.ItemId,
-                Quantity = 10m
-            });
-            db.MenuItems.Add(menuItem);
-            await db.SaveChangesAsync();
-        }
-        var service = new InventoryService(
-            database.CreateFactory(),
-            new FixedClock(),
-            inventoryOptions: Options.Create(new InventoryOptions { Enabled = false }));
+        var service = new InventoryService(database.CreateFactory(), new FixedClock());
         await service.ReceiveAsync(
             scenario.ItemId, 100m, "OPENING-STOCK", null,
             scenario.AdminUsername, "readiness-receipt");
@@ -192,8 +171,7 @@ public sealed class InventoryOperationsTests(MariaDbFixture fixture)
         var report = await service.EvaluateReadinessAsync(scenario.AdminUsername);
 
         Assert.True(report.TechnicalChecksPassed);
-        Assert.False(report.InventoryEnabled);
-        Assert.Equal(9, report.Checks.Count(x => x.Status == InventoryReadinessStatus.Pass));
+        Assert.Equal(6, report.Checks.Count(x => x.Status == InventoryReadinessStatus.Pass));
         Assert.Equal(3, report.Checks.Count(x => x.Status == InventoryReadinessStatus.Manual));
         Assert.DoesNotContain(report.Checks, x => x.Status == InventoryReadinessStatus.Blocked);
     }
@@ -207,39 +185,7 @@ public sealed class InventoryOperationsTests(MariaDbFixture fixture)
         {
             var item = await db.InventoryItems.SingleAsync();
             item.Unit = "kg";
-            var category = new MenuCategory { Name = "Mains" };
-            var inactiveItem = new InventoryItem
-            {
-                Name = "Retired oil",
-                Unit = "ml",
-                IsActive = false
-            };
-            db.InventoryItems.AddRange(
-                inactiveItem,
-                new InventoryItem { Name = item.Name.ToUpperInvariant(), Unit = "ml" });
-            db.MenuItems.Add(new MenuItem
-            {
-                Category = category,
-                Name = "Unmapped special",
-                Price = 99m
-            });
-            var invalidRecipeMenu = new MenuItem
-            {
-                Category = category,
-                Name = "Invalid recipe special",
-                Price = 109m
-            };
-            invalidRecipeMenu.RecipeIngredients.Add(new RecipeIngredient
-            {
-                InventoryItem = inactiveItem,
-                Quantity = 1m
-            });
-            invalidRecipeMenu.RecipeIngredients.Add(new RecipeIngredient
-            {
-                InventoryItemId = scenario.ItemId,
-                Quantity = 0m
-            });
-            db.MenuItems.Add(invalidRecipeMenu);
+            db.InventoryItems.Add(new InventoryItem { Name = item.Name.ToUpperInvariant(), Unit = "ml" });
             db.StockMovements.Add(new StockMovement
             {
                 InventoryItemId = scenario.ItemId,
@@ -269,9 +215,7 @@ public sealed class InventoryOperationsTests(MariaDbFixture fixture)
         Assert.Contains(report.Checks, x => x.Code == "INV-003" && x.Status == InventoryReadinessStatus.Blocked);
         Assert.Contains(report.Checks, x => x.Code == "INV-004" && x.Status == InventoryReadinessStatus.Blocked);
         Assert.Contains(report.Checks, x => x.Code == "INV-005" && x.Status == InventoryReadinessStatus.Blocked);
-        Assert.Contains(report.Checks, x => x.Code == "REC-001" && x.Status == InventoryReadinessStatus.Blocked);
-        Assert.Contains(report.Checks, x => x.Code == "REC-002" && x.Status == InventoryReadinessStatus.Blocked);
-        Assert.Contains(report.Checks, x => x.Code == "REC-003" && x.Status == InventoryReadinessStatus.Blocked);
+        Assert.DoesNotContain(report.Checks, x => x.Code.StartsWith("REC-", StringComparison.Ordinal));
         Assert.Contains(report.Checks, x => x.Code == "LOSS-001" && x.Status == InventoryReadinessStatus.Blocked);
         await Assert.ThrowsAsync<DomainException>(() =>
             service.EvaluateReadinessAsync(scenario.WaiterUsername));

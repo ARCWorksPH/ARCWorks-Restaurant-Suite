@@ -2,7 +2,7 @@ namespace Roms.Application.Commands;
 
 public static class RestaurantCommandProtocol
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
     public const int MaximumRequestLength = 500;
     public const int MaximumCatalogItems = 500;
 }
@@ -10,8 +10,7 @@ public static class RestaurantCommandProtocol
 public enum RestaurantCommandName
 {
     Unknown,
-    InventoryLookup,
-    InventoryReceive
+    InventoryLookup
 }
 
 public enum InterpretationStatus

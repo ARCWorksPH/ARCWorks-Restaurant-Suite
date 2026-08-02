@@ -33,10 +33,7 @@ public sealed partial class CommandProposalValidator
 
         return modelProposal.Command switch
         {
-            RestaurantCommandName.InventoryLookup =>
-                ValidateLookup(request, modelProposal, item),
-            RestaurantCommandName.InventoryReceive =>
-                ValidateReceipt(request, modelProposal, item),
+            RestaurantCommandName.InventoryLookup => ValidateLookup(request, modelProposal, item),
             _ => Response(request, InterpretationStatus.Unsupported, null,
                 "The proposed command is not allowed by this protocol version.")
         };
@@ -57,45 +54,6 @@ public sealed partial class CommandProposalValidator
             ? Response(request, InterpretationStatus.Recognized,
                 new ValidatedCommandProposal(
                     RestaurantCommandName.InventoryLookup, item.Key, item.Name, null, null))
-            : Response(request, InterpretationStatus.ClarificationRequired, null, issues);
-    }
-
-    private static InterpretCommandResponse ValidateReceipt(
-        InterpretCommandRequest request,
-        ModelCommandProposal modelProposal,
-        InventoryCatalogItem item)
-    {
-        var issues = new List<string>();
-        if (!ReceiptVerb().IsMatch(request.Text))
-            issues.Add("InventoryReceive requires an explicit receipt verb in the original request.");
-        if (modelProposal.Quantity <= 0 || modelProposal.Quantity > 1_000_000m)
-            issues.Add("InventoryReceive requires a positive quantity within the safety limit.");
-        var quantities = NumericValue().Matches(request.Text)
-            .Select(match => decimal.TryParse(
-                match.Value,
-                System.Globalization.NumberStyles.Number,
-                System.Globalization.CultureInfo.InvariantCulture,
-                out var value)
-                ? (decimal?)value
-                : null)
-            .Where(value => value.HasValue)
-            .Select(value => value!.Value)
-            .ToList();
-        if (quantities.Count != 1 || quantities[0] != modelProposal.Quantity)
-            issues.Add("The proposed quantity must exactly match one numeric quantity in the original request.");
-
-        var units = item.AcceptedUnits.Append(item.Unit).Select(Normalize).ToHashSet();
-        if (!units.Contains(Normalize(modelProposal.Unit)))
-            issues.Add($"The proposed unit does not match the catalog unit for {item.Name}.");
-        if (!item.AcceptedUnits.Append(item.Unit)
-                .Any(unit => TextContainsPhrase(request.Text, unit)))
-            issues.Add("InventoryReceive requires an explicit compatible unit in the original request.");
-
-        return issues.Count == 0
-            ? Response(request, InterpretationStatus.Recognized,
-                new ValidatedCommandProposal(
-                    RestaurantCommandName.InventoryReceive, item.Key, item.Name,
-                    modelProposal.Quantity, item.Unit))
             : Response(request, InterpretationStatus.ClarificationRequired, null, issues);
     }
 
@@ -137,10 +95,4 @@ public sealed partial class CommandProposalValidator
     [GeneratedRegex(@"[^A-Z0-9]+")]
     private static partial Regex NonAlphaNumeric();
 
-    [GeneratedRegex(@"\b(receive|received|receiving|add|added|deliver|delivered|delivery)\b",
-        RegexOptions.IgnoreCase)]
-    private static partial Regex ReceiptVerb();
-
-    [GeneratedRegex(@"(?<![\w.])-?\d+(?:\.\d+)?(?![\w.])")]
-    private static partial Regex NumericValue();
 }

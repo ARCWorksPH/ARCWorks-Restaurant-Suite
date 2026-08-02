@@ -4,7 +4,6 @@ public enum UserRole { Admin, Waiter, Kitchen }
 public enum OrderStatus { Draft, New, Preparing, Ready, Completed, Cancelled }
 public enum TableStatus { Available, Occupied, Preparing, ReadyToServe, PendingPayment }
 public enum StockMovementType { Receipt, Consumption, Adjustment, Reversal, Waste, Spoilage }
-public enum InventoryDisposition { ReturnToStock, ConsumedAsWasteOrStaffMeal }
 public enum InventoryLossType { Waste, Spoilage }
 public enum InventoryLossStatus { Pending, Approved, Rejected }
 
@@ -93,7 +92,6 @@ public sealed class MenuItem
     public decimal Price { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsAvailable { get; set; } = true;
-    public List<RecipeIngredient> RecipeIngredients { get; set; } = [];
 }
 
 public sealed class Order
@@ -110,10 +108,6 @@ public sealed class Order
     public DateTime? PaymentConfirmedUtc { get; private set; }
     public string? PaymentConfirmedBy { get; private set; }
     public string? CancellationReason { get; private set; }
-    public InventoryDisposition? CancellationInventoryDisposition { get; private set; }
-    public string? InventoryOverrideReason { get; private set; }
-    public string? InventoryOverriddenBy { get; private set; }
-    public DateTime? InventoryOverrideUtc { get; private set; }
     public int Revision { get; private set; } = 1;
     public long Version { get; private set; }
     public List<OrderItem> Items { get; set; } = [];
@@ -138,17 +132,13 @@ public sealed class Order
         string actorId,
         string reason,
         bool actorIsAdmin,
-        InventoryDisposition? inventoryDisposition,
         DateTime utcNow)
     {
         EnsureAmendable(reason);
         if (Status == OrderStatus.Preparing && !actorIsAdmin)
             throw new DomainException("Only an administrator can remove an item after preparation begins.");
-        if (Status == OrderStatus.Preparing && inventoryDisposition is null)
-            throw new DomainException("Choose whether the prepared item's ingredients return to stock or remain consumed.");
         var item = Items.SingleOrDefault(x => x.Id == itemId && !x.IsRemoved) ?? throw new DomainException("Order item not found.");
         item.IsRemoved = true;
-        item.RemovalInventoryDisposition = Status == OrderStatus.Preparing ? inventoryDisposition : null;
         RecordAmendment(actorId, reason, utcNow);
     }
 
@@ -199,22 +189,16 @@ public sealed class Order
         OrderStatus next,
         string actorId,
         string? reason,
-        DateTime utcNow,
-        InventoryDisposition? inventoryDisposition = null)
+        DateTime utcNow)
     {
         if (next == OrderStatus.Cancelled)
         {
             if (Status is OrderStatus.Completed or OrderStatus.Cancelled) throw new DomainException("This order can no longer be cancelled.");
             if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("A cancellation reason is required.");
             if (reason.Trim().Length > 500) throw new DomainException("A cancellation reason cannot exceed 500 characters.");
-            if (Status is OrderStatus.Preparing or OrderStatus.Ready && inventoryDisposition is null)
-                throw new DomainException("Choose whether prepared ingredients return to stock or remain consumed.");
             var previous = Status;
             Status = next;
             CancellationReason = reason.Trim();
-            CancellationInventoryDisposition = previous is OrderStatus.Preparing or OrderStatus.Ready
-                ? inventoryDisposition
-                : null;
             AddHistory(previous, next, actorId, CancellationReason, utcNow);
             return;
         }
@@ -252,18 +236,6 @@ public sealed class Order
         Touch(utcNow);
     }
 
-    public void RecordInventoryOverride(string actorId, string reason, DateTime utcNow)
-    {
-        if (string.IsNullOrWhiteSpace(reason))
-            throw new DomainException("A manager override reason is required.");
-        if (reason.Trim().Length > 500)
-            throw new DomainException("A manager override reason cannot exceed 500 characters.");
-        InventoryOverriddenBy = actorId;
-        InventoryOverrideReason = reason.Trim();
-        InventoryOverrideUtc = utcNow;
-        Touch(utcNow);
-    }
-
     private void AddHistory(OrderStatus from, OrderStatus to, string actorId, string? reason, DateTime utcNow)
     {
         StatusHistory.Add(new OrderStatusHistory
@@ -288,7 +260,6 @@ public sealed class OrderItem
     public int Quantity { get; set; }
     public string Notes { get; set; } = "";
     public bool IsRemoved { get; set; }
-    public InventoryDisposition? RemovalInventoryDisposition { get; set; }
 }
 
 public sealed class OrderStatusHistory
@@ -333,16 +304,6 @@ public sealed class InventoryItem
     public bool IsActive { get; set; } = true;
     public List<StockMovement> Movements { get; set; } = [];
     public decimal CurrentStock => Movements.Sum(x => x.QuantityDelta);
-}
-
-public sealed class RecipeIngredient
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid MenuItemId { get; set; }
-    public MenuItem? MenuItem { get; set; }
-    public Guid InventoryItemId { get; set; }
-    public InventoryItem? InventoryItem { get; set; }
-    public decimal Quantity { get; set; }
 }
 
 public sealed class StockMovement
