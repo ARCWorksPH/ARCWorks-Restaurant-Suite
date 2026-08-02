@@ -44,12 +44,26 @@ Command gateway:
 
 ROMS application:
 
-- authenticates the user and loads current roles/ownership from MariaDB;
-- supplies only bounded item/category/table catalogs needed for interpretation;
+- authenticates the user and loads the active account's current roles from
+  MariaDB before contacting the gateway;
+- derives an explicit permitted-function list for that role and sends no
+  inventory catalog to Waiter accounts;
+- supplies only role-permitted, bounded item/category/table catalogs needed
+  for interpretation;
 - converts only a recognized, validated proposal to an approved function;
 - performs parameterized EF Core queries, not model-generated SQL;
+- applies both per-user requests-per-minute and global concurrent-inference
+  limits before loading catalogs;
 - formats database facts itself and audits every executed AI read;
+- audits denied, unsupported, throttled, and failed interpretation attempts
+  using request ID, outcome, prompt length, and SHA-256 only; raw prompts are
+  not stored;
 - exposes no AI write function.
+
+The gateway receives the role-derived permitted-function list and rejects a
+model proposal that is absent from it. ROMS repeats that check before mapping a
+validated proposal, so a compromised or defective gateway cannot expand the
+caller's permissions.
 
 ## Feature control
 
@@ -58,6 +72,11 @@ disabled. Enabling the flag requires the private `ai-lab` services, but does
 not constitute production approval. Disable the flag or stop the AI services
 to remove the path without affecting ordering, inventory, MariaDB, tunnel, or
 monitoring.
+
+The availability controls default to two concurrent model requests across the
+application and six requests per signed-in user per minute. Adjust them with
+`AI_MAX_CONCURRENT_REQUESTS` and `AI_REQUESTS_PER_MINUTE`; raising them requires
+new load evidence.
 
 ## Local maintenance access
 

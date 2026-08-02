@@ -928,3 +928,33 @@ disabled pending adversarial acceptance.
 Run the locked multilingual/adversarial, timeout, stale-catalog, concurrency,
 and cross-role corpus through the complete authenticated app path before a
 staging pilot. No AI write or recipe function is approved.
+
+## 2026-08-02 - Security hardening after independent scan
+
+Status: implemented, fully regression-tested, deployed, and ready for the next
+independent security scan.
+
+- Protected confidential independent-audit material and local runtime secrets
+  from accidental publication by broad Git staging.
+- Dispositioned the reported SQL-injection and Docker ownership findings as
+  false positives. The migration-lock rewrite was still converted to an exact
+  command match plus parameterized timeout to eliminate scanner ambiguity;
+  mutable GitHub Actions and missing health checks were corrected.
+- Added role-derived AI function allowlists, pre-model catalog filtering,
+  duplicate gateway/app authorization checks, per-user throttling, global
+  concurrency bounds, and privacy-preserving audit records for every outcome.
+- Hardened ROMS, the command gateway, and Cloudflare with read-only roots,
+  dropped capabilities, `no-new-privileges`, process limits, pinned images,
+  host allowlisting, and HTTP security headers.
+- Replaced `eloquent_archimedes` only after the hardened tunnel registered and
+  the public ROMS health check passed. `arcworks-cloudflared` now uses only the
+  ROMS edge and portfolio networks.
+- Protected GitHub `main`: PR and current `verify` check required, conversations
+  resolved, administrator enforcement enabled, force pushes/deletion disabled,
+  and zero outside approvals required for the single-owner workflow.
+- Release build passed with 0 warnings and 0 errors. The complete solution
+  passed 63/63 tests: Domain 11, Command Gateway 11, Integration 38, and browser
+  E2E 3. ROMS, monitor, and portfolio then returned public HTTP 200; protected
+  anonymous routes redirected to login; `AI_ENABLED=false` remained active.
+- Full technical evidence and the remaining AI acceptance gate are recorded in
+  `docs/SECURITY_HARDENING_2026-08-02.md`.

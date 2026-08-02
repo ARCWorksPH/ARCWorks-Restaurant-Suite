@@ -22,6 +22,8 @@ public static class DependencyInjection
             .UseMySQL(connectionString, mySql => mySql.EnableRetryOnFailure())
             .AddInterceptors(provider.GetRequiredService<MariaDbMigrationLockInterceptor>()), ServiceLifetime.Scoped);
         services.AddSingleton<IClock, SystemClock>();
+        services.Configure<AiSecurityOptions>(configuration.GetSection("Ai"));
+        services.AddSingleton<AiRequestGate>();
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<ICatalogService, CatalogService>();
         services.AddScoped<IReportService, ReportService>();

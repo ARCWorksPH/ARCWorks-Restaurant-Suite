@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Roms.Application;
 using Roms.Application.Ai;
 using Roms.Application.Commands;
@@ -208,7 +209,7 @@ public sealed class AiFunctionServiceTests
                 null,
                 null),
             []));
-        var assistant = new AiAssistantService(scenario.Factory, gateway, scenario.Service);
+        var assistant = CreateAssistant(scenario, gateway);
 
         var result = await assistant.AskAsync("How much Cooking oil is left?", scenario.Kitchen);
 
@@ -217,6 +218,7 @@ public sealed class AiFunctionServiceTests
         Assert.IsType<AiInventoryFact>(result.Data);
         Assert.NotNull(gateway.LastRequest);
         Assert.Contains(gateway.LastRequest!.Inventory, item => item.Name == "Cooking oil");
+        Assert.Contains(RestaurantCommandName.GetInventoryBalance, gateway.LastRequest.AllowedCommands);
         Assert.Contains(gateway.LastRequest.Menu, item => item.Name == "Cheeseburger");
         Assert.Contains("1", gateway.LastRequest.TableNumbers);
     }
@@ -231,14 +233,96 @@ public sealed class AiFunctionServiceTests
             InterpretationStatus.Unsupported,
             null,
             ["Writes are unsupported."]));
-        var assistant = new AiAssistantService(scenario.Factory, gateway, scenario.Service);
+        var assistant = CreateAssistant(scenario, gateway);
 
         var result = await assistant.AskAsync("Delete all inventory.", scenario.Admin);
 
         Assert.Equal(AiAssistantStatus.Unsupported, result.Status);
         await using var db = scenario.Factory.CreateDbContext();
         Assert.Empty(await db.AuditEntries.Where(x => x.Action.StartsWith("AiRead:")).ToListAsync());
+        var attempt = Assert.Single(await db.AuditEntries
+            .Where(x => x.Action.StartsWith("AiAssistant:"))
+            .ToListAsync());
+        Assert.DoesNotContain("Delete all inventory", attempt.NewValuesJson!);
+        Assert.Contains("PromptSha256", attempt.NewValuesJson!);
     }
+
+    [Fact]
+    public async Task Assistant_filters_inventory_catalog_and_functions_before_waiter_gateway_call()
+    {
+        var scenario = await CreateScenarioAsync();
+        var gateway = new FakeGateway(request => new InterpretCommandResponse(
+            RestaurantCommandProtocol.CurrentSchemaVersion,
+            request.RequestId,
+            InterpretationStatus.Unsupported,
+            null,
+            ["Not permitted."]));
+        var assistant = CreateAssistant(scenario, gateway);
+
+        await assistant.AskAsync("How much Cooking oil is left?", scenario.WaiterOne);
+
+        Assert.NotNull(gateway.LastRequest);
+        Assert.Empty(gateway.LastRequest!.Inventory);
+        Assert.DoesNotContain(RestaurantCommandName.GetInventoryBalance,
+            gateway.LastRequest.AllowedCommands);
+        Assert.Contains(RestaurantCommandName.GetMenuItem,
+            gateway.LastRequest.AllowedCommands);
+    }
+
+    [Fact]
+    public async Task Assistant_rate_limits_repeated_requests_per_user()
+    {
+        var scenario = await CreateScenarioAsync();
+        var gateway = new FakeGateway(request => new InterpretCommandResponse(
+            RestaurantCommandProtocol.CurrentSchemaVersion,
+            request.RequestId,
+            InterpretationStatus.Unsupported,
+            null,
+            ["Unsupported."]));
+        var assistant = CreateAssistant(scenario, gateway, requestsPerMinute: 1);
+
+        var first = await assistant.AskAsync("First harmless question", scenario.Admin);
+        var second = await assistant.AskAsync("Second harmless question", scenario.Admin);
+
+        Assert.Equal(AiAssistantStatus.Unsupported, first.Status);
+        Assert.Equal(AiAssistantStatus.RateLimited, second.Status);
+    }
+
+    [Fact]
+    public void Assistant_gate_bounds_global_concurrency()
+    {
+        using var gate = new AiRequestGate(Options.Create(new AiSecurityOptions
+        {
+            MaxConcurrentRequests = 1,
+            RequestsPerMinute = 10
+        }));
+        var now = new DateTime(2026, 8, 2, 10, 0, 0, DateTimeKind.Utc);
+
+        var first = gate.TryAcquire("admin", now);
+        var blocked = gate.TryAcquire("kitchen", now);
+        first.Lease!.Dispose();
+        var acceptedAfterRelease = gate.TryAcquire("kitchen", now);
+
+        Assert.Equal(AiRequestAdmissionStatus.Accepted, first.Status);
+        Assert.Equal(AiRequestAdmissionStatus.CapacityReached, blocked.Status);
+        Assert.Equal(AiRequestAdmissionStatus.Accepted, acceptedAfterRelease.Status);
+        acceptedAfterRelease.Lease!.Dispose();
+    }
+
+    private static AiAssistantService CreateAssistant(
+        Scenario scenario,
+        ICommandGatewayClient gateway,
+        int requestsPerMinute = 6) =>
+        new(
+            scenario.Factory,
+            gateway,
+            scenario.Service,
+            scenario.Clock,
+            new AiRequestGate(Options.Create(new AiSecurityOptions
+            {
+                MaxConcurrentRequests = 2,
+                RequestsPerMinute = requestsPerMinute
+            })));
 
     private static async Task<Scenario> CreateScenarioAsync(bool duplicateBurger = false)
     {
@@ -311,6 +395,7 @@ public sealed class AiFunctionServiceTests
         return new Scenario(
             factory,
             new AiFunctionService(factory, clock),
+            clock,
             admin.UserName!,
             waiterOne.UserName!,
             waiterTwo.UserName!,
@@ -366,6 +451,7 @@ public sealed class AiFunctionServiceTests
     private sealed record Scenario(
         TestFactory Factory,
         AiFunctionService Service,
+        FixedClock Clock,
         string Admin,
         string WaiterOne,
         string WaiterTwo,

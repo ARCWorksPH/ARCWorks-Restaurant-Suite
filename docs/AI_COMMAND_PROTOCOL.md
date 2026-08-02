@@ -2,7 +2,7 @@
 
 Status: implemented laboratory protocol; feature disabled by default
 
-Schema version: 3
+Schema version: 4
 
 ## Governing rule
 
@@ -14,7 +14,7 @@ The authoritative function behavior and role matrix are in
 
 ## Approved proposals
 
-Schema 3 recognizes these proposal names:
+Schema 4 recognizes these proposal names:
 
 - `GetMenuItem`
 - `ListMenu`
@@ -38,7 +38,12 @@ are not accepted model fields.
 ## Request limits and grounding
 
 - User text is limited to 500 characters.
-- Catalog context is limited to 500 entries and is supplied by ROMS.
+- ROMS derives an explicit permitted-function list from the active user's
+  current roles before contacting the gateway.
+- The gateway rejects a proposal absent from that permitted-function list, and
+  ROMS repeats the check before dispatch.
+- Catalog context is limited to 500 entries, is supplied by ROMS, and is
+  filtered by role. Waiters receive no inventory catalog.
 - Proposed item names, category names, table numbers, and statuses must match a
   bounded current catalog exactly.
 - The original user text must contain the proposed identifying value; a model
@@ -53,7 +58,8 @@ are not accepted model fields.
   ROMS must still apply current authentication, authorization, and data rules.
 - `ClarificationRequired`: intent or an identifying argument is missing,
   ambiguous, conflicting, or unsupported.
-- `Unsupported`: the request or proposed command is outside schema 3.
+- `Unsupported`: the request or proposed command is outside schema 4 or the
+  caller's permitted-function list.
 - `InterpreterError`: timeout, unavailable model, malformed response, or other
   safe interpreter failure.
 

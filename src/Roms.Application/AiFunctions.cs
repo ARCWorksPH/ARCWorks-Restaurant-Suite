@@ -136,6 +136,7 @@ public enum AiAssistantStatus
     Unsupported,
     Unauthorized,
     InvalidRequest,
+    RateLimited,
     InterpreterUnavailable
 }
 

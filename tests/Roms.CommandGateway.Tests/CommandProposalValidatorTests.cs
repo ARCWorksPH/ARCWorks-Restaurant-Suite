@@ -9,6 +9,8 @@ public sealed class CommandProposalValidatorTests
     private readonly InterpretCommandRequest request = new(
         "test-request",
         "test",
+        Enum.GetValues<RestaurantCommandName>()
+            .Where(x => x != RestaurantCommandName.Unknown).ToList(),
         [
             new("eggs", "Eggs", "piece", ["egg"]),
             new("rice", "Rice", "g", ["white rice"])
@@ -128,6 +130,22 @@ public sealed class CommandProposalValidatorTests
     {
         var result = validator.Validate(request,
             Proposal(RestaurantCommandName.Unknown));
+
+        Assert.Equal(InterpretationStatus.Unsupported, result.Status);
+        Assert.Null(result.Proposal);
+    }
+
+    [Fact]
+    public void Rejects_function_that_is_not_permitted_for_caller()
+    {
+        var waiterRequest = request with
+        {
+            Text = "How many eggs are left?",
+            AllowedCommands = [RestaurantCommandName.GetMenuItem]
+        };
+
+        var result = validator.Validate(waiterRequest,
+            Proposal(RestaurantCommandName.GetInventoryBalance, item: "Eggs"));
 
         Assert.Equal(InterpretationStatus.Unsupported, result.Status);
         Assert.Null(result.Proposal);

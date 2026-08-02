@@ -13,6 +13,9 @@ public sealed partial class CommandProposalValidator
         if (proposal.Command == RestaurantCommandName.Unknown)
             return Response(request, InterpretationStatus.Unsupported, null,
                 ["The request is outside the approved read-only functions."]);
+        if (!request.AllowedCommands.Contains(proposal.Command))
+            return Response(request, InterpretationStatus.Unsupported, null,
+                ["The proposed function is not permitted for this caller."]);
 
         return proposal.Command switch
         {

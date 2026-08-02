@@ -21,3 +21,10 @@ __pycache__/
 
 # Local benchmark recordings are multi-gigabyte review evidence, not source.
 /docs/AI Model Benchmark/AI_BENCHMARK_2/Video/
+
+# Independent security reports are confidential operational evidence. Keep
+# them local so a broad `git add` cannot publish them to the public repository.
+/docs/Independent-Audit/
+
+# Local-only runtime secrets used by optional hardened infrastructure profiles.
+/.secrets/

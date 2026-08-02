@@ -1,7 +1,7 @@
 name: arcworks-resto
 services:
   db:
-    image: mariadb:11.4
+    image: mariadb@sha256:a794d9eb009e20de605858a11f32f63b4075cbd197c650436f0e3b457e4caed7
     restart: unless-stopped
     command:
       - --server-id=${DB_SERVER_ID:-1}
@@ -36,20 +36,31 @@ services:
       DataProtection__KeysPath: /app/keys
       ConnectionStrings__DefaultConnection: Server=db;Port=3306;Database=${DB_NAME:-roms};User=${DB_USER:-roms};Password=${DB_PASSWORD};SslMode=Preferred
       Seed__AdminUsername: ${ADMIN_USERNAME:-admin}
-      Seed__AdminPassword: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      # Required only for first bootstrap; remove from .env after the admin exists.
+      Seed__AdminPassword: ${ADMIN_PASSWORD:-}
       Seed__AdminDisplayName: ${ADMIN_DISPLAY_NAME:-ROMS Administrator}
       Ai__Enabled: ${AI_ENABLED:-false}
       Ai__CommandGatewayBaseUrl: http://command-gateway:8080/
+      Ai__MaxConcurrentRequests: ${AI_MAX_CONCURRENT_REQUESTS:-2}
+      Ai__RequestsPerMinute: ${AI_REQUESTS_PER_MINUTE:-6}
+      AllowedHosts: ${ROMS_ALLOWED_HOSTS:-roms.arkworksph.online;app;localhost;127.0.0.1}
     volumes:
       - data-protection-keys:/app/keys
     # Cloudflare Tunnel publishes the application from this loopback-only port.
     ports: ["127.0.0.1:7070:8080"]
     networks: [backend, edge, command]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
 
   caddy:
     # Optional direct-HTTPS edge. Cloudflare Tunnel is the default production edge.
     profiles: ["direct-https"]
-    image: caddy:2.10
+    image: caddy@sha256:c3d7ee5d2b11f9dc54f947f68a734c84e9c9666c92c88a7f30b9cba5da182adb
     restart: unless-stopped
     depends_on: [app]
     environment:
@@ -62,12 +73,29 @@ services:
     networks: [edge]
 
   monitor:
-    image: twinproduction/gatus:v5.24.3
+    image: twinproduction/gatus@sha256:19b064c8be229df4848475f5e07f7dcd19cabbe8c27ea7ed6ff0e5af8e2050b6
     restart: unless-stopped
     volumes:
       - ./deploy/gatus.yaml:/config/config.yaml:ro
       - monitor-data:/data
-    networks: [backend]
+    networks: [backend, edge]
+
+  cloudflared:
+    profiles: ["edge-tunnel"]
+    image: cloudflare/cloudflared@sha256:e39ee8da81ad5e05d77f38d2f51c60ca51bf2a8450ac3abab50c17fdb91d91bf
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run", "--token-file", "/run/secrets/cloudflare_tunnel_token"]
+    secrets: [cloudflare_tunnel_token]
+    networks: [edge, portfolio]
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: 1.0
 
   ollama:
     profiles: ["ai-lab"]
@@ -138,9 +166,15 @@ volumes:
   ollama-models:
     external: true
     name: ollama
+secrets:
+  cloudflare_tunnel_token:
+    file: ./.secrets/cloudflare-tunnel-token
 networks:
   backend: { internal: true }
   edge:
   command: { internal: true }
   inference: { internal: true }
   benchmark:
+  portfolio:
+    external: true
+    name: arcworks-portfolio-net

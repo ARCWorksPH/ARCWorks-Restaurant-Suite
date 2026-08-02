@@ -4,7 +4,7 @@ namespace Roms.Application.Commands;
 
 public static class RestaurantCommandProtocol
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
     public const int MaximumRequestLength = 500;
     public const int MaximumCatalogItems = 500;
 }
@@ -49,6 +49,7 @@ public sealed record MenuCatalogItem(
 public sealed record InterpretCommandRequest(
     string RequestId,
     string Text,
+    IReadOnlyList<RestaurantCommandName> AllowedCommands,
     IReadOnlyList<InventoryCatalogItem> Inventory,
     IReadOnlyList<MenuCatalogItem> Menu,
     IReadOnlyList<string> TableNumbers);

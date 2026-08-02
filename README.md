@@ -45,9 +45,11 @@ before a production rollout or inventory enablement.
 
 The optional `ai-lab` profile runs a private Ollama service and command
 interpreter. The model and gateway have no database network or credentials.
-The authenticated ROMS app can submit a bounded catalog for interpretation,
-then execute only an approved permission-checked read and format the database
-facts itself. AI writes and arbitrary SQL do not exist.
+The authenticated ROMS app derives a role-specific function list, submits only
+role-permitted bounded catalogs for interpretation, then executes only an
+approved permission-checked read and formats the database facts itself. AI
+writes and arbitrary SQL do not exist. Per-user and global inference limits
+protect the application from accidental or abusive model saturation.
 
 ```powershell
 docker compose --profile ai-lab up -d ollama command-gateway
