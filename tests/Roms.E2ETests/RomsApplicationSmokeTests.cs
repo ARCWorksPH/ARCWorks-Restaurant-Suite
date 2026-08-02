@@ -58,6 +58,16 @@ public sealed class RomsApplicationSmokeTests : PageTest
                 .ToBeVisibleAsync();
             await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Menu & Tables" }))
                 .ToBeVisibleAsync();
+            await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Assistant" }))
+                .ToBeVisibleAsync();
+
+            await Page.GotoAsync($"{baseAddress}/assistant");
+            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "ROMS Assistant" }))
+                .ToBeVisibleAsync();
+            await Expect(Page.GetByText("Responses come from deterministic ROMS queries."))
+                .ToBeVisibleAsync();
+            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Ask ROMS" }))
+                .ToBeDisabledAsync();
 
             await Page.SetViewportSizeAsync(390, 844);
             await Page.GotoAsync($"{baseAddress}/inventory");
@@ -325,6 +335,7 @@ public sealed class RomsApplicationSmokeTests : PageTest
         startInfo.Environment["Seed__AdminUsername"] = username;
         startInfo.Environment["Seed__AdminPassword"] = password;
         startInfo.Environment["Seed__DemoData"] = "true";
+        startInfo.Environment["Ai__Enabled"] = "true";
 
         var process = new Process { StartInfo = startInfo };
         process.OutputDataReceived += (_, args) =>

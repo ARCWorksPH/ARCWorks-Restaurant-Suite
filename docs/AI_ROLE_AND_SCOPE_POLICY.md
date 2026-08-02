@@ -5,6 +5,10 @@ menu-to-ingredient mappings, automatic consumption, and recipe-related AI
 functions are removed from the current product—not merely hidden by a feature
 flag. Historical benchmark and audit evidence remains preserved.
 
+Implementation note: `docs/AI_FUNCTIONS.md` is the authoritative executable
+contract. Where this policy describes possible metadata or future examples,
+only fields and statuses explicitly listed in that contract are implemented.
+
 ## Purpose
 
 This document defines the approved role, responsibilities, and boundaries of the AI component in the restaurant ordering system.
@@ -44,18 +48,13 @@ Approved information may include:
 - Current selling price
 - Category
 - Description
-- Size or variant
-- Modifier options
 - Availability
-- Active promotions already recorded by the system
-- Other restaurant-approved menu metadata
 
 Example requests:
 
-- "How much is the large pepperoni pizza?"
+- "How much is the pepperoni pizza?"
 - "What drinks are available?"
 - "Which burgers are currently unavailable?"
-- "What are the available add-ons for this item?"
 
 ## Restrictions
 
@@ -287,16 +286,16 @@ Approved information may include:
 Example order states may include:
 
 ```text
-received
-confirmed
+draft
+new
 preparing
 ready
 completed
-awaiting_payment
 cancelled
-rejected
-refunded
 ```
+
+`awaiting payment` is represented by a completed order whose payment has not
+yet been confirmed; it is not a separate persisted order status.
 
 Example response:
 

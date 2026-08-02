@@ -22,7 +22,8 @@ public sealed class CommandCorpusTests
                 new[] { "Recognized", "Unsupported", "ClarificationRequired" });
             if (test.ExpectedStatus == "Recognized")
                 Assert.Contains(test.ExpectedCommand,
-                    new[] { "InventoryLookup" });
+                    Enum.GetNames<Roms.Application.Commands.RestaurantCommandName>()
+                        .Where(name => name != "Unknown"));
             else
                 Assert.Null(test.ExpectedCommand);
         });

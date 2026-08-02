@@ -38,11 +38,13 @@ services:
       Seed__AdminUsername: ${ADMIN_USERNAME:-admin}
       Seed__AdminPassword: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
       Seed__AdminDisplayName: ${ADMIN_DISPLAY_NAME:-ROMS Administrator}
+      Ai__Enabled: ${AI_ENABLED:-false}
+      Ai__CommandGatewayBaseUrl: http://command-gateway:8080/
     volumes:
       - data-protection-keys:/app/keys
     # Cloudflare Tunnel publishes the application from this loopback-only port.
     ports: ["127.0.0.1:7070:8080"]
-    networks: [backend, edge]
+    networks: [backend, edge, command]
 
   caddy:
     # Optional direct-HTTPS edge. Cloudflare Tunnel is the default production edge.

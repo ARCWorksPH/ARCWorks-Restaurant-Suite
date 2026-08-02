@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Roms.Application;
+using Roms.Application.Ai;
 using Roms.Infrastructure.Persistence;
 using Roms.Infrastructure.Services;
 
@@ -25,6 +26,8 @@ public static class DependencyInjection
         services.AddScoped<ICatalogService, CatalogService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScoped<IAiFunctionService, AiFunctionService>();
+        services.AddScoped<IAiAssistantService, AiAssistantService>();
         services.AddScoped<IAttendanceService, AttendanceService>();
         return services;
     }

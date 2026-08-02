@@ -41,18 +41,19 @@ dotnet run --project src/Roms.Web
 See `docs/OPERATIONS.md`, `docs/FAILOVER_RUNBOOK.md`, and `docs/WORK_LOG.md`
 before a production rollout or inventory enablement.
 
-## Isolated natural-language command lab
+## Feature-gated read-only assistant lab
 
-The optional `ai-lab` profile runs a private Ollama service and a non-executing
-command gateway. Neither service is connected to the database network or
-published to the host.
+The optional `ai-lab` profile runs a private Ollama service and command
+interpreter. The model and gateway have no database network or credentials.
+The authenticated ROMS app can submit a bounded catalog for interpretation,
+then execute only an approved permission-checked read and format the database
+facts itself. AI writes and arbitrary SQL do not exist.
 
 ```powershell
 docker compose --profile ai-lab up -d ollama command-gateway
 scripts\Evaluate-CommandGateway.ps1
 ```
 
-The gateway currently proposes and validates only read-only `InventoryLookup`
-and `Unknown`. It cannot execute commands or change
-inventory. See `docs/AI_COMMAND_PROTOCOL.md` and
-`docs/AI_SECURITY_BOUNDARY.md` before extending or connecting the lab.
+`AI_ENABLED` defaults to `false`. See `docs/AI_FUNCTIONS.md`,
+`docs/AI_COMMAND_PROTOCOL.md`, and `docs/AI_SECURITY_BOUNDARY.md` before
+enabling or extending the lab.

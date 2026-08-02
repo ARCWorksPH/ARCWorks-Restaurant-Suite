@@ -868,3 +868,60 @@ verification passed.
   `RecipeIngredients` table nor the 5 retired recipe-only columns.
 - Local `/health` and public `https://roms.arkworksph.online/health` returned
   HTTP 200. The public homepage also returned HTTP 200 after deployment.
+
+## 2026-08-02 — Read-only AI function boundary implemented
+
+Status: implementation and contained spot-check complete; feature remains
+disabled pending adversarial acceptance.
+
+### Implemented
+
+- Added twelve typed read-only functions for exact menu facts, independent-item
+  inventory balances, permitted order status, and approved summaries.
+- Enforced current Admin, Waiter, and Kitchen role/ownership boundaries inside
+  ROMS. Kitchen-only responses omit price and totals; waiters can read only
+  their own permitted orders.
+- Added natural-language command schema 3. The model receives bounded catalogs
+  and proposes only a typed function; it receives no SQL, database credentials,
+  role authority, or write function.
+- Added a feature-gated authenticated Assistant page. `AI_ENABLED` defaults to
+  `false`, and the link/page are unavailable when disabled.
+- Added sanitized `AiRead:<FunctionName>` audit entries for executed functions.
+  Raw prompts, credentials, and result payloads are not stored there.
+- Published the authoritative contract in `docs/AI_FUNCTIONS.md` and aligned
+  the command protocol, security topology, role policy, README, and roadmap.
+
+### Defects found and corrected
+
+- Disposable MariaDB testing exposed provider translation failures when a
+  projected inventory DTO was filtered or ordered. Filtering, ordering, and
+  limiting now happen on the entity query before projection.
+- The first live model question selected an inconsistent function/argument
+  combination. The validator refused it safely. An explicit function/argument
+  matrix and examples corrected the exact-item and low-stock runtime cases
+  without weakening deterministic validation.
+
+### Verification
+
+- Compose configuration passed.
+- Build passed with 0 warnings and 0 errors.
+- Domain tests: 11/11.
+- Command gateway validator/corpus tests: 10/10.
+- AI service, authorization, audit, and coordinator tests: 9/9.
+- Disposable MariaDB 11.4 AI translation/precision/summary test: 1/1.
+- Isolated Chromium Assistant navigation/render smoke: 1/1.
+- Internal container runtime: gateway health/schema 3 passed; exact inventory
+  lookup passed; low-stock intent passed three repeats; deletion, prompt
+  injection, and untranslated catalog mismatch failed closed.
+- The broad solution command exceeded its seven-minute orchestration window.
+  It is recorded as incomplete, not a pass or failure. MariaDB fixture startup
+  took roughly 46 seconds on this storage, so short hang diagnostics were
+  invalid and were excluded from evidence.
+- After the spot-check, the ignored local flag was restored to
+  `AI_ENABLED=false`, the app was recreated, and local health returned 200.
+
+### Remaining gate
+
+Run the locked multilingual/adversarial, timeout, stale-catalog, concurrency,
+and cross-role corpus through the complete authenticated app path before a
+staging pilot. No AI write or recipe function is approved.

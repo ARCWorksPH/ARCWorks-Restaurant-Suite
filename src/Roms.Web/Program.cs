@@ -11,6 +11,8 @@ using Roms.Web.Components;
 using Roms.Web.Components.Account;
 using Roms.Web.Realtime;
 using Roms.Web;
+using Roms.Web.Ai;
+using Roms.Application.Commands;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
@@ -71,6 +73,12 @@ builder.Services.AddSingleton<OrderEventBus>();
 builder.Services.AddScoped<IOrderEventPublisher, SignalROrderEventPublisher>();
 builder.Services.AddHealthChecks();
 builder.Services.Configure<SeedOptions>(builder.Configuration.GetSection("Seed"));
+builder.Services.AddHttpClient<ICommandGatewayClient, CommandGatewayClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["Ai:CommandGatewayBaseUrl"]
+        ?? "http://command-gateway:8080/");
+    client.Timeout = TimeSpan.FromSeconds(50);
+});
 
 var app = builder.Build();
 

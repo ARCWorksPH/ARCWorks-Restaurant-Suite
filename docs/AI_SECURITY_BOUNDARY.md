@@ -1,117 +1,96 @@
-# ROMS AI Lab Security Boundary
+# ROMS AI Security Boundary
 
-Status: isolated laboratory; not connected to production command execution
+Status: integrated laboratory path; disabled by default
 
 ## Runtime topology
 
 ```text
-ephemeral evaluator
-        |
-  command network (internal)
-        |
-  command-gateway
-        |
- inference network (internal)
-        |
-      ollama
+browser -> authenticated ROMS app -> backend -> MariaDB
+                    |
+             command network (internal)
+                    |
+             command-gateway
+                    |
+            inference network (internal)
+                    |
+                  Ollama
 ```
 
-MariaDB is attached only to the separate `backend` network. Ollama and the
-command gateway are not attached to that network. ROMS is not yet attached to
-the `command` network.
+ROMS is attached to `backend`, `edge`, and the internal `command` network. This
+is intentional: ROMS supplies bounded catalogs to the gateway and is the only
+component allowed to turn a validated proposal into a permission-checked
+database read. The gateway and Ollama are not attached to `backend`.
 
-## Container controls
+## Component controls
 
 Ollama:
 
 - API published only to Windows loopback at `127.0.0.1:11434` for controlled
-  local benchmarking;
-- no LAN, Cloudflare Tunnel, or public route to the Ollama API;
-- cloud inference disabled;
-- internal inference network for the command gateway;
-- separate benchmark bridge used only for Windows loopback access and
-  controlled model downloads;
+  maintenance and benchmarking;
+- no LAN or Cloudflare route;
+- no cloud inference;
 - external model volume `ollama`;
-- read-only root filesystem with bounded temporary storage;
-- all Linux capabilities dropped;
-- `no-new-privileges`;
-- CPU, memory, and process limits;
-- pinned local image digest.
+- read-only root filesystem, bounded temporary storage, dropped capabilities,
+  `no-new-privileges`, and CPU/memory/process limits.
 
 Command gateway:
 
 - no published host port;
-- no database network or credentials;
-- no host/project bind mounts;
-- read-only root filesystem;
-- all Linux capabilities dropped;
-- `no-new-privileges`;
-- CPU, memory, and process limits.
+- no backend network, database provider, database credentials, host/project
+  bind mount, or Docker socket;
+- read-only root filesystem, bounded temporary storage, dropped capabilities,
+  `no-new-privileges`, and CPU/memory/process limits;
+- deterministic validation of bounded model output.
 
-Neither container receives the Docker socket.
+ROMS application:
 
-## Local benchmark access
+- authenticates the user and loads current roles/ownership from MariaDB;
+- supplies only bounded item/category/table catalogs needed for interpretation;
+- converts only a recognized, validated proposal to an approved function;
+- performs parameterized EF Core queries, not model-generated SQL;
+- formats database facts itself and audits every executed AI read;
+- exposes no AI write function.
 
-The Ollama API can be reached from this Windows host at:
+## Feature control
+
+`AI_ENABLED` defaults to `false`. The Assistant link and page are hidden when
+disabled. Enabling the flag requires the private `ai-lab` services, but does
+not constitute production approval. Disable the flag or stop the AI services
+to remove the path without affecting ordering, inventory, MariaDB, tunnel, or
+monitoring.
+
+## Local maintenance access
+
+The containerized Ollama API is reachable only from this Windows host:
 
 ```text
 http://127.0.0.1:11434
 ```
 
-Examples:
-
 ```powershell
 Invoke-RestMethod http://127.0.0.1:11434/api/tags
 docker exec -it arcworks-resto-ollama-1 ollama list
-docker exec -it arcworks-resto-ollama-1 ollama run qwen2.5:3b
 ```
 
-The native Windows `ollama` command is not required for the containerized
-instance. Tools that support an Ollama base URL should use the loopback URL
-above. Do not change the binding to `0.0.0.0` and do not add an Ollama
-Cloudflare route.
+Do not bind it to `0.0.0.0`, create a tunnel route, or mount a native Windows
+Ollama model directory into the container.
 
-Benchmark resource limits are configurable through `OLLAMA_MEMORY_LIMIT` and
-`OLLAMA_CPU_LIMIT`. The defaults are 16 GB and 12 logical CPUs, leaving
-capacity for ROMS and MariaDB on the current host. Record these limits with
-every result; comparisons made under different limits are not equivalent.
+## Resource and model boundary
 
-## Model installation
-
-The inference network remains internal. The isolated AI-lab profile gives
-Ollama a separate benchmark bridge so models can be downloaded without
-attaching it to ROMS' backend, edge, or Docker socket. Model installation is a
-controlled maintenance action:
-
-1. Pull only an explicitly selected model through the containerized Ollama
-   CLI or its loopback API.
-2. Verify that the model persists in the named `ollama` volume.
-3. Record the exact model tag, size, benchmark settings, and result.
-4. Remove rejected models after the comparison so the portable model volume
-   does not accumulate unused multi-gigabyte downloads.
-
-Do not bind-mount the native Windows Ollama model directory into the container.
-
-## Current limitations
-
-- Container Ollama detects CPU only on this Windows/Docker Desktop setup.
-- The provisional user-facing laboratory default is `qwen2.5:3b` because its
-  Benchmark 3 result was the most balanced across factual, clarification,
-  safety, and graceful-failure behavior.
-- `qwen3:4b-instruct` is retained as a read-only factual/reporting challenger.
-  It is not approved for direct actions and performed poorly on ambiguous
-  clarification cases despite strong factual and failure-handling results.
-- All rejected benchmark models were removed from the model volume after their
-  benchmark records were preserved.
-- No user interface, voice path, database query, inventory mutation, or
-  production authorization path is connected to the AI lab.
+Limits are configurable through `OLLAMA_MEMORY_LIMIT` and `OLLAMA_CPU_LIMIT`.
+Record effective limits with benchmark evidence. Model benchmark performance
+does not grant access or execution authority; deterministic validation and ROMS
+authorization remain mandatory for every model.
 
 ## Stop and rollback
 
-Stop the laboratory without affecting ROMS:
+1. Set `AI_ENABLED=false` and recreate only the app if the feature had been
+   enabled.
+2. Stop the laboratory services:
 
 ```powershell
 docker compose --profile ai-lab stop command-gateway ollama
 ```
 
-The production app, database, tunnel, and monitor do not depend on the AI lab.
+The core ROMS application does not depend on the model to process restaurant
+operations.
