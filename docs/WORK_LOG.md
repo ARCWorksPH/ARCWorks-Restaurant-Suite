@@ -917,6 +917,9 @@ disabled pending adversarial acceptance.
   It is recorded as incomplete, not a pass or failure. MariaDB fixture startup
   took roughly 46 seconds on this storage, so short hang diagnostics were
   invalid and were excluded from evidence.
+- GitHub CI run `30740522562` for commit `00662fe` passed the committed-password
+  guard, clean restore, Release build, Chromium installation, complete solution
+  test suite, and production Docker image build.
 - After the spot-check, the ignored local flag was restored to
   `AI_ENABLED=false`, the app was recreated, and local health returned 200.
 
