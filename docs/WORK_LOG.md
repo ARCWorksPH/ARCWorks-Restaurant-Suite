@@ -1,5 +1,48 @@
 # ROMS Work Log
 
+## 2026-08-02 — AI Benchmark 3 final disposition
+
+### Benchmark decision
+
+- Preserved the Benchmark 3 harness, raw events, attempts, responses,
+  transcripts, checkpoints, model provenance, and final reports.
+- Strictly reviewed the five valid full-run candidates. `qwen2.5:3b`,
+  `phi4-mini:3.8b`, and `qwen3:4b-instruct` tied at 56/75 but had materially
+  different behavior profiles.
+- Selected `qwen2.5:3b` as the balanced provisional user-facing laboratory
+  default and retained `qwen3:4b-instruct` as a factual/read-only challenger.
+- Kept both models isolated and unapproved for production mutations.
+- Recorded the full comparison, limitations, hashes, and failure examples in
+  `docs/AI Model Benchmark/AI_BENCHMARK_3/BENCHMARK_3_COMPARISON_AND_DECISION.md`.
+
+### Model cleanup and runtime alignment
+
+- Removed `gemma3:4b`, `granite3.3:2b`, `phi4-mini:3.8b`, `qwen3:4b`,
+  `tinyllama:1.1b`, `qwen2.5:7b`, `llama3.2:3b`, and
+  `qwen2.5-coder:7b` from the named Ollama volume.
+- Verified that only `qwen2.5:3b` and `qwen3:4b-instruct` remain.
+- Reduced container-side Ollama storage from approximately 25 GB to 4.2 GB.
+- Updated the active command-gateway, Compose, example environment, security
+  boundary, and legacy benchmark-script defaults from the removed
+  `qwen2.5:7b` tag to `qwen2.5:3b`.
+- Recreated only the command-gateway container and verified its effective
+  `Ollama__Model=qwen2.5:3b` configuration.
+- Command-gateway tests passed 9/9. The full solution test reached the browser
+  project but produced no completion output within the bounded run; its exact
+  test process tree was stopped, so the full-suite result remains inconclusive
+  rather than passed.
+- Preserved historical benchmark instructions and prior dated log statements
+  rather than rewriting old evidence.
+
+### Roadmap
+
+- Added `docs/ROADMAP_2026-08-02.md`.
+- The next gate is a feature-flagged, authorization-aware, read-only ROMS tool
+  contract. The model must not receive SQL access or production mutation
+  authority.
+
+---
+
 ## 2026-07-31 — Rejected-model removal and provisional AI default
 
 ### Model storage

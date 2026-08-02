@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string[]]$Models = @("qwen2.5:7b"),
+    [string[]]$Models = @("qwen2.5:3b"),
     [ValidateSet("tagalog", "bikol", "zh-CN")]
     [string[]]$Languages = @("tagalog", "bikol", "zh-CN"),
     [string]$CaseId,

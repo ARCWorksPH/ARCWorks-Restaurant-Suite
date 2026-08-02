@@ -1,0 +1,291 @@
+{
+  "schema_version": 3,
+  "script_version": "3.1.0",
+  "run_id": "20260802_113934_qwen3_4b-instruct_grounded",
+  "state": "complete",
+  "updated_at_utc": "2026-08-02T03:40:28.409577+00:00",
+  "config": {
+    "model": "qwen3:4b-instruct",
+    "mode": "grounded",
+    "question_ids": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "question_count": 5,
+    "shuffle": false,
+    "seed": 20260802,
+    "num_predict": 256,
+    "num_ctx": 4096,
+    "temperature": 0,
+    "request_timeout_seconds": 180.0,
+    "keep_alive": "10m",
+    "review_mode": "off",
+    "ollama_container": "arcworks-resto-ollama-1"
+  },
+  "provenance": {
+    "script_sha256": "99a336976e1949dbcddd2226ece393e78b7cbc03746ba4140fdc14d1b88567d3",
+    "question_source": "Arkworks_AI_Benchmark.py",
+    "question_source_sha256": "47b9a1d59338acf6e56ab5606ef8e1d60f4cf6068ec272578cd24c16293bcce2",
+    "model_record": {
+      "model": "qwen3:4b-instruct",
+      "modified_at": "2026-08-02T03:38:51.945259Z",
+      "digest": "0edcdef34593eac1aa2be9c7d06c432dcf81945adca5eca2f27662c18f168ba0",
+      "size": 2497293803,
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "4.0B",
+        "quantization_level": "Q4_K_M"
+      }
+    }
+  },
+  "environment": {
+    "captured_at_utc": "2026-08-02T03:39:34.638917+00:00",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python_version": "3.14.6",
+    "logical_cpus": 16,
+    "physical_cpus": 8,
+    "host_ram_gib": 63.92,
+    "ollama_host_scope": "loopback",
+    "ollama_host_sha256": "b26993598dffd1f14aed97def57ef67f753518a9b773d8a12033c82b4fa545ca",
+    "ollama_version": "0.32.5",
+    "ollama_client_module": "__init__.py",
+    "installed_model_count": 10
+  },
+  "human_review_summary": {
+    "counts": {
+      "acceptable": 0,
+      "wrong": 0,
+      "safe_clarification": 0,
+      "unsafe": 0,
+      "unreviewed": 5
+    },
+    "reviewed": 0,
+    "accepted_or_safely_clarified": 0,
+    "human_acceptance_percent": null,
+    "unsafe_count": 0
+  },
+  "resources": {
+    "samples": 41,
+    "cpu_percent": {
+      "average": 65.95,
+      "maximum": 79.9
+    },
+    "ram_percent": {
+      "average": 39.81,
+      "maximum": 39.9
+    },
+    "ram_used_gib": {
+      "average": 25.45,
+      "maximum": 25.5
+    },
+    "ram_available_gib": {
+      "average": 38.48,
+      "maximum": 38.53
+    }
+  },
+  "results": [
+    {
+      "sequence": 1,
+      "question": {
+        "id": 1,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Magkano ang isang order ng Bicol Express?",
+        "expected": "₱195",
+        "eval_type": "exact"
+      },
+      "review_aid": "₱195",
+      "answer": "Isang order ng Bicol Express ay magkano **195** Philippine pesos.",
+      "metrics": {
+        "wall_time_seconds": 11.586,
+        "total_duration_seconds": 11.584,
+        "load_duration_seconds": 0.148,
+        "output_tokens": 20,
+        "generation_tokens_per_second": 9.76,
+        "prompt_tokens": 530,
+        "prompt_tokens_per_second": 56.56,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3184001022,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T03:49:51.965135Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "5.483GiB / 32GiB",
+        "memory_percent": "17.14%"
+      },
+      "completed_at_utc": "2026-08-02T03:39:53.034651+00:00"
+    },
+    {
+      "sequence": 2,
+      "question": {
+        "id": 2,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ano ang presyo ng Pork Sisig?",
+        "expected": "₱210",
+        "eval_type": "exact"
+      },
+      "review_aid": "₱210",
+      "answer": "Ang presyo ng Pork Sisig ay 210 pesos.",
+      "metrics": {
+        "wall_time_seconds": 2.227,
+        "total_duration_seconds": 2.224,
+        "load_duration_seconds": 0.154,
+        "output_tokens": 16,
+        "generation_tokens_per_second": 9.62,
+        "prompt_tokens": 529,
+        "prompt_tokens_per_second": 1353.82,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3184001022,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T03:49:55.405773Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.08%",
+        "memory_usage": "5.486GiB / 32GiB",
+        "memory_percent": "17.14%"
+      },
+      "completed_at_utc": "2026-08-02T03:39:56.467075+00:00"
+    },
+    {
+      "sequence": 3,
+      "question": {
+        "id": 3,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ilang kilo ng manok ang kasalukuyang nasa inventory?",
+        "expected": "12 kg",
+        "eval_type": "exact"
+      },
+      "review_aid": "12 kg",
+      "answer": "Kasalukuyang nasa inventory ay **12 kilo** ng manok.",
+      "metrics": {
+        "wall_time_seconds": 3.05,
+        "total_duration_seconds": 3.048,
+        "load_duration_seconds": 0.15,
+        "output_tokens": 21,
+        "generation_tokens_per_second": 8.99,
+        "prompt_tokens": 535,
+        "prompt_tokens_per_second": 977.92,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3184001022,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T03:49:59.648632Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.00%",
+        "memory_usage": "5.486GiB / 32GiB",
+        "memory_percent": "17.14%"
+      },
+      "completed_at_utc": "2026-08-02T03:40:00.712765+00:00"
+    },
+    {
+      "sequence": 4,
+      "question": {
+        "id": 4,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ilang serving ng Beef Pares ang maaaring gawin gamit ang 8 kilo ng beef?",
+        "expected": "32 servings (8 / 0.25)",
+        "eval_type": "exact"
+      },
+      "review_aid": "32 servings (8 / 0.25)",
+      "answer": "Ang Beef Pares ay ginagamit 0.250 kg per serving.\n\nMay 8 kg ng beef.\n\nIlang serving:\n\n8 kg ÷ 0.250 kg per serving = 32 servings.\n\n✅ **32 serving** ng Beef Pares ang maaaring gawin gamit ang 8 kilo ng beef.",
+      "metrics": {
+        "wall_time_seconds": 9.418,
+        "total_duration_seconds": 9.416,
+        "load_duration_seconds": 0.157,
+        "output_tokens": 77,
+        "generation_tokens_per_second": 9.01,
+        "prompt_tokens": 542,
+        "prompt_tokens_per_second": 777.22,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3184001022,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T03:50:10.244366Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.00%",
+        "memory_usage": "5.485GiB / 32GiB",
+        "memory_percent": "17.14%"
+      },
+      "completed_at_utc": "2026-08-02T03:40:11.306973+00:00"
+    },
+    {
+      "sequence": 5,
+      "question": {
+        "id": 5,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Gaano karaming baboy ang kailangan para sa limang order ng Pork Sisig?",
+        "expected": "1 kg (5 × 0.2)",
+        "eval_type": "exact"
+      },
+      "review_aid": "1 kg (5 × 0.2)",
+      "answer": "Bawat order ng Pork Sisig kumakalat ng 0.200 kg baboy.  \n\nPara sa 5 orders:  \n5 × 0.200 kg = 1.000 kg baboy.  \n\nKaya, kailangan ng **1.000 kg baboy** para sa limang order ng Pork Sisig.  \n\n✅ *Note: Ang inventory ng baboy ay 6 kg, kaya patay ang pagkakalat ng 1.000 kg baboy — ang kailangan ay mas malaki kaysa sa available.*",
+      "metrics": {
+        "wall_time_seconds": 15.665,
+        "total_duration_seconds": 15.663,
+        "load_duration_seconds": 0.149,
+        "output_tokens": 133,
+        "generation_tokens_per_second": 8.98,
+        "prompt_tokens": 540,
+        "prompt_tokens_per_second": 787.09,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 3184001022,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T03:50:27.106862Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "5.484GiB / 32GiB",
+        "memory_percent": "17.14%"
+      },
+      "completed_at_utc": "2026-08-02T03:40:28.170715+00:00"
+    }
+  ]
+}

@@ -1,0 +1,291 @@
+{
+  "schema_version": 3,
+  "script_version": "3.1.0",
+  "run_id": "20260802_090956_qwen2.5_3b_grounded",
+  "state": "complete",
+  "updated_at_utc": "2026-08-02T01:11:23.933217+00:00",
+  "config": {
+    "model": "qwen2.5:3b",
+    "mode": "grounded",
+    "question_ids": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "question_count": 5,
+    "shuffle": false,
+    "seed": 20260802,
+    "num_predict": 256,
+    "num_ctx": 4096,
+    "temperature": 0,
+    "request_timeout_seconds": 180.0,
+    "keep_alive": "10m",
+    "review_mode": "live",
+    "ollama_container": "arcworks-resto-ollama-1"
+  },
+  "provenance": {
+    "script_sha256": "99a336976e1949dbcddd2226ece393e78b7cbc03746ba4140fdc14d1b88567d3",
+    "question_source": "Arkworks_AI_Benchmark.py",
+    "question_source_sha256": "47b9a1d59338acf6e56ab5606ef8e1d60f4cf6068ec272578cd24c16293bcce2",
+    "model_record": {
+      "model": "qwen2.5:3b",
+      "modified_at": "2026-08-02T01:09:46.582687Z",
+      "digest": "357c53fb659c5076de1d65ccb0b397446227b71a42be9d1603d46168015c9e4b",
+      "size": 1929912432,
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "3.1B",
+        "quantization_level": "Q4_K_M"
+      }
+    }
+  },
+  "environment": {
+    "captured_at_utc": "2026-08-02T01:09:56.979010+00:00",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python_version": "3.14.6",
+    "logical_cpus": 16,
+    "physical_cpus": 8,
+    "host_ram_gib": 63.92,
+    "ollama_host_scope": "loopback",
+    "ollama_host_sha256": "b26993598dffd1f14aed97def57ef67f753518a9b773d8a12033c82b4fa545ca",
+    "ollama_version": "0.32.5",
+    "ollama_client_module": "__init__.py",
+    "installed_model_count": 9
+  },
+  "human_review_summary": {
+    "counts": {
+      "acceptable": 5,
+      "wrong": 0,
+      "safe_clarification": 0,
+      "unsafe": 0,
+      "unreviewed": 0
+    },
+    "reviewed": 5,
+    "accepted_or_safely_clarified": 5,
+    "human_acceptance_percent": 100.0,
+    "unsafe_count": 0
+  },
+  "resources": {
+    "samples": 23,
+    "cpu_percent": {
+      "average": 66.43,
+      "maximum": 85.0
+    },
+    "ram_percent": {
+      "average": 52.45,
+      "maximum": 52.5
+    },
+    "ram_used_gib": {
+      "average": 33.52,
+      "maximum": 33.54
+    },
+    "ram_available_gib": {
+      "average": 30.41,
+      "maximum": 30.45
+    }
+  },
+  "results": [
+    {
+      "sequence": 1,
+      "question": {
+        "id": 1,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Magkano ang isang order ng Bicol Express?",
+        "expected": "₱195",
+        "eval_type": "exact"
+      },
+      "review_aid": "₱195",
+      "answer": "Ang price ng isang order ng Bicol Express ay 195 Philippine Pesos.",
+      "metrics": {
+        "wall_time_seconds": 9.941,
+        "total_duration_seconds": 9.939,
+        "load_duration_seconds": 0.234,
+        "output_tokens": 20,
+        "generation_tokens_per_second": 10.73,
+        "prompt_tokens": 530,
+        "prompt_tokens_per_second": 67.65,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "acceptable",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 2164156005,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T01:20:20.851248Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.00%",
+        "memory_usage": "4.245GiB / 32GiB",
+        "memory_percent": "13.27%"
+      },
+      "completed_at_utc": "2026-08-02T01:10:49.290433+00:00"
+    },
+    {
+      "sequence": 2,
+      "question": {
+        "id": 2,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ano ang presyo ng Pork Sisig?",
+        "expected": "₱210",
+        "eval_type": "exact"
+      },
+      "review_aid": "₱210",
+      "answer": "Pork Sisig ay pinagbiglang 210 pesos.",
+      "metrics": {
+        "wall_time_seconds": 2.173,
+        "total_duration_seconds": 2.153,
+        "load_duration_seconds": 0.149,
+        "output_tokens": 17,
+        "generation_tokens_per_second": 10.12,
+        "prompt_tokens": 529,
+        "prompt_tokens_per_second": 1663.55,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "acceptable",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 2164156005,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T01:20:51.606660Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "4.245GiB / 32GiB",
+        "memory_percent": "13.27%"
+      },
+      "completed_at_utc": "2026-08-02T01:10:57.314204+00:00"
+    },
+    {
+      "sequence": 3,
+      "question": {
+        "id": 3,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ilang kilo ng manok ang kasalukuyang nasa inventory?",
+        "expected": "12 kg",
+        "eval_type": "exact"
+      },
+      "review_aid": "12 kg",
+      "answer": "12 kg lamang ng manok ang kasalukuyang nasa inventory.",
+      "metrics": {
+        "wall_time_seconds": 2.497,
+        "total_duration_seconds": 2.494,
+        "load_duration_seconds": 0.162,
+        "output_tokens": 19,
+        "generation_tokens_per_second": 10.13,
+        "prompt_tokens": 535,
+        "prompt_tokens_per_second": 1184.28,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "acceptable",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 2164156005,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T01:20:59.953553Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "4.246GiB / 32GiB",
+        "memory_percent": "13.27%"
+      },
+      "completed_at_utc": "2026-08-02T01:11:02.361678+00:00"
+    },
+    {
+      "sequence": 4,
+      "question": {
+        "id": 4,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ilang serving ng Beef Pares ang maaaring gawin gamit ang 8 kilo ng beef?",
+        "expected": "32 servings (8 / 0.25)",
+        "eval_type": "exact"
+      },
+      "review_aid": "32 servings (8 / 0.25)",
+      "answer": "Maaari kang gawin 32 servings ng Beef Pares gamit ang 8 kg ng beef.",
+      "metrics": {
+        "wall_time_seconds": 3.07,
+        "total_duration_seconds": 3.068,
+        "load_duration_seconds": 0.143,
+        "output_tokens": 25,
+        "generation_tokens_per_second": 10.47,
+        "prompt_tokens": 542,
+        "prompt_tokens_per_second": 1019.22,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "acceptable",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 2164156005,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T01:21:05.550325Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.00%",
+        "memory_usage": "4.245GiB / 32GiB",
+        "memory_percent": "13.27%"
+      },
+      "completed_at_utc": "2026-08-02T01:11:13.680936+00:00"
+    },
+    {
+      "sequence": 5,
+      "question": {
+        "id": 5,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Gaano karaming baboy ang kailangan para sa limang order ng Pork Sisig?",
+        "expected": "1 kg (5 × 0.2)",
+        "eval_type": "exact"
+      },
+      "review_aid": "1 kg (5 × 0.2)",
+      "answer": "Para sa limang order ng Pork Sisig, kailanman ay karamihang 1.200 gram o 1.2 kilogram (kg) baboy ay kailangan.",
+      "metrics": {
+        "wall_time_seconds": 5.241,
+        "total_duration_seconds": 5.238,
+        "load_duration_seconds": 0.145,
+        "output_tokens": 45,
+        "generation_tokens_per_second": 9.89,
+        "prompt_tokens": 540,
+        "prompt_tokens_per_second": 1004.02,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "acceptable",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 2164156005,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T01:21:19.029902Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "4.246GiB / 32GiB",
+        "memory_percent": "13.27%"
+      },
+      "completed_at_utc": "2026-08-02T01:11:22.800322+00:00"
+    }
+  ]
+}

@@ -1,0 +1,291 @@
+{
+  "schema_version": 3,
+  "script_version": "3.1.0",
+  "run_id": "20260802_102709_granite3.3_2b_grounded",
+  "state": "complete",
+  "updated_at_utc": "2026-08-02T02:27:58.820994+00:00",
+  "config": {
+    "model": "granite3.3:2b",
+    "mode": "grounded",
+    "question_ids": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "question_count": 5,
+    "shuffle": false,
+    "seed": 20260802,
+    "num_predict": 256,
+    "num_ctx": 4096,
+    "temperature": 0,
+    "request_timeout_seconds": 180.0,
+    "keep_alive": "10m",
+    "review_mode": "off",
+    "ollama_container": "arcworks-resto-ollama-1"
+  },
+  "provenance": {
+    "script_sha256": "99a336976e1949dbcddd2226ece393e78b7cbc03746ba4140fdc14d1b88567d3",
+    "question_source": "Arkworks_AI_Benchmark.py",
+    "question_source_sha256": "47b9a1d59338acf6e56ab5606ef8e1d60f4cf6068ec272578cd24c16293bcce2",
+    "model_record": {
+      "model": "granite3.3:2b",
+      "modified_at": "2026-08-02T01:03:30.910412Z",
+      "digest": "07bd1f170855240f9e162bf54ea494a8bc1c73d8cbd1365d7fccbeb7d2504947",
+      "size": 1545321637,
+      "details": {
+        "parent_model": "/Users/ollama/.ollama/models/blobs/sha256-ac71e9e32c0bea919b409c5918f69ca74339854b0319c5065e4e9fb6d95c4852",
+        "format": "gguf",
+        "family": "granite",
+        "families": [
+          "granite"
+        ],
+        "parameter_size": "2.5B",
+        "quantization_level": "Q4_K_M"
+      }
+    }
+  },
+  "environment": {
+    "captured_at_utc": "2026-08-02T02:27:09.423096+00:00",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python_version": "3.14.6",
+    "logical_cpus": 16,
+    "physical_cpus": 8,
+    "host_ram_gib": 63.92,
+    "ollama_host_scope": "loopback",
+    "ollama_host_sha256": "b26993598dffd1f14aed97def57ef67f753518a9b773d8a12033c82b4fa545ca",
+    "ollama_version": "0.32.5",
+    "ollama_client_module": "__init__.py",
+    "installed_model_count": 9
+  },
+  "human_review_summary": {
+    "counts": {
+      "acceptable": 0,
+      "wrong": 0,
+      "safe_clarification": 0,
+      "unsafe": 0,
+      "unreviewed": 5
+    },
+    "reviewed": 0,
+    "accepted_or_safely_clarified": 0,
+    "human_acceptance_percent": null,
+    "unsafe_count": 0
+  },
+  "resources": {
+    "samples": 30,
+    "cpu_percent": {
+      "average": 73.44,
+      "maximum": 88.3
+    },
+    "ram_percent": {
+      "average": 50.27,
+      "maximum": 50.7
+    },
+    "ram_used_gib": {
+      "average": 32.13,
+      "maximum": 32.42
+    },
+    "ram_available_gib": {
+      "average": 31.8,
+      "maximum": 31.91
+    }
+  },
+  "results": [
+    {
+      "sequence": 1,
+      "question": {
+        "id": 1,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Magkano ang isang order ng Bicol Express?",
+        "expected": "₱195",
+        "eval_type": "exact"
+      },
+      "review_aid": "₱195",
+      "answer": "Ang isang order ng Bicol Express ay kung mayroon pang 0.150 kg Pork at 0.120 liters Coconut milk. \n\nAng presyo ng Bicol Express ay 195 pesos. Kanila lang ang laman ng isang order, so ang kosten nito ay 195 pesos.",
+      "metrics": {
+        "wall_time_seconds": 15.558,
+        "total_duration_seconds": 15.555,
+        "load_duration_seconds": 0.066,
+        "output_tokens": 85,
+        "generation_tokens_per_second": 11.84,
+        "prompt_tokens": 617,
+        "prompt_tokens_per_second": 74.33,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 1950613502,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T02:37:37.353283Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "13.08GiB / 32GiB",
+        "memory_percent": "40.87%"
+      },
+      "completed_at_utc": "2026-08-02T02:27:38.418161+00:00"
+    },
+    {
+      "sequence": 2,
+      "question": {
+        "id": 2,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ano ang presyo ng Pork Sisig?",
+        "expected": "₱210",
+        "eval_type": "exact"
+      },
+      "review_aid": "₱210",
+      "answer": "Ang presyo ng Pork Sisig ay 210 Philippine pesos.",
+      "metrics": {
+        "wall_time_seconds": 2.153,
+        "total_duration_seconds": 2.151,
+        "load_duration_seconds": 0.054,
+        "output_tokens": 21,
+        "generation_tokens_per_second": 11.7,
+        "prompt_tokens": 617,
+        "prompt_tokens_per_second": 2083.17,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 1950613502,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T02:37:40.730349Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.02%",
+        "memory_usage": "13.08GiB / 32GiB",
+        "memory_percent": "40.88%"
+      },
+      "completed_at_utc": "2026-08-02T02:27:41.798040+00:00"
+    },
+    {
+      "sequence": 3,
+      "question": {
+        "id": 3,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ilang kilo ng manok ang kasalukuyang nasa inventory?",
+        "expected": "12 kg",
+        "eval_type": "exact"
+      },
+      "review_aid": "12 kg",
+      "answer": "Ang kasalukuyang nasa inventory ng manok ay 12 kg.",
+      "metrics": {
+        "wall_time_seconds": 2.252,
+        "total_duration_seconds": 2.249,
+        "load_duration_seconds": 0.065,
+        "output_tokens": 21,
+        "generation_tokens_per_second": 12.1,
+        "prompt_tokens": 623,
+        "prompt_tokens_per_second": 1407.6,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 1950613502,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T02:37:44.174296Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "13.08GiB / 32GiB",
+        "memory_percent": "40.88%"
+      },
+      "completed_at_utc": "2026-08-02T02:27:45.245070+00:00"
+    },
+    {
+      "sequence": 4,
+      "question": {
+        "id": 4,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Ilang serving ng Beef Pares ang maaaring gawin gamit ang 8 kilo ng beef?",
+        "expected": "32 servings (8 / 0.25)",
+        "eval_type": "exact"
+      },
+      "review_aid": "32 servings (8 / 0.25)",
+      "answer": "May 32 servings ng Beef Pares ang makakabaya sa 8 kilo ng beef.",
+      "metrics": {
+        "wall_time_seconds": 3.084,
+        "total_duration_seconds": 3.08,
+        "load_duration_seconds": 0.054,
+        "output_tokens": 26,
+        "generation_tokens_per_second": 10.87,
+        "prompt_tokens": 631,
+        "prompt_tokens_per_second": 1004.38,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 1950613502,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T02:37:48.432785Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "13.08GiB / 32GiB",
+        "memory_percent": "40.88%"
+      },
+      "completed_at_utc": "2026-08-02T02:27:49.509944+00:00"
+    },
+    {
+      "sequence": 5,
+      "question": {
+        "id": 5,
+        "language": "Tagalog",
+        "category": "A",
+        "text": "Gaano karaming baboy ang kailangan para sa limang order ng Pork Sisig?",
+        "expected": "1 kg (5 × 0.2)",
+        "eval_type": "exact"
+      },
+      "review_aid": "1 kg (5 × 0.2)",
+      "answer": "Para sa limang order ng Pork Sisig, hindi mo kailangang kailaang ang lahat ng baboy. Isang standard na order ay may 0.200 kg Pork. Kasama na ito sa ating inventories, mayroon tayong 6 kg Baboy.",
+      "metrics": {
+        "wall_time_seconds": 7.774,
+        "total_duration_seconds": 7.771,
+        "load_duration_seconds": 0.061,
+        "output_tokens": 76,
+        "generation_tokens_per_second": 10.66,
+        "prompt_tokens": 628,
+        "prompt_tokens_per_second": 1097.56,
+        "done_reason": "stop"
+      },
+      "error": null,
+      "human_review": "unreviewed",
+      "ollama_placement": {
+        "loaded": true,
+        "size_bytes": 1950613502,
+        "size_vram_bytes": 0,
+        "vram_percent": 0.0,
+        "context_length": 4096,
+        "expires_at": "2026-08-02T02:37:57.396017Z"
+      },
+      "container_snapshot": {
+        "cpu_percent": "0.01%",
+        "memory_usage": "13.08GiB / 32GiB",
+        "memory_percent": "40.89%"
+      },
+      "completed_at_utc": "2026-08-02T02:27:58.468149+00:00"
+    }
+  ]
+}

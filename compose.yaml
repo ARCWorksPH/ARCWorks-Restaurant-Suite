@@ -114,7 +114,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       Ollama__BaseUrl: http://ollama:11434/
-      Ollama__Model: ${OLLAMA_MODEL:-qwen2.5:7b}
+      Ollama__Model: ${OLLAMA_MODEL:-qwen2.5:3b}
     # The gateway can reach the model but has no backend network, database
     # credentials, host port, project mount, or production execution path.
     networks: [command, inference]
