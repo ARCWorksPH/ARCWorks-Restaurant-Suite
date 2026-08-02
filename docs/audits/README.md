@@ -1,34 +1,30 @@
 # ROMS External Audit Timeline
 
-Independent third-party audits of ROMS, ordered chronologically. Audits are advisory. They do not authorize production inventory enablement, restaurant data acceptance, or AI integration.
+Independent third-party audits of ROMS, ordered chronologically. Audits are advisory. They do not authorize production inventory enablement, restaurant data acceptance, or AI production enablement.
 
 | # | Date | Document | Scope | Outcome |
 | --- | --- | --- | --- | --- |
-| 1 | ~2026-07-26 | [2026-07-26 Baseline maturity](2026-07-26-baseline-maturity.md) | Early main baseline (~2 commits); feature completeness; phased productionize plan | Strong beta baseline; validate before inventory; phased roadmap |
-| 2 | 2026-07-30 | [2026-07-30 Architecture security product](2026-07-30-architecture-security-product.md) | main + PR #1 pre-audit checkpoint; live production notes; AI lab; ops | Solid operational core; P0 stabilize production; inventory pilot gated; AI isolated |
-| — | 2026-07-29 | [2026-07-29 Pre-audit checkpoint note](2026-07-29-pre-audit-checkpoint.md) | Concurrent checkpoint review of PR #1 (same era as Audit 2) | Conditionally positive; concurrency/real-MariaDB/browser tests required |
-| — | 2026-07-30 | [EXTERNAL_AUDIT_HANDOFF](../EXTERNAL_AUDIT_HANDOFF_2026-07-30.md) | Project-prepared inventory preflight handoff | Decision requested from external reviewer |
-| 3 | 2026-08-02 | [2026-08-02 Inventory readiness](2026-08-02-inventory-readiness.md) | Full re-audit of `agent/inventory-readiness` (PR #2) vs Audits 1–2 | Material technical progress accepted; supervised pilot still blocked by restaurant data + human gates |
-
-## Numbering note
-
-Audits **1** and **2** come from prior independent review threads (exported into the project). The 2026-07-29 checkpoint note and the 2026-08-02 inventory-readiness review were produced in a later thread; **2026-08-02 is Audit #3**, not #2.
-
-The legacy file `docs/3rd Party Audit 07-28-20206.docx` is a saved copy of the PR #1 checkpoint-style review (content aligns with the 2026-07-29 note / Audit 2 era). Prefer this Markdown timeline going forward.
+| 1 | ~2026-07-26 | [2026-07-26 Baseline maturity](2026-07-26-baseline-maturity.md) | Early main baseline; feature completeness; phased productionize plan | Strong beta baseline; validate before inventory |
+| 2 | 2026-07-30 | [2026-07-30 Architecture security product](2026-07-30-architecture-security-product.md) | main + PR #1; live prod notes; AI lab; ops | Solid core; P0 stabilize; inventory pilot gated; AI isolated |
+| — | 2026-07-29 | [2026-07-29 Pre-audit checkpoint note](2026-07-29-pre-audit-checkpoint.md) | Concurrent PR #1 checkpoint (same era as Audit 2) | Conditionally positive |
+| — | 2026-07-30 | [EXTERNAL_AUDIT_HANDOFF](../EXTERNAL_AUDIT_HANDOFF_2026-07-30.md) | Project inventory preflight handoff | Decision requested |
+| 3 | 2026-08-02 | [2026-08-02 Inventory readiness](2026-08-02-inventory-readiness.md) | PR #2 pre-merge inventory-readiness (recipe-era) | Technical controls accepted; pilot blocked on data + human gates |
+| 4 | 2026-08-03 | [2026-08-03 QA compliance post-merge](2026-08-03-qa-compliance-post-merge.md) | Post-merge main: recipe removal, manual inventory, read-only AI, security harden | Core ops path clearer; AI still disabled; staff beta + restore drill remain |
 
 ## How to use
 
-1. Read the newest audit first (Audit 3).
-2. Treat every **Mandatory remediation** item as a merge/pilot blocker unless waived in a later audit.
-3. Keep `Features__Inventory__Enabled=false` in the active deployment until restaurant confirmation, external-audit acceptance of the pilot plan, and supervised multi-device acceptance are complete.
-4. Keep the AI lab disconnected from the ROMS UI and operational database.
+1. Read the newest audit first (Audit 4).
+2. Treat **Mandatory remediation** items as pilot/production blockers unless waived in a later audit.
+3. Keep `Features__Inventory` / automatic deduction assumptions aligned with current product: **manual independent-item ledger only**; recipes are out of scope.
+4. Keep `AI_ENABLED=false` until adversarial/multilingual acceptance and explicit product sign-off.
+5. Human CEO/Product Manager (GUNBORG) remains the only authority for production enablement decisions.
 
-## Related operational evidence
+## Related evidence
 
 - `docs/WORK_LOG.md`
-- `docs/INVENTORY_REVERSAL_RULES.md`
-- `docs/INVENTORY_OPERATIONS.md`
-- `docs/SYNTHETIC_RESILIENCE_TESTING_2026-07-30.md`
-- `docs/MARIADB_DEADLOCK_INCIDENT_2026-07-30.md`
+- `docs/SECURITY_HARDENING_2026-08-02.md`
+- `docs/ROADMAP_2026-08-02.md`
+- `docs/AI_ROLE_AND_SCOPE_POLICY.md`
+- `docs/AI_FUNCTIONS.md`
 - `docs/AI_SECURITY_BOUNDARY.md`
-- `docs/AI_COMMAND_PROTOCOL.md`
+- `docs/INVENTORY_OPERATIONS.md`
