@@ -9,6 +9,7 @@ param(
     [ValidateRange(1, 65535)][int]$RomsHostPort = 7070,
     [string]$DatabaseName = 'roms',
     [string]$DatabaseUser = 'roms',
+    [string]$AdminDisplayName = 'ARCWorks Restaurant Suite Administrator',
     [switch]$Force
 )
 
@@ -51,7 +52,7 @@ $lines = @(
     "DB_ROOT_PASSWORD=$(ConvertTo-DotEnvValue (New-Secret))"
     "ADMIN_USERNAME='admin'"
     "ADMIN_PASSWORD=$(ConvertTo-DotEnvValue (New-Secret))"
-    "ADMIN_DISPLAY_NAME='ROMS Administrator'"
+    "ADMIN_DISPLAY_NAME=$(ConvertTo-DotEnvValue $AdminDisplayName)"
     "ROMS_ALLOWED_HOSTS=$(ConvertTo-DotEnvValue $AllowedHosts)"
     "CLOUDFLARE_TUNNEL_TOKEN_FILE='./.secrets/cloudflare-tunnel-token'"
     "OLLAMA_VOLUME_NAME=$(ConvertTo-DotEnvValue ($ComposeProjectName + '_ollama'))"

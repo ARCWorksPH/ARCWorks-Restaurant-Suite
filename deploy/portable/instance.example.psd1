@@ -9,6 +9,7 @@
     # Public and local deployment values.
     Hostname = 'roms.example.com'
     AllowedHosts = 'roms.example.com;app;localhost;127.0.0.1'
+    TunnelService = 'http://app:8080'
     HostPort = 7070
     DatabaseServerId = 1
 

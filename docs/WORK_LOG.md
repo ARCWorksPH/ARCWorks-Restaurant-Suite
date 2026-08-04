@@ -1,5 +1,18 @@
 # ROMS Work Log
 
+## 2026-08-04 — Resto-VM portable preparation
+
+- Prepared the non-secret `arcworks-suite-resto-vm` profile for
+  `resto-vm.arkworksph.online` with tunnel service `http://app:8080`, host port
+  `7071`, MariaDB server ID `2`, unique volume/backup/monitoring identities, and
+  AI disabled for acceptance.
+- Added [PORTABLE_RESTO_VM_PREPARATION.md](PORTABLE_RESTO_VM_PREPARATION.md)
+  with the VM operator sequence and isolation gate.
+- Updated `Initialize-ProductionEnv.ps1` so generated administrator labels use
+  the final ARCWorks Restaurant Suite branding.
+- No VM, tunnel, or live workstation container was started or changed by this
+  preparation step.
+
 ## 2026-08-04 — Public product branding finalized
 
 - Adopted **ARCWorks Restaurant Suite** as the public product name and
