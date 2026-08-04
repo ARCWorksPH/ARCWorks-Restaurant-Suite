@@ -279,7 +279,7 @@ try {
     if ($Mode -eq 'Full') { Capture-FullSources (Join-Path $script:runRoot 'sources') }
     New-Manifest $script:runRoot
 
-    $tag = if ($Mode -eq 'DatabaseOnly') { 'hourly-database' } else { 'daily-full' }
+    $tag = if ($Mode -eq 'DatabaseOnly') { 'database-only' } else { 'daily-full' }
     Invoke-Restic @(
         '-r', $script:Config.LocalRepository,
         '--password-file', $script:Config.LocalPasswordFile,

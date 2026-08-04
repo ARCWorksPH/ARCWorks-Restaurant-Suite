@@ -39,19 +39,30 @@ method. Weekly EaseUS imaging protects the whole-machine state separately.
 
 | Task | Default |
 |---|---|
-| Database-only capture | Hourly from 08:00 for 16 hours |
-| Full data capture | Daily at 01:15 |
-| Repository maintenance | Sunday at 03:30 |
-| Isolated database/full restore drill | Sunday at 05:00 |
+| Database-only capture | Every 6 hours at 00:00, 06:00, 12:00, and 18:00; prompt at T-30 minutes |
+| Full data capture | Daily at 01:15; prompt at 00:45 |
+| Repository maintenance | Sunday at 03:30; prompt at 03:00 |
+| Isolated database/full restore drill | Sunday at 05:00; prompt at 04:30 |
 | EaseUS/WinPE image | Weekly maintenance window, configured in EaseUS |
 
 Retention begins at 48 hourly, 14 daily, 8 weekly, 12 monthly, and 2 yearly
 snapshots. Pruning occurs only in the weekly maintenance task, after successful
 replication.
 
-The daily full capture fails closed if required Codex continuity content is
-missing. Hourly database captures do not duplicate the Codex tree; its required
+The scheduled wrapper shows a 30-minute Confirm/Delay prompt. Confirm waits
+until the scheduled time; Delay skips that occurrence and leaves the next
+recurring slot intact. If the prompt cannot be displayed, database-only work
+proceeds online, while full/weekly work is skipped safely. The daily full capture
+fails closed if required Codex continuity content is
+missing. Database-only captures do not duplicate the Codex tree; its required
 recovery point objective is one successful copy per day.
+
+Full and weekly operations write an advisory maintenance marker under the
+runtime `state` directory for dashboards and audit logs. The current ROMS
+application has no maintenance/read-only gate, so the scheduler does not stop
+Docker containers or reject live orders automatically. Database dumps are
+transaction-consistent; operators should avoid planned data changes during the
+confirmed full/recovery window until an application gate is added.
 
 `G:` is currently a second local encrypted Restic repository, not a Nextcloud
 or off-site destination. A Nextcloud server database must be dumped on that

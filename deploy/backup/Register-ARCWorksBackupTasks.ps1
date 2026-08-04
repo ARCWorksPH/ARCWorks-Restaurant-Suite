@@ -33,38 +33,37 @@ $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances 
 $runtimeScripts = Join-Path $RuntimeRoot 'scripts'
 New-Item -ItemType Directory -Path $runtimeScripts -Force | Out-Null
 
-foreach ($name in @('Invoke-ARCWorksBackup.ps1', 'Test-ARCWorksRestore.ps1')) {
+foreach ($name in @('Invoke-ARCWorksBackup.ps1', 'Test-ARCWorksRestore.ps1', 'Invoke-ARCWorksScheduledBackup.ps1')) {
     $source = Join-Path $ScriptSource $name
     if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Required script is missing: $source" }
     Copy-Item -LiteralPath $source -Destination (Join-Path $runtimeScripts $name) -Force
 }
 
-$backupScript = Join-Path $runtimeScripts 'Invoke-ARCWorksBackup.ps1'
-$restoreScript = Join-Path $runtimeScripts 'Test-ARCWorksRestore.ps1'
-$hourlyTrigger = @(0..15 | ForEach-Object {
-    New-ScheduledTaskTrigger -Daily -At ([DateTime]::Today.AddHours(8 + $_))
+$scheduledScript = Join-Path $runtimeScripts 'Invoke-ARCWorksScheduledBackup.ps1'
+$sixHourPromptTriggers = @('05:30', '11:30', '17:30', '23:30' | ForEach-Object {
+    New-ScheduledTaskTrigger -Daily -At ([DateTime]::ParseExact($_, 'HH:mm', [Globalization.CultureInfo]::InvariantCulture))
 })
 
 $definitions = @(
     @{
-        Name = 'Backup - Hourly Databases'
-        Action = New-ScheduledTaskAction -Execute $pwsh -Argument "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$backupScript`" -Mode DatabaseOnly"
-        Trigger = $hourlyTrigger
+        Name = 'Backup - Every 6 Hours Databases'
+        Action = New-ScheduledTaskAction -Execute $pwsh -Argument "-STA -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$scheduledScript`" -Mode DatabaseOnly -ScheduleKind SixHourly -RunAt 00:00"
+        Trigger = $sixHourPromptTriggers
     },
     @{
         Name = 'Backup - Daily Full'
-        Action = New-ScheduledTaskAction -Execute $pwsh -Argument "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$backupScript`" -Mode Full"
-        Trigger = New-ScheduledTaskTrigger -Daily -At '01:15'
+        Action = New-ScheduledTaskAction -Execute $pwsh -Argument "-STA -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$scheduledScript`" -Mode Full -ScheduleKind Daily -RunAt 01:15"
+        Trigger = New-ScheduledTaskTrigger -Daily -At '00:45'
     },
     @{
         Name = 'Backup - Weekly Maintenance'
-        Action = New-ScheduledTaskAction -Execute $pwsh -Argument "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$backupScript`" -Mode Maintenance"
-        Trigger = New-ScheduledTaskTrigger -Weekly -WeeksInterval 1 -DaysOfWeek Sunday -At '03:30'
+        Action = New-ScheduledTaskAction -Execute $pwsh -Argument "-STA -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$scheduledScript`" -Mode Maintenance -ScheduleKind Weekly -RunAt 03:30"
+        Trigger = New-ScheduledTaskTrigger -Weekly -WeeksInterval 1 -DaysOfWeek Sunday -At '03:00'
     },
     @{
         Name = 'Backup - Weekly Restore Drill'
-        Action = New-ScheduledTaskAction -Execute $pwsh -Argument "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$restoreScript`" -ValidateDatabases"
-        Trigger = New-ScheduledTaskTrigger -Weekly -WeeksInterval 1 -DaysOfWeek Sunday -At '05:00'
+        Action = New-ScheduledTaskAction -Execute $pwsh -Argument "-STA -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$scheduledScript`" -Mode Restore -ScheduleKind Weekly -RunAt 05:00"
+        Trigger = New-ScheduledTaskTrigger -Weekly -WeeksInterval 1 -DaysOfWeek Sunday -At '04:30'
     }
 )
 
@@ -74,6 +73,11 @@ foreach ($definition in $definitions) {
         Register-ScheduledTask -TaskName $taskName -Action $definition.Action -Trigger $definition.Trigger -Principal $principal -Settings $settings -Force | Out-Null
         if (-not $Enable) { Disable-ScheduledTask -TaskName $taskName | Out-Null }
     }
+}
+
+$staleTask = 'ARCWorks Backup - Hourly Databases'
+if ($PSCmdlet.ShouldProcess($staleTask, 'Unregister obsolete scheduled task') -and (Get-ScheduledTask -TaskName $staleTask -ErrorAction SilentlyContinue)) {
+    Unregister-ScheduledTask -TaskName $staleTask -Confirm:$false
 }
 
 $staleErrorLog = Join-Path $RuntimeRoot 'logs\task-registration-error.log'
