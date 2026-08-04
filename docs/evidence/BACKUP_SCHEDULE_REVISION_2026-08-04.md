@@ -44,4 +44,6 @@ and skips only that occurrence; it does not alter the recurring schedule.
 Source PowerShell parsing and task-definition inspection are required after
 registration. A live prompt should be tested once manually during a safe window;
 this document does not claim that a Windows desktop dialog has been accepted by
-an operator until that test is observed.
+an operator until that test is observed. The source change is committed and
+pushed; live Task Scheduler registration remains pending one elevated PowerShell
+run because the current Codex session does not have an elevated Windows token.
