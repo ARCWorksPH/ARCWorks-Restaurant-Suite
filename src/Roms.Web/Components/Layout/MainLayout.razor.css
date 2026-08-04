@@ -32,12 +32,21 @@ main {
 }
 
 .top-row .roms-brand-title {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 800;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
     background: var(--roms-gradient-primary, linear-gradient(135deg, #8B5CF6 0%, #38BDF8 52%, #2DD4BF 100%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+}
+
+@media (max-width: 640px) {
+    .top-row .roms-brand-title {
+        max-width: 48vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 }
 
 .user-badge {

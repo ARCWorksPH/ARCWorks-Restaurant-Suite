@@ -1,6 +1,6 @@
-# Portable ROMS instance contract
+# Portable ARCWorks Restaurant Suite instance contract
 
-This directory defines the values that make one ROMS installation distinct
+This directory defines the values that make one ARCWorks Restaurant Suite installation distinct
 from another. Copy `instance.example.psd1` to an operator-controlled manifest
 for each VM; never put passwords or Cloudflare tokens in the manifest.
 
@@ -28,6 +28,8 @@ Every VM/restaurant must have a different:
 - Zabbix host identity.
 
 The application remains reachable inside the Compose network as `app:8080`.
+The internal code name `ROMS` is retained in namespaces, database migrations,
+and compatibility-sensitive environment variables; it is not the public brand.
 The host-side port is only a local convenience and is configurable with
 `ROMS_HOST_PORT`.
 
@@ -55,7 +57,7 @@ The host-side port is only a local convenience and is configurable with
    not change an already-initialized MariaDB account by itself.
 4. Create a new Cloudflare token file at the manifest path. Do not reuse the
    main restaurant token.
-5. Start ROMS and MariaDB without public DNS. Confirm migrations and the first
+5. Start ARCWorks Restaurant Suite and MariaDB without public DNS. Confirm migrations and the first
    administrator bootstrap complete successfully.
 6. Verify the app health endpoint, login, database name, and instance label.
 7. Register the instance in monitoring and backup using its unique identity.

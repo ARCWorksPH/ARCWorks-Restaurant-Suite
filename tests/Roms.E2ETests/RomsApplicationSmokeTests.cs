@@ -62,11 +62,11 @@ public sealed class RomsApplicationSmokeTests : PageTest
                 .ToBeVisibleAsync();
 
             await Page.GotoAsync($"{baseAddress}/assistant");
-            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "ROMS Assistant" }))
+            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "ARCWorks Restaurant Suite Assistant" }))
                 .ToBeVisibleAsync();
-            await Expect(Page.GetByText("Responses come from deterministic ROMS queries."))
+            await Expect(Page.GetByText("Responses come from deterministic ARCWorks Restaurant Suite queries."))
                 .ToBeVisibleAsync();
-            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Ask ROMS" }))
+            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Ask ARCWorks" }))
                 .ToBeDisabledAsync();
 
             await Page.SetViewportSizeAsync(390, 844);

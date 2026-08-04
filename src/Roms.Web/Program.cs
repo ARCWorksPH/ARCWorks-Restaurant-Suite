@@ -28,6 +28,7 @@ if (!Path.IsPathRooted(dataProtectionKeysPath))
 Directory.CreateDirectory(dataProtectionKeysPath);
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
+    // Keep the legacy application name so existing cookies and key rings remain valid.
     .SetApplicationName("ROMS");
 
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();

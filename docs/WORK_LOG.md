@@ -1,5 +1,20 @@
 # ROMS Work Log
 
+## 2026-08-04 — Public product branding finalized
+
+- Adopted **ARCWorks Restaurant Suite** as the public product name and
+  **ARCWorks** as the compact label for the UI, PWA metadata, admin bootstrap
+  label, operational monitor label, README, and portable-instance examples.
+- Added `docs/BRANDING_AND_COMPATIBILITY.md` to define the branding boundary.
+- Preserved `ROMS` in namespaces, database/migration identifiers, Docker and
+  environment compatibility names, historical evidence, and Data Protection's
+  application name so existing data, cookies, and key rings are not invalidated.
+- Updated the Playwright smoke test to verify the new public name. Release build
+  completed with 0 warnings/0 errors; the isolated real-application browser test
+  passed 1/1.
+- This was a source/documentation change only. The running legacy
+  `arcworks-resto-*` Docker stack was not renamed or restarted.
+
 ## 2026-08-02 — AI Benchmark 3 final disposition
 
 ### Benchmark decision

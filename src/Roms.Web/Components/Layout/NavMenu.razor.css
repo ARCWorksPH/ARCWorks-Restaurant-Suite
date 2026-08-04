@@ -7,9 +7,10 @@
 }
 
 .navbar-brand {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     font-weight: 800;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
     background: var(--roms-gradient-primary, linear-gradient(135deg, #8B5CF6 0%, #38BDF8 52%, #2DD4BF 100%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;

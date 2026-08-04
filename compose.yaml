@@ -41,7 +41,7 @@ services:
       Seed__AdminUsername: ${ADMIN_USERNAME:-admin}
       # Required only for first bootstrap; remove from .env after the admin exists.
       Seed__AdminPassword: ${ADMIN_PASSWORD:-}
-      Seed__AdminDisplayName: ${ADMIN_DISPLAY_NAME:-ROMS Administrator}
+      Seed__AdminDisplayName: ${ADMIN_DISPLAY_NAME:-ARCWorks Restaurant Suite Administrator}
       Ai__Enabled: ${AI_ENABLED:-false}
       Ai__CommandGatewayBaseUrl: http://command-gateway:8080/
       Ai__MaxConcurrentRequests: ${AI_MAX_CONCURRENT_REQUESTS:-2}

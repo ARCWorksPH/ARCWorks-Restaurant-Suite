@@ -4,7 +4,7 @@
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">ROMS</a>
+        <a class="navbar-brand" href="">@ProductBrand.Name</a>
         <button class="navbar-toggler" type="button" aria-label="Toggle navigation menu"
                 aria-controls="roms-navigation"
                 aria-expanded="@(isNavExpanded ? "true" : "false")"
@@ -18,7 +18,7 @@
     <nav class="nav flex-column">
         <div class="nav-item px-3"><NavLink class="nav-link" href="" Match="NavLinkMatch.All" title="Dashboard"><span class="nav-icon">⌂</span> <span class="nav-text">Dashboard</span></NavLink></div>
         <AuthorizeView><div class="nav-item px-3"><NavLink class="nav-link" href="attendance" title="My Attendance"><span class="nav-icon">◷</span> <span class="nav-text">My Attendance</span></NavLink></div></AuthorizeView>
-        <div class="nav-item px-3 install-nav-item"><NavLink class="nav-link" href="install" title="Install ROMS"><span class="nav-icon">⬇</span> <span class="nav-text">Install ROMS</span></NavLink></div>
+        <div class="nav-item px-3 install-nav-item"><NavLink class="nav-link" href="install" title="Install ARCWorks Restaurant Suite"><span class="nav-icon">⬇</span> <span class="nav-text">Install ARCWorks</span></NavLink></div>
         <AuthorizeView Policy="WaiterOrAdmin"><div class="nav-item px-3"><NavLink class="nav-link" href="tables" title="Tables & Orders"><span class="nav-icon">▦</span> <span class="nav-text">Tables & Orders</span></NavLink></div></AuthorizeView>
         <AuthorizeView Policy="KitchenOrAdmin">
             <div class="nav-item px-3"><NavLink class="nav-link" href="kitchen" title="Kitchen Display"><span class="nav-icon">▤</span> <span class="nav-text">Kitchen Display</span></NavLink></div>
@@ -35,7 +35,7 @@
             <Authorized>
                 @if (Configuration.GetValue<bool>("Ai:Enabled"))
                 {
-                    <div class="nav-item px-3"><NavLink class="nav-link" href="assistant" title="ROMS Assistant"><span class="nav-icon">◇</span> <span class="nav-text">Assistant</span></NavLink></div>
+                    <div class="nav-item px-3"><NavLink class="nav-link" href="assistant" title="ARCWorks Restaurant Suite Assistant"><span class="nav-icon">◇</span> <span class="nav-text">Assistant</span></NavLink></div>
                 }
                 <div class="nav-item px-3 nav-user-item"><span class="nav-user-label">● @context.User.Identity?.Name (@GetRole(context.User))</span></div>
                 <div class="nav-item px-3"><form action="Account/ClockOutAndLogout" method="post"><AntiforgeryToken /><button type="submit" class="nav-link nav-clockout" title="Clock Out + Log Out"><span class="nav-icon">⇥</span> <span class="nav-text">Clock Out + Log Out</span></button></form></div>

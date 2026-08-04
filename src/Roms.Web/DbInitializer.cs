@@ -12,7 +12,7 @@ public sealed class SeedOptions
 {
     public string AdminUsername { get; set; } = "admin";
     public string AdminPassword { get; set; } = "";
-    public string AdminDisplayName { get; set; } = "ROMS Administrator";
+    public string AdminDisplayName { get; set; } = ProductBrand.Name + " Administrator";
     public bool DemoData { get; set; }
 }
 

@@ -3,7 +3,7 @@
 
     # Identity must be unique for every restaurant/VM.
     InstanceId = 'arcworks-resto-main'
-    DisplayName = 'ROMS Main'
+    DisplayName = 'ARCWorks Restaurant Suite Main'
     ComposeProjectName = 'arcworks-resto-main'
 
     # Public and local deployment values.
@@ -31,7 +31,7 @@
     CloudBackupRepository = ''
 
     # Zabbix is a separate monitoring stack on this workstation.
-    ZabbixHostName = 'ROMS-MAIN'
+    ZabbixHostName = 'ARCWORKS-SUITE-MAIN'
     ZabbixDatabaseContainer = 'arcworks-monitoring-postgres'
 
     # Keep false until the AI lab is separately provisioned for this instance.

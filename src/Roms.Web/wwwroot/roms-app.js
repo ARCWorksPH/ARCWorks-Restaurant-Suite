@@ -19,7 +19,7 @@
                     button.disabled = true;
                     button.textContent = "HTTPS required to install";
                 }
-                showInstallRequirement("This public address uses HTTP. Browsers only install ROMS from a secure HTTPS address or from localhost.");
+                showInstallRequirement("This public address uses HTTP. Browsers only install ARCWorks Restaurant Suite from a secure HTTPS address or from localhost.");
             }
         },
         prompt: async () => {
@@ -30,7 +30,7 @@
                 await installPrompt.userChoice;
                 installPrompt = undefined;
             } else {
-                showInstallRequirement("The browser has not made installation available yet. Use Chrome or Edge, interact with ROMS for a moment, then try again or use the browser menu.");
+                showInstallRequirement("The browser has not made installation available yet. Use Chrome or Edge, interact with ARCWorks Restaurant Suite for a moment, then try again or use the browser menu.");
             }
         }
     };

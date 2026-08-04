@@ -16,7 +16,7 @@
 <h1>Staff login</h1>
 @if (Reason == "inactive")
 {
-    <div class="alert alert-warning">Your ROMS session ended after a period of inactivity. Your attendance record was not changed.</div>
+    <div class="alert alert-warning">Your @ProductBrand.Name session ended after a period of inactivity. Your attendance record was not changed.</div>
 }
 @if (ClockedOut)
 {
@@ -28,7 +28,7 @@
             <StatusMessage Message="@errorMessage" />
             <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator />
-                <h2>Enter your ROMS username and password.</h2>
+                <h2>Enter your @ProductBrand.Name username and password.</h2>
                 <hr />
                 <ValidationSummary class="text-danger" role="alert" />
                 <div class="form-floating mb-3">

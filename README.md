@@ -1,6 +1,6 @@
-# ROMS — Restaurant Order Management System
+# ARCWorks Restaurant Suite
 
-ROMS is a single-location, touch-first restaurant workflow for waiters, kitchen staff, and administrators. It uses .NET 10 Blazor Interactive Server, ASP.NET Core Identity, EF Core 10, SignalR, and MariaDB 11.4.
+ARCWorks Restaurant Suite is a single-location, touch-first restaurant workflow for waiters, kitchen staff, and administrators. Its internal code name remains ROMS for namespaces, database migrations, and compatibility-sensitive tooling. It uses .NET 10 Blazor Interactive Server, ASP.NET Core Identity, EF Core 10, SignalR, and MariaDB 11.4.
 
 ## Implemented
 
@@ -53,7 +53,7 @@ before a production rollout or inventory enablement.
 
 The optional `ai-lab` profile runs a private Ollama service and command
 interpreter. The model and gateway have no database network or credentials.
-The authenticated ROMS app derives a role-specific function list, submits only
+The authenticated ARCWorks Restaurant Suite app derives a role-specific function list, submits only
 role-permitted bounded catalogs for interpretation, then executes only an
 approved permission-checked read and formats the database facts itself. AI
 writes and arbitrary SQL do not exist. Per-user and global inference limits
