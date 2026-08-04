@@ -1,35 +1,30 @@
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$DatabaseEnvPath = (Join-Path $PSScriptRoot '..\Docker\MariaDB\.env'),
     [string]$DestinationPath = (Join-Path $PSScriptRoot '..\.env'),
-    [string]$RomsHost = 'roms.gbserverph.online',
+    [string]$RomsHost = 'localhost',
+    [string]$AllowedHosts,
+    [string]$ComposeProjectName = 'arcworks-resto-main',
+    [string]$InstanceId = 'arcworks-resto-main',
+    [ValidateRange(1, 2147483647)][int]$DbServerId = 1,
+    [ValidateRange(1, 65535)][int]$RomsHostPort = 7070,
+    [string]$DatabaseName = 'roms',
+    [string]$DatabaseUser = 'roms',
     [switch]$Force
 )
 
 $ErrorActionPreference = 'Stop'
-
-function Read-DotEnv([string]$Path) {
-    $values = @{}
-    foreach ($line in Get-Content -LiteralPath $Path) {
-        $trimmed = $line.Trim()
-        if (-not $trimmed -or $trimmed.StartsWith('#') -or -not $trimmed.Contains('=')) {
-            continue
-        }
-
-        $name, $value = $trimmed.Split('=', 2)
-        $value = $value.Trim()
-        if ($value.Length -ge 2 -and
-            (($value.StartsWith("'") -and $value.EndsWith("'")) -or
-             ($value.StartsWith('"') -and $value.EndsWith('"')))) {
-            $value = $value.Substring(1, $value.Length - 2)
-        }
-        $values[$name.Trim()] = $value
-    }
-    return $values
-}
+Set-StrictMode -Version Latest
 
 function ConvertTo-DotEnvValue([string]$Value) {
     return "'" + $Value.Replace("'", "\'") + "'"
+}
+
+function New-Secret {
+    [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(36))
+}
+
+if ([string]::IsNullOrWhiteSpace($AllowedHosts)) {
+    $AllowedHosts = "$RomsHost;app;localhost;127.0.0.1"
 }
 
 if ((Test-Path -LiteralPath $DestinationPath) -and -not $Force) {
@@ -37,39 +32,47 @@ if ((Test-Path -LiteralPath $DestinationPath) -and -not $Force) {
     exit 0
 }
 
-$database = Read-DotEnv $DatabaseEnvPath
-foreach ($required in 'DB_PASSWORD', 'DB_ROOT_PASSWORD') {
-    if (-not $database.ContainsKey($required) -or [string]::IsNullOrWhiteSpace($database[$required])) {
-        throw "Required value $required is missing from $DatabaseEnvPath."
+$destination = [IO.Path]::GetFullPath($DestinationPath)
+$parent = Split-Path -Parent $destination
+if (-not (Test-Path -LiteralPath $parent)) {
+    New-Item -ItemType Directory -Path $parent -Force | Out-Null
+}
+
+$lines = @(
+    "COMPOSE_PROJECT_NAME=$(ConvertTo-DotEnvValue $ComposeProjectName)"
+    "INSTANCE_ID=$(ConvertTo-DotEnvValue $InstanceId)"
+    "ROMS_HOST=$(ConvertTo-DotEnvValue $RomsHost)"
+    "ROMS_HOST_PORT='$RomsHostPort'"
+    "ROMS_IMAGE='roms:local'"
+    "DB_SERVER_ID='$DbServerId'"
+    "DB_NAME=$(ConvertTo-DotEnvValue $DatabaseName)"
+    "DB_USER=$(ConvertTo-DotEnvValue $DatabaseUser)"
+    "DB_PASSWORD=$(ConvertTo-DotEnvValue (New-Secret))"
+    "DB_ROOT_PASSWORD=$(ConvertTo-DotEnvValue (New-Secret))"
+    "ADMIN_USERNAME='admin'"
+    "ADMIN_PASSWORD=$(ConvertTo-DotEnvValue (New-Secret))"
+    "ADMIN_DISPLAY_NAME='ROMS Administrator'"
+    "ROMS_ALLOWED_HOSTS=$(ConvertTo-DotEnvValue $AllowedHosts)"
+    "CLOUDFLARE_TUNNEL_TOKEN_FILE='./.secrets/cloudflare-tunnel-token'"
+    "OLLAMA_VOLUME_NAME=$(ConvertTo-DotEnvValue ($ComposeProjectName + '_ollama'))"
+    "MARIADB_VOLUME_NAME=$(ConvertTo-DotEnvValue ($ComposeProjectName + '_mariadb-data'))"
+    "DATA_PROTECTION_VOLUME_NAME=$(ConvertTo-DotEnvValue ($ComposeProjectName + '_data-protection-keys'))"
+    "MONITOR_VOLUME_NAME=$(ConvertTo-DotEnvValue ($ComposeProjectName + '_monitor-data'))"
+    "CADDY_DATA_VOLUME_NAME=$(ConvertTo-DotEnvValue ($ComposeProjectName + '_caddy-data'))"
+    "CADDY_CONFIG_VOLUME_NAME=$(ConvertTo-DotEnvValue ($ComposeProjectName + '_caddy-config'))"
+    "AI_ENABLED='false'"
+)
+
+if ($PSCmdlet.ShouldProcess($destination, 'Create protected production environment')) {
+    [IO.File]::WriteAllLines($destination, $lines, [Text.UTF8Encoding]::new($false))
+
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+    & icacls.exe $destination /inheritance:r /grant:r "${identity}:(F)" 'SYSTEM:(F)' | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to restrict permissions on $destination."
     }
 }
 
-$adminPassword = [Convert]::ToBase64String(
-    [Security.Cryptography.RandomNumberGenerator]::GetBytes(36))
-
-$lines = @(
-    "ROMS_HOST=$(ConvertTo-DotEnvValue $RomsHost)"
-    "ROMS_IMAGE='roms:local'"
-    "DB_SERVER_ID='1'"
-    "DB_NAME=$(ConvertTo-DotEnvValue ($database['DB_NAME'] ?? 'roms'))"
-    "DB_USER=$(ConvertTo-DotEnvValue ($database['DB_USER'] ?? 'roms'))"
-    "DB_PASSWORD=$(ConvertTo-DotEnvValue $database['DB_PASSWORD'])"
-    "DB_ROOT_PASSWORD=$(ConvertTo-DotEnvValue $database['DB_ROOT_PASSWORD'])"
-    "ADMIN_USERNAME='admin'"
-    "ADMIN_PASSWORD=$(ConvertTo-DotEnvValue $adminPassword)"
-    "ADMIN_DISPLAY_NAME='ROMS Administrator'"
-)
-
-[IO.File]::WriteAllLines(
-    [IO.Path]::GetFullPath($DestinationPath),
-    $lines,
-    [Text.UTF8Encoding]::new($false))
-
-$identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
-& icacls.exe $DestinationPath /inheritance:r /grant:r "${identity}:(F)" 'SYSTEM:(F)' | Out-Null
-if ($LASTEXITCODE -ne 0) {
-    throw "Failed to restrict permissions on $DestinationPath."
-}
-
-Write-Output "Created protected production environment: $DestinationPath"
-Write-Output 'The generated administrator password was not printed.'
+Write-Output "Created protected production environment: $destination"
+Write-Output 'Random database and administrator secrets were generated but not printed.'
+Write-Output 'Create the ignored Cloudflare token file separately before enabling the edge-tunnel profile.'

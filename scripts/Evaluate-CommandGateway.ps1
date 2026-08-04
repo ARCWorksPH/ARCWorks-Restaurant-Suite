@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
-    [string]$GatewayContainer = "arcworks-resto-command-gateway-1",
-    [string]$CommandNetwork = "arcworks-resto_command"
+    [string]$GatewayContainer,
+    [string]$CommandNetwork,
+    [string]$InstanceId = $(if ($env:INSTANCE_ID) { $env:INSTANCE_ID } else { 'arcworks-resto' }),
+    [string]$ComposeProjectName = $(if ($env:COMPOSE_PROJECT_NAME) { $env:COMPOSE_PROJECT_NAME } else { 'arcworks-resto' })
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,8 +12,17 @@ $corpusPath = Join-Path $projectRoot "tests\Roms.CommandGateway.Tests\TestData\c
 $artifactDirectory = Join-Path $projectRoot ".artifacts\ai-lab"
 $artifactPath = Join-Path $artifactDirectory ("evaluation-{0}.json" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
 
+if ([string]::IsNullOrWhiteSpace($GatewayContainer)) {
+    $GatewayContainer = @(& docker ps --filter "label=com.arcworks.instance=$InstanceId" --filter "label=com.arcworks.service=command-gateway" --format "{{.Names}}") |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Select-Object -First 1
+}
+if ([string]::IsNullOrWhiteSpace($CommandNetwork)) {
+    $CommandNetwork = "${ComposeProjectName}_command"
+}
+
 if (-not (docker ps --filter "name=^/$GatewayContainer$" --format "{{.Names}}")) {
-    throw "The isolated command gateway is not running."
+    throw "The isolated command gateway is not running for instance '$InstanceId'."
 }
 
 $catalog = @(

@@ -1,0 +1,12 @@
+services:
+  # Optional only for the workstation that also publishes the portfolio.
+  # Restaurant-only VMs should use compose.yaml without this override.
+  cloudflared:
+    networks:
+      - edge
+      - portfolio
+
+networks:
+  portfolio:
+    external: true
+    name: ${PORTFOLIO_NETWORK_NAME:-arcworks-portfolio-net}

@@ -33,6 +33,22 @@ function Assert-Container([string]$Name) {
     if ($parts[1] -notin @('healthy', 'none')) { throw "Container $Name health is $($parts[1])." }
 }
 
+function Resolve-Container([string]$ExplicitName, [string]$Service) {
+    if (-not [string]::IsNullOrWhiteSpace($ExplicitName)) { return $ExplicitName }
+
+    $instanceId = [string]$script:Config.InstanceId
+    if ([string]::IsNullOrWhiteSpace($instanceId)) {
+        throw "No explicit container was configured and InstanceId is empty for service '$Service'."
+    }
+
+    $matches = @(& docker ps --filter "label=com.arcworks.instance=$instanceId" --filter "label=com.arcworks.service=$Service" --format '{{.Names}}') |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    if ($matches.Count -ne 1) {
+        throw "Expected exactly one running '$Service' container for instance '$instanceId'; found $($matches.Count). Configure an explicit container name if this service is managed separately."
+    }
+    return [string]$matches[0]
+}
+
 function Invoke-BinaryCapture {
     param(
         [Parameter(Mandatory)][string]$FilePath,
@@ -108,19 +124,22 @@ function Copy-SourceTree {
 
 function Capture-Databases([string]$DatabaseDirectory) {
     New-Item -ItemType Directory -Path $DatabaseDirectory -Force | Out-Null
-    Assert-Container $script:Config.RomsDatabaseContainer
-    Assert-Container $script:Config.ZabbixDatabaseContainer
+    $mariaContainer = Resolve-Container $script:Config.RomsDatabaseContainer 'db'
+    $zabbixContainer = Resolve-Container $script:Config.ZabbixDatabaseContainer 'zabbix-db'
+    Assert-Container $mariaContainer
+    Assert-Container $zabbixContainer
+    Write-Log "Using database containers: ROMS=$mariaContainer; Zabbix=$zabbixContainer."
 
     $mariaDump = Join-Path $DatabaseDirectory 'roms-mariadb.sql'
     $mariaCommand = 'exec mariadb-dump --single-transaction --quick --routines --events --triggers --hex-blob --default-character-set=utf8mb4 -uroot -p"$MARIADB_ROOT_PASSWORD" "$MARIADB_DATABASE"'
-    Invoke-BinaryCapture -FilePath 'docker.exe' -ArgumentList @('exec', $script:Config.RomsDatabaseContainer, 'sh', '-c', $mariaCommand) -OutputPath $mariaDump
+    Invoke-BinaryCapture -FilePath 'docker.exe' -ArgumentList @('exec', $mariaContainer, 'sh', '-c', $mariaCommand) -OutputPath $mariaDump
     if ((Get-Item -LiteralPath $mariaDump).Length -lt 1024) { throw 'MariaDB dump is unexpectedly small.' }
     if (-not (Select-String -LiteralPath $mariaDump -Pattern 'CREATE TABLE' -SimpleMatch -Quiet)) { throw 'MariaDB dump has no CREATE TABLE statements.' }
     Write-Log "Validated MariaDB dump ($((Get-Item -LiteralPath $mariaDump).Length) bytes)."
 
     $postgresDump = Join-Path $DatabaseDirectory 'zabbix-postgresql.dump'
     $postgresCommand = 'export PGPASSWORD="$(cat /run/secrets/postgres_password)"; exec pg_dump --format=custom --compress=9 --username="$(cat /run/secrets/postgres_user)" --dbname="$POSTGRES_DB"'
-    Invoke-BinaryCapture -FilePath 'docker.exe' -ArgumentList @('exec', $script:Config.ZabbixDatabaseContainer, 'sh', '-c', $postgresCommand) -OutputPath $postgresDump
+    Invoke-BinaryCapture -FilePath 'docker.exe' -ArgumentList @('exec', $zabbixContainer, 'sh', '-c', $postgresCommand) -OutputPath $postgresDump
     if ((Get-Item -LiteralPath $postgresDump).Length -lt 1024) { throw 'PostgreSQL dump is unexpectedly small.' }
     $header = [IO.File]::ReadAllBytes($postgresDump)[0..4]
     if ([Text.Encoding]::ASCII.GetString($header) -ne 'PGDMP') { throw 'PostgreSQL custom dump header is invalid.' }
@@ -249,6 +268,9 @@ try {
     Assert-RequiredPath $ConfigPath 'Runtime configuration'
     $script:Config = Import-PowerShellDataFile -LiteralPath $ConfigPath
     if ($script:Config.SchemaVersion -ne 1) { throw 'Unsupported backup configuration schema.' }
+    if (-not $script:Config.ContainsKey('InstanceId')) { $script:Config.InstanceId = $script:Config.ResticHost }
+    if (-not $script:Config.ContainsKey('RomsDatabaseContainer')) { $script:Config.RomsDatabaseContainer = '' }
+    if (-not $script:Config.ContainsKey('ZabbixDatabaseContainer')) { $script:Config.ZabbixDatabaseContainer = '' }
 
     foreach ($path in @($script:Config.ControlRoot, $script:Config.StagingRoot, $script:Config.LocalRepository, $script:Config.ReplicationRepository)) {
         Assert-RequiredPath $path 'Backup path'

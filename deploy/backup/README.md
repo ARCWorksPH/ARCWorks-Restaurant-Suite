@@ -32,6 +32,12 @@ configured.
 - Redacted Docker, Git, Windows, drive, and WSL inventories.
 - SHA-256 manifest of every staged file.
 
+For portable instances, set `InstanceId`, `RomsRoot`, and the per-instance
+backup host in `backup.config.psd1`. The ROMS database container may be left
+blank so the backup script resolves the uniquely labelled Compose service
+(`com.arcworks.instance` + `com.arcworks.service=db`). Keep Zabbix explicit
+when it lives in the separate monitoring stack.
+
 The process never backs up a live database directory as its database recovery
 method. Weekly EaseUS imaging protects the whole-machine state separately.
 

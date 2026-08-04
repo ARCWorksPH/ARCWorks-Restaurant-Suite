@@ -69,6 +69,10 @@ start the portable hardened service with:
 docker compose --profile edge-tunnel up -d cloudflared
 ```
 
+The base Compose file is restaurant-only. Add `-f compose.portfolio.yaml` only
+on the workstation that intentionally publishes the separate portfolio network;
+restaurant VMs must not attach their tunnel to that external network.
+
 Never commit the token file or paste its value into documentation or logs.
 
 ## Verification evidence

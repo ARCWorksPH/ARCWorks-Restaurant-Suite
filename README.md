@@ -13,14 +13,21 @@ ROMS is a single-location, touch-first restaurant workflow for waiters, kitchen 
 ## Run locally with Docker
 
 1. Install Docker Engine with Compose.
-2. Copy `.env.example` to `.env` and replace every password and hostname.
-3. For localhost-only testing, set `ROMS_HOST=localhost`.
-4. Run `scripts\Initialize-ProductionEnv.ps1` to create a protected production
-   `.env`, or configure `.env` manually from `.env.example`.
+2. Copy `deploy/portable/instance.example.psd1` to an instance manifest and
+   choose unique instance, project, hostname, port, and database-server values.
+3. Run `scripts\Initialize-ProductionEnv.ps1` with the manifest values to create
+   a protected, ignored `.env`; it generates fresh database and administrator
+   secrets without reading a legacy database environment file.
+4. Create `.secrets\cloudflare-tunnel-token` only when the edge-tunnel profile
+   is being enabled. Keep one token per instance.
 5. Run `docker compose up --build -d`.
 6. Open the configured Cloudflare Tunnel hostname and sign in with
    `ADMIN_USERNAME` and `ADMIN_PASSWORD`. The optional direct-Caddy edge can be
    started with the `direct-https` Compose profile.
+
+For the workstation portfolio route, add `-f compose.portfolio.yaml`. Do not
+use that override for a restaurant-only VM. See `deploy/portable/README.md`
+before cloning an instance.
 
 The first start applies EF migrations and creates the three roles plus the initial administrator. Inventory is a manual, independent-item ledger; orders do not deduct ingredients.
 
@@ -38,7 +45,8 @@ dotnet test Roms.slnx -m:1
 dotnet run --project src/Roms.Web
 ```
 
-See `docs/OPERATIONS.md`, `docs/FAILOVER_RUNBOOK.md`, and `docs/WORK_LOG.md`
+See `docs/OPERATIONS.md`, `docs/FAILOVER_RUNBOOK.md`,
+`deploy/portable/README.md`, and `docs/WORK_LOG.md`
 before a production rollout or inventory enablement.
 
 ## Feature-gated read-only assistant lab

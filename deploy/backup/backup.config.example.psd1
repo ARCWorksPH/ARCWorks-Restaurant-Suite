@@ -10,14 +10,18 @@
     EaseUsImageRoot      = 'I:\ARCWorks_EaseUS_Images'
     RestoreTestRoot      = 'I:\ARCWorks_Restore_Tests'
 
-    RomsRoot       = 'D:\ARCWorks_Restaurant Suite'
+    InstanceId     = 'arcworks-resto-main'
+    ComposeProjectName = 'arcworks-resto-main'
+    RomsRoot       = 'D:\GBServerPH - Staff-side Restaurant Ordering App'
     MonitoringRoot = 'D:\ARCWorks_Monitoring'
     PortfolioRoot  = 'E:\ARCANUM VAULT\PROJECTS\ARCWorks-Portfolio'
     CodexRoot      = 'C:\Users\GBServerPH\.codex'
 
-    RomsDatabaseContainer = 'arcworks-resto-db-1'
+    # Leave the ROMS container blank to resolve it by the Compose instance labels.
+    # Keep Zabbix explicit when monitoring is hosted in a separate stack.
+    RomsDatabaseContainer = ''
     ZabbixDatabaseContainer = 'arcworks-monitoring-postgres'
-    ResticHost = 'ARCWORKS-MAIN'
+    ResticHost = 'arcworks-resto-main'
 
     LocalPasswordFile       = 'C:\ProgramData\ARCWorks\Backup\.secrets\restic-local-password'
     ReplicationPasswordFile = 'C:\ProgramData\ARCWorks\Backup\.secrets\restic-replication-password'

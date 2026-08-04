@@ -1,6 +1,11 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string]$RuntimeRoot = 'C:\ProgramData\ARCWorks\Backup'
+    [string]$RuntimeRoot = 'C:\ProgramData\ARCWorks\Backup',
+    [string]$InstanceId = 'arcworks-resto-main',
+    [string]$ComposeProjectName = 'arcworks-resto-main',
+    [string]$RomsRoot = (Join-Path $PSScriptRoot '..\..'),
+    [string]$MonitoringRoot = 'D:\ARCWorks_Monitoring',
+    [string]$PortfolioRoot = 'E:\ARCANUM VAULT\PROJECTS\ARCWorks-Portfolio'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -96,6 +101,7 @@ $paths = [ordered]@{
     EaseUs = 'I:\ARCWorks_EaseUS_Images'
     Restore = 'I:\ARCWorks_Restore_Tests'
 }
+$RomsRoot = [IO.Path]::GetFullPath($RomsRoot)
 
 foreach ($path in $paths.Values) {
     if (-not (Test-Path -LiteralPath $path)) {
@@ -134,13 +140,15 @@ $config = @"
     ReplicationRepository = '$($paths.Replication)'
     EaseUsImageRoot = '$($paths.EaseUs)'
     RestoreTestRoot = '$($paths.Restore)'
-    RomsRoot = 'D:\ARCWorks_Restaurant Suite'
-    MonitoringRoot = 'D:\ARCWorks_Monitoring'
-    PortfolioRoot = 'E:\ARCANUM VAULT\PROJECTS\ARCWorks-Portfolio'
+    InstanceId = '$InstanceId'
+    ComposeProjectName = '$ComposeProjectName'
+    RomsRoot = '$RomsRoot'
+    MonitoringRoot = '$MonitoringRoot'
+    PortfolioRoot = '$PortfolioRoot'
     CodexRoot = '$currentCodexRoot'
-    RomsDatabaseContainer = 'arcworks-resto-db-1'
+    RomsDatabaseContainer = ''
     ZabbixDatabaseContainer = 'arcworks-monitoring-postgres'
-    ResticHost = 'ARCWORKS-MAIN'
+    ResticHost = '$InstanceId'
     LocalPasswordFile = '$localPassword'
     ReplicationPasswordFile = '$replicationPassword'
     ResticExe = '$($script:ResticExe)'
