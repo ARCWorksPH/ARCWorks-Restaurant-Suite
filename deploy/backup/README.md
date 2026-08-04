@@ -49,11 +49,13 @@ Retention begins at 48 hourly, 14 daily, 8 weekly, 12 monthly, and 2 yearly
 snapshots. Pruning occurs only in the weekly maintenance task, after successful
 replication.
 
-The scheduled wrapper shows a 30-minute Confirm/Delay prompt. Confirm waits
-until the scheduled time; Delay skips that occurrence and leaves the next
-recurring slot intact. If the prompt cannot be displayed, database-only work
-proceeds online, while full/weekly work is skipped safely. The daily full capture
-fails closed if required Codex continuity content is
+The scheduled wrapper shows a 30-minute prompt. Database-only captures have
+Confirm and Delay buttons; Confirm waits until the scheduled time, while Delay
+skips that occurrence and leaves the next database slot intact. Daily full,
+maintenance, and recovery operations have a Confirm-only notice with no skip
+option. They run at the scheduled time even if the prompt is closed or receives
+no response. If the prompt cannot be displayed, all scheduled work proceeds at
+its scheduled time. The daily full capture fails closed if required Codex continuity content is
 missing. Database-only captures do not duplicate the Codex tree; its required
 recovery point objective is one successful copy per day.
 

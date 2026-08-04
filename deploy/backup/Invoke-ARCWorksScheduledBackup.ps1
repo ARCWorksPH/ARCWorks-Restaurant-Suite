@@ -61,6 +61,12 @@ function Show-BackupPrompt([DateTime]$ScheduledAt) {
     Add-Type -AssemblyName System.Windows.Forms
     Add-Type -AssemblyName System.Drawing
 
+    $databaseCanDelay = $Mode -eq 'DatabaseOnly'
+    $promptPolicy = if ($databaseCanDelay) {
+        'Confirm waits for that time and runs it. Delay skips this occurrence and waits for the next database slot. No response in 30 minutes: the database capture runs.'
+    } else {
+        'Confirm acknowledges the scheduled maintenance window. There is no Delay option for this operation. No response in 30 minutes: it runs automatically.'
+    }
     $state = [hashtable]::Synchronized(@{
         Choice = 'Timeout'
         TimedOut = $false
@@ -81,7 +87,7 @@ function Show-BackupPrompt([DateTime]$ScheduledAt) {
     $label.Size = [Drawing.Size]::new(500, 130)
     $label.AutoSize = $false
     $label.Font = [Drawing.Font]::new('Segoe UI', 10)
-    $label.Text = "ARCWorks is preparing a $friendlyName.`r`n`r`nScheduled start: $($ScheduledAt.ToString('yyyy-MM-dd HH:mm'))`r`n`r`nConfirm waits for that time and runs it. Delay skips this occurrence and waits for the next scheduled slot.`r`n`r`nNo response in 30 minutes: $([string]::Join('', @('continue online for database-only capture', 'skip for full/weekly work')[$Mode -ne 'DatabaseOnly']))."
+    $label.Text = "ARCWorks is preparing a $friendlyName.`r`n`r`nScheduled start: $($ScheduledAt.ToString('yyyy-MM-dd HH:mm'))`r`n`r`n$promptPolicy"
 
     $countdown = [Windows.Forms.Label]::new()
     $countdown.Location = [Drawing.Point]::new(24, 158)
@@ -91,20 +97,24 @@ function Show-BackupPrompt([DateTime]$ScheduledAt) {
     $confirm = [Windows.Forms.Button]::new()
     $confirm.Text = 'Confirm'
     $confirm.Size = [Drawing.Size]::new(120, 36)
-    $confirm.Location = [Drawing.Point]::new(270, 195)
-    $delay = [Windows.Forms.Button]::new()
-    $delay.Text = 'Delay'
-    $delay.Size = [Drawing.Size]::new(120, 36)
-    $delay.Location = [Drawing.Point]::new(405, 195)
+    $confirm.Location = if ($databaseCanDelay) { [Drawing.Point]::new(270, 195) } else { [Drawing.Point]::new(220, 195) }
 
     $confirm.Add_Click({ $state.Choice = 'Confirm'; $form.Close() })
-    $delay.Add_Click({ $state.Choice = 'Delay'; $form.Close() })
+    if ($databaseCanDelay) {
+        $delay = [Windows.Forms.Button]::new()
+        $delay.Text = 'Delay'
+        $delay.Size = [Drawing.Size]::new(120, 36)
+        $delay.Location = [Drawing.Point]::new(405, 195)
+        $delay.Add_Click({ $state.Choice = 'Delay'; $form.Close() })
+        $form.Controls.AddRange(@($label, $countdown, $confirm, $delay))
+    } else {
+        $form.Controls.AddRange(@($label, $countdown, $confirm))
+    }
     $form.Add_FormClosing({
         if (-not $state.TimedOut -and $state.Choice -eq 'Timeout' -and $_.CloseReason -eq [Windows.Forms.CloseReason]::UserClosing) {
-            $state.Choice = 'Delay'
+            $state.Choice = if ($databaseCanDelay) { 'Delay' } else { 'Confirm' }
         }
     })
-    $form.Controls.AddRange(@($label, $countdown, $confirm, $delay))
 
     $timer = [Windows.Forms.Timer]::new()
     $timer.Interval = 1000
@@ -153,11 +163,10 @@ try {
     if (-not $SkipPrompt) {
         try {
             $choice = Show-BackupPrompt $scheduledAt
-            if ($choice -eq 'Timeout') { $choice = if ($Mode -eq 'DatabaseOnly') { 'Confirm' } else { 'Delay' } }
+            if ($choice -eq 'Timeout') { $choice = 'Confirm' }
         } catch {
-            $fallback = if ($Mode -eq 'DatabaseOnly') { 'Confirm' } else { 'Delay' }
-            Write-ScheduleLog "Interactive prompt was unavailable; applying safe fallback '$fallback'. $($_.Exception.Message)" 'WARN'
-            $choice = $fallback
+            Write-ScheduleLog "Interactive prompt was unavailable; proceeding at the scheduled time. $($_.Exception.Message)" 'WARN'
+            $choice = 'Confirm'
         }
     }
 
