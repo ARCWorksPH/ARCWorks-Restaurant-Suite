@@ -17,8 +17,9 @@ branch: agent/inventory-readiness
 commit: e9d1788
 ```
 
-The audited repository is on `agent/backup-recovery` at `070218a`. This drift is
-the release-control blocker for the later controlled migration.
+The audited repository is on `agent/backup-recovery` at `4465daf`, the portable
+instance contract commit. The pre-portability scan baseline was `070218a`.
+This drift is the release-control blocker for the later controlled migration.
 
 ## Controls added in this pass
 
