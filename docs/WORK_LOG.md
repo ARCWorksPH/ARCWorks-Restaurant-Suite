@@ -1,5 +1,15 @@
 # ROMS Work Log
 
+## 2026-08-06 — Deterministic core roadmap refresh
+
+- Added `docs/ROADMAP_2026-08-06.md` as the current roadmap while retaining
+  `ROADMAP_2026-08-02.md` as historical context.
+- Re-centered the next implementation phases on waiter → kitchen → management,
+  independent-item inventory, schedule/report acceptance, recovery, and
+  supervised beta readiness.
+- Kept AI, recipes, multi-instance expansion, and major UI redesign work
+  explicitly deferred until the core workflow contract is stable.
+
 ## 2026-08-06 — AI feature gated hold
 
 - Removed the active application-to-command-gateway connection from the

@@ -20,7 +20,7 @@ benchmarks, and the isolated lab remain preserved for a later release. See
 
 The current working branch is `agent/backup-recovery`. This timeline is meant
 to be read with the dated [work log](docs/WORK_LOG.md), the [audit timeline](docs/audits/README.md),
-and the [roadmap](docs/ROADMAP_2026-08-02.md).
+and the current [roadmap](docs/ROADMAP_2026-08-06.md).
 
 ## Chronological milestones
 
@@ -140,7 +140,8 @@ and the [roadmap](docs/ROADMAP_2026-08-02.md).
 | Record | Purpose |
 | --- | --- |
 | [`docs/WORK_LOG.md`](docs/WORK_LOG.md) | Detailed chronological implementation and verification diary |
-| [`docs/ROADMAP_2026-08-02.md`](docs/ROADMAP_2026-08-02.md) | Phase plan, blockers, and deferred work |
+| [`docs/ROADMAP_2026-08-06.md`](docs/ROADMAP_2026-08-06.md) | Current phase plan, blockers, release gates, and deferred work |
+| [`docs/ROADMAP_2026-08-02.md`](docs/ROADMAP_2026-08-02.md) | Historical AI-first roadmap retained for context |
 | [`docs/audits/README.md`](docs/audits/README.md) | Independent audit sequence and dispositions |
 | [`docs/AI_HOLD.md`](docs/AI_HOLD.md) | Current AI hold and future re-enable gate |
 | [`docs/INVENTORY_OPERATIONS.md`](docs/INVENTORY_OPERATIONS.md) | Manual inventory boundaries and reversal rules |
