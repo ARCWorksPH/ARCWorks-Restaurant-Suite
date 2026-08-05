@@ -49,21 +49,20 @@ See `docs/OPERATIONS.md`, `docs/FAILOVER_RUNBOOK.md`,
 `deploy/portable/README.md`, and `docs/WORK_LOG.md`
 before a production rollout or inventory enablement.
 
-## Feature-gated read-only assistant lab
+## Future-version AI lab (currently held)
 
-The optional `ai-lab` profile runs a private Ollama service and command
-interpreter. The model and gateway have no database network or credentials.
-The authenticated ARCWorks Restaurant Suite app derives a role-specific function list, submits only
-role-permitted bounded catalogs for interpretation, then executes only an
-approved permission-checked read and formats the database facts itself. AI
-writes and arbitrary SQL do not exist. Per-user and global inference limits
-protect the application from accidental or abusive model saturation.
+The optional `ai-lab` profile preserves a private Ollama service, command
+interpreter, contracts, and benchmark harness for a future release. The
+current application is deliberately disconnected: it does not join the
+`command` network, register a gateway HTTP client, or expose the Assistant
+route. `AI_HOLD=true` is the fail-closed default and cannot be bypassed by a
+stale `AI_ENABLED=true` value. See [docs/AI_HOLD.md](docs/AI_HOLD.md).
 
 ```powershell
 docker compose --profile ai-lab up -d ollama command-gateway
 scripts\Evaluate-CommandGateway.ps1
 ```
 
-`AI_ENABLED` defaults to `false`. See `docs/AI_FUNCTIONS.md`,
+`AI_ENABLED` defaults to `false` and `AI_HOLD` defaults to `true`. See `docs/AI_FUNCTIONS.md`,
 `docs/AI_COMMAND_PROTOCOL.md`, and `docs/AI_SECURITY_BOUNDARY.md` before
-enabling or extending the lab.
+changing the hold or extending the lab.

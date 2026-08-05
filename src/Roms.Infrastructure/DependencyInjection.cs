@@ -28,8 +28,16 @@ public static class DependencyInjection
         services.AddScoped<ICatalogService, CatalogService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IInventoryService, InventoryService>();
-        services.AddScoped<IAiFunctionService, AiFunctionService>();
-        services.AddScoped<IAiAssistantService, AiAssistantService>();
+        // Keep the AI implementation available in source for a future version,
+        // but do not activate it while the product hold is in force. This also
+        // prevents a disabled app from resolving a gateway-backed service.
+        var aiEnabled = configuration.GetValue<bool>("Ai:Enabled")
+            && !configuration.GetValue<bool>("Ai:Hold");
+        if (aiEnabled)
+        {
+            services.AddScoped<IAiFunctionService, AiFunctionService>();
+            services.AddScoped<IAiAssistantService, AiAssistantService>();
+        }
         services.AddScoped<IAttendanceService, AttendanceService>();
         return services;
     }

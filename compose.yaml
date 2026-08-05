@@ -43,7 +43,8 @@ services:
       Seed__AdminPassword: ${ADMIN_PASSWORD:-}
       Seed__AdminDisplayName: ${ADMIN_DISPLAY_NAME:-ARCWorks Restaurant Suite Administrator}
       Ai__Enabled: ${AI_ENABLED:-false}
-      Ai__CommandGatewayBaseUrl: http://command-gateway:8080/
+      # AI is held for a future version; this blocks accidental reactivation.
+      Ai__Hold: ${AI_HOLD:-true}
       Ai__MaxConcurrentRequests: ${AI_MAX_CONCURRENT_REQUESTS:-2}
       Ai__RequestsPerMinute: ${AI_REQUESTS_PER_MINUTE:-6}
       AllowedHosts: ${ROMS_ALLOWED_HOSTS:-localhost;app;127.0.0.1}
@@ -52,7 +53,7 @@ services:
       - data-protection-keys:/app/keys
     # Cloudflare Tunnel publishes the application from this loopback-only port.
     ports: ["127.0.0.1:${ROMS_HOST_PORT:-7070}:8080"]
-    networks: [backend, edge, command]
+    networks: [backend, edge]
     labels:
       com.arcworks.instance: ${INSTANCE_ID:-arcworks-resto}
       com.arcworks.service: app

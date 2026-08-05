@@ -62,6 +62,7 @@ $lines = @(
     "CADDY_DATA_VOLUME_NAME=$(ConvertTo-DotEnvValue ($ComposeProjectName + '_caddy-data'))"
     "CADDY_CONFIG_VOLUME_NAME=$(ConvertTo-DotEnvValue ($ComposeProjectName + '_caddy-config'))"
     "AI_ENABLED='false'"
+    "AI_HOLD='true'"
 )
 
 if ($PSCmdlet.ShouldProcess($destination, 'Create protected production environment')) {

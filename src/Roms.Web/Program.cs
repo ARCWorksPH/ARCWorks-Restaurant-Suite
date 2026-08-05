@@ -86,12 +86,24 @@ builder.Services.AddSingleton<OrderEventBus>();
 builder.Services.AddScoped<IOrderEventPublisher, SignalROrderEventPublisher>();
 builder.Services.AddHealthChecks();
 builder.Services.Configure<SeedOptions>(builder.Configuration.GetSection("Seed"));
-builder.Services.AddHttpClient<ICommandGatewayClient, CommandGatewayClient>(client =>
+// AI is a future-version feature. While the hold is active the web process
+// does not register an HTTP client and cannot establish an app-to-gateway
+// connection, even if a stale Ai:Enabled environment variable is present.
+if (AiFeatureGate.IsEnabled(builder.Configuration))
 {
-    client.BaseAddress = new Uri(builder.Configuration["Ai:CommandGatewayBaseUrl"]
-        ?? "http://command-gateway:8080/");
-    client.Timeout = TimeSpan.FromSeconds(50);
-});
+    var commandGatewayBaseUrl = builder.Configuration["Ai:CommandGatewayBaseUrl"];
+    if (string.IsNullOrWhiteSpace(commandGatewayBaseUrl))
+    {
+        throw new InvalidOperationException(
+            "Ai:CommandGatewayBaseUrl is required only when the AI hold is released.");
+    }
+
+    builder.Services.AddHttpClient<ICommandGatewayClient, CommandGatewayClient>(client =>
+    {
+        client.BaseAddress = new Uri(commandGatewayBaseUrl, UriKind.Absolute);
+        client.Timeout = TimeSpan.FromSeconds(50);
+    });
+}
 
 var app = builder.Build();
 

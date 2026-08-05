@@ -59,15 +59,11 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Menu & Tables" }))
                 .ToBeVisibleAsync();
             await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Assistant" }))
-                .ToBeVisibleAsync();
+                .ToHaveCountAsync(0);
 
             await Page.GotoAsync($"{baseAddress}/assistant");
-            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "ARCWorks Restaurant Suite Assistant" }))
+            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Not Found" }))
                 .ToBeVisibleAsync();
-            await Expect(Page.GetByText("Responses come from deterministic ARCWorks Restaurant Suite queries."))
-                .ToBeVisibleAsync();
-            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Ask ARCWorks" }))
-                .ToBeDisabledAsync();
 
             await Page.SetViewportSizeAsync(390, 844);
             await Page.GotoAsync($"{baseAddress}/inventory");
@@ -335,7 +331,7 @@ public sealed class RomsApplicationSmokeTests : PageTest
         startInfo.Environment["Seed__AdminUsername"] = username;
         startInfo.Environment["Seed__AdminPassword"] = password;
         startInfo.Environment["Seed__DemoData"] = "true";
-        startInfo.Environment["Ai__Enabled"] = "true";
+        startInfo.Environment["Ai__Hold"] = "true";
 
         var process = new Process { StartInfo = startInfo };
         process.OutputDataReceived += (_, args) =>

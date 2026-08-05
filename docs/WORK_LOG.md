@@ -1,5 +1,29 @@
 # ROMS Work Log
 
+## 2026-08-06 — AI feature gated hold
+
+- Removed the active application-to-command-gateway connection from the
+  current release. The web app no longer registers the gateway HTTP client,
+  no longer joins the private `command` Docker network, and does not activate
+  AI service registrations while the hold is enabled.
+- Added a fail-closed `Ai:Hold=true` gate. The Assistant navigation and route
+  are hidden/not found, including when a stale `AI_ENABLED=true` value is
+  present.
+- Preserved the AI implementation, contracts, benchmark evidence, and
+  `ai-lab` Compose profile for a future version; they are not production
+  dependencies.
+- Recorded the boundary and re-enable acceptance gate in
+  [AI_HOLD.md](AI_HOLD.md).
+- Updated the E2E smoke contract to verify the Assistant is unavailable while
+  the core waiter, kitchen, management, inventory, schedule, and reports
+  workflows remain the active product scope.
+- Release build passed with 0 warnings/0 errors; Domain 11/11, Command
+  Gateway 11/11, and the isolated real-MariaDB/browser hold-path smoke 1/1
+  passed. The updated local container returned health 200, the public
+  `https://roms.arkworksph.online/health` check returned 200, the app is on
+  `backend` and `edge` only, and the `ai-lab` gateway/Ollama containers were
+  stopped without deleting their future-version images or evidence.
+
 ## 2026-08-04 — Resto-VM portable preparation
 
 - Prepared the non-secret `arcworks-suite-resto-vm` profile for
