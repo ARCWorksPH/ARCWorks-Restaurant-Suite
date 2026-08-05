@@ -1,5 +1,15 @@
 # ROMS Work Log
 
+## 2026-08-06 — Deterministic workflow contract frozen
+
+- Froze the current role, order-state, inventory, schedule, reporting, route,
+  and acceptance boundaries in
+  `docs/WORKFLOW_CONTRACT_2026-08-06.md`.
+- Confirmed that the next step is contract-based waiter/kitchen/management
+  acceptance, not another feature expansion or UI redesign.
+- Recorded the required acceptance scenarios without claiming them as passed;
+  the next phase must produce the actual automated/browser evidence.
+
 ## 2026-08-06 — Deterministic core roadmap refresh
 
 - Added `docs/ROADMAP_2026-08-06.md` as the current roadmap while retaining

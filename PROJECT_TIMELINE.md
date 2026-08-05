@@ -141,6 +141,7 @@ and the current [roadmap](docs/ROADMAP_2026-08-06.md).
 | --- | --- |
 | [`docs/WORK_LOG.md`](docs/WORK_LOG.md) | Detailed chronological implementation and verification diary |
 | [`docs/ROADMAP_2026-08-06.md`](docs/ROADMAP_2026-08-06.md) | Current phase plan, blockers, release gates, and deferred work |
+| [`docs/WORKFLOW_CONTRACT_2026-08-06.md`](docs/WORKFLOW_CONTRACT_2026-08-06.md) | Frozen role, state, inventory, schedule, reporting, and acceptance contract |
 | [`docs/ROADMAP_2026-08-02.md`](docs/ROADMAP_2026-08-02.md) | Historical AI-first roadmap retained for context |
 | [`docs/audits/README.md`](docs/audits/README.md) | Independent audit sequence and dispositions |
 | [`docs/AI_HOLD.md`](docs/AI_HOLD.md) | Current AI hold and future re-enable gate |
