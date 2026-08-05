@@ -1,5 +1,20 @@
 # ROMS Work Log
 
+## 2026-08-06 — Revised four-role workflow and deferred operational alerts
+
+- Added `docs/REVISED_WORKFLOW_DRAFT_2026-08-06.md` for review before changing
+  the frozen workflow contract.
+- Drafted distinct `Waiter`, `Kitchen`, `Manager`, and `Admin/Owner` roles.
+- Removed waste/spoilage approval from the active inventory direction after
+  the recipe functionality was retired.
+- Added the kitchen return-to-waiter/resubmission path, manager live-only
+  oversight, timer configuration boundaries, and immutable processed-record
+  rules to the draft.
+- Recorded operational alerts as a later roadmap phase with initial codes
+  `85`, `86`, `68`, `100`, and `200`; codes `50` and `95` are out of scope.
+- No application code or existing frozen contract was changed. Implementation
+  remains gated on product-owner approval of the revised draft.
+
 ## 2026-08-06 — Deterministic workflow contract frozen
 
 - Froze the current role, order-state, inventory, schedule, reporting, route,
