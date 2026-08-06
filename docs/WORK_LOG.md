@@ -33,6 +33,20 @@
 - Explicitly prohibited recipe UI and unsupported inventory fields from being
   reintroduced through the mockups.
 
+## 2026-08-06 — UI handoff clarification update
+
+- Added `docs/PROJECT_TIMELINE.md` as the authoritative concise decision
+  timeline and corrected all UI handoff references to the canonical
+  `D:\ARCWorks_Restaurant_Suite` root.
+- Clarified that the backend workflow/migration and synthetic checks are ready;
+  supervised four-role/browser acceptance is intentionally a post-UI gate.
+- Defined the Manager dashboard boundary as live/current operational data by
+  default, with explicit bounded windows required for any historical metric.
+- Required a uniform local placeholder for missing menu images so the card grid
+  remains stable.
+- Required the KDS to render the backend-snapshotted preparation target rather
+  than calculating it in the browser.
+
 ## 2026-08-06 — Workflow foundation implementation started
 
 - Added the `Manager` role to the role catalog and administrator staff creation

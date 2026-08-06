@@ -30,7 +30,8 @@ are confirmed:
 - Manager live-only access boundaries are implemented and tested.
 - The workflow migration has been applied successfully to an isolated database.
 - The migration has been backed up and a rollback path has been verified.
-- Focused domain, integration, and role-authorization tests pass.
+- Focused domain, integration, and role-authorization tests pass for the
+  implemented backend slice.
 - The workflow contract has been updated to reflect the final implementation.
 
 These prerequisites are now satisfied for the current workflow slice. The
@@ -400,8 +401,9 @@ verified and the owner has explicitly approved it.
 The UI is not accepted because a screenshot looks correct. The redesigned UI
 may be implemented and checked with the synthetic backend acceptance while
 human-supervised four-role testing is deferred. Final acceptance still
-requires the underlying action, authorization, persistence, audit event, and
-reload behavior to pass.
+requires
+the underlying action, authorization, persistence, audit event, and reload
+behavior to pass.
 
 ## 9. Documentation and Git process
 
