@@ -61,6 +61,16 @@
 - Removed the inventory mockup's misleading automatic-deduction-paused banner
   because automatic deduction is out of scope, not paused.
 
+## 2026-08-07 — UI redesign corrective handoff
+
+- Confirmed the public site is reachable, but it is still serving the existing
+  `roms:local` image; the current UI redesign worktree is not yet deployed.
+- Added `docs/UI_REDESIGN_FOLLOW_UP_FIX_INSTRUCTIONS_2026-08-07.md` covering
+  retired waste/spoilage and recipe UI, Manager read-only inventory access,
+  service-level authorization, bounded Manager data, fabricated table capacity,
+  late submission behavior, tests, rollback, and deployment verification.
+- No source or database changes were made by this review.
+
 ## 2026-08-06 — Workflow foundation implementation started
 
 - Added the `Manager` role to the role catalog and administrator staff creation
