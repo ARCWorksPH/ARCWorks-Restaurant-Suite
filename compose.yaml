@@ -97,7 +97,7 @@ services:
     restart: unless-stopped
     command: ["tunnel", "--no-autoupdate", "run", "--token-file", "/run/secrets/cloudflare_tunnel_token"]
     secrets: [cloudflare_tunnel_token]
-    networks: [edge]
+    networks: [edge, portfolio]
     labels:
       com.arcworks.instance: ${INSTANCE_ID:-arcworks-resto}
       com.arcworks.service: cloudflared
@@ -196,3 +196,8 @@ networks:
   command: { internal: true }
   inference: { internal: true }
   benchmark:
+  # The portfolio stack is maintained separately, but the shared tunnel needs
+  # explicit DNS access to its two web services.
+  portfolio:
+    name: arcworks-portfolio-net
+    external: true

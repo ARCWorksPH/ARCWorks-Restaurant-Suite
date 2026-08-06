@@ -29,10 +29,10 @@ The ROMS container's local allowed-host setting was also updated to include
 | `https://cloud.arkworksph.online/` | HTTP 302 (application redirect) |
 | `https://Resto-VM.arkworksph.online/` | HTTP 400 — no VM instance is active and the route currently targets `app:8080` |
 
-## Persistence warning
+## Migration completed
 
-The connector was created manually and is currently named by Docker rather
-than managed by Compose. If it is recreated, the network attachments must be
-restored or it should be migrated to the project's `edge-tunnel` Compose
-profile using the ignored token-file mechanism. Never commit or document the
-tunnel token.
+The connector is now managed by the project's `edge-tunnel` Compose profile.
+It is attached to both `arcworks-resto_edge` and the external
+`arcworks-portfolio-net` network. The prior manually named connector was
+removed after the Compose connector became healthy. The token remains only in
+the ignored local secret file; never commit or document it.
