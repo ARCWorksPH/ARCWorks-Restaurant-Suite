@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.Configure<AiSecurityOptions>(configuration.GetSection("Ai"));
         services.AddSingleton<AiRequestGate>();
         services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<IWorkflowService, WorkflowService>();
         services.AddScoped<ICatalogService, CatalogService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IInventoryService, InventoryService>();

@@ -22,6 +22,8 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
     public DbSet<InventoryLossRequest> InventoryLossRequests => Set<InventoryLossRequest>();
     public DbSet<StaffSchedule> StaffSchedules => Set<StaffSchedule>();
     public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
+    public DbSet<WorkflowSettings> WorkflowSettings => Set<WorkflowSettings>();
+    public DbSet<OrderTimerExtension> OrderTimerExtensions => Set<OrderTimerExtension>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -53,6 +55,19 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
             e.HasIndex(x => new { x.TableId, x.Status });
             e.HasMany(x => x.Items).WithOne(x => x.Order).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.StatusHistory).WithOne(x => x.Order).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany<OrderTimerExtension>().WithOne(x => x.Order).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
+        });
+        builder.Entity<WorkflowSettings>(e =>
+        {
+            e.Property(x => x.UpdatedBy).HasMaxLength(256);
+            e.HasIndex(x => x.Id).IsUnique();
+        });
+        builder.Entity<OrderTimerExtension>(e =>
+        {
+            e.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.Reason).HasMaxLength(500);
+            e.Property(x => x.ActorId).HasMaxLength(256);
+            e.HasIndex(x => new { x.OrderId, x.Kind, x.RequestedUtc });
         });
         builder.Entity<OrderItem>(e =>
         {

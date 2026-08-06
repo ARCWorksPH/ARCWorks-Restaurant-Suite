@@ -77,6 +77,31 @@ public sealed class OrderTests
     }
 
     [Fact]
+    public void Workflow_timers_start_and_extensions_are_bounded_and_auditable()
+    {
+        var order = WithItem();
+        order.StartOrderEntryTimer(15, Now);
+        Assert.Equal(Now.AddMinutes(15), order.OrderEntryDueUtc);
+        order.Submit(Now.AddMinutes(1));
+        order.StartKitchenAcceptanceTimer(5, Now.AddMinutes(1));
+        order.ExtendTimer(WorkflowTimerKind.KitchenAcceptance, 10, "Peak-hour queue", Now.AddMinutes(2));
+        Assert.Equal(Now.AddMinutes(16), order.KitchenAcceptanceDueUtc);
+        Assert.Throws<DomainException>(() => order.ExtendTimer(WorkflowTimerKind.KitchenAcceptance, 0, "bad", Now));
+        Assert.Throws<DomainException>(() => order.ExtendTimer(WorkflowTimerKind.KitchenAcceptance, 1, " ", Now));
+    }
+
+    [Fact]
+    public void Workflow_settings_reject_unsafe_values()
+    {
+        var settings = new WorkflowSettings();
+        Assert.Throws<DomainException>(() => settings.Update(0, 5, "manager", Now));
+        Assert.Throws<DomainException>(() => settings.Update(15, 121, "manager", Now));
+        settings.Update(20, 7, "manager", Now);
+        Assert.Equal(20, settings.OrderEntryMinutes);
+        Assert.Equal(7, settings.KitchenAcceptanceMinutes);
+    }
+
+    [Fact]
     public void Payment_can_only_be_confirmed_after_serving_and_only_once()
     {
         var order = WithItem();

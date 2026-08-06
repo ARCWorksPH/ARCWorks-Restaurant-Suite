@@ -23,7 +23,13 @@ public sealed record OrderView(Guid Id, Guid TableId, string TableNumber, string
     DateTime CreatedUtc, DateTime? SubmittedUtc, DateTime? CompletedUtc, DateTime? PaymentConfirmedUtc,
     int Revision, long Version, decimal Total, string? CancellationReason, string? LastReturnReason, int ResubmissionCount,
     int? PreparationTargetMinutes, DateTime? PreparationTargetDueUtc,
+    int? OrderEntryTargetMinutes, DateTime? OrderEntryStartedUtc, DateTime? OrderEntryDueUtc,
+    int? KitchenAcceptanceTargetMinutes, DateTime? KitchenAcceptanceStartedUtc, DateTime? KitchenAcceptanceDueUtc,
     IReadOnlyList<OrderItemView> Items);
+public sealed record WorkflowSettingsView(int OrderEntryMinutes, int KitchenAcceptanceMinutes, DateTime UpdatedUtc, string UpdatedBy);
+public sealed record ManagerLiveOrderView(Guid OrderId, string TableNumber, string WaiterId, OrderStatus Status,
+    DateTime? OrderEntryDueUtc, DateTime? KitchenAcceptanceDueUtc, DateTime? PreparationTargetDueUtc,
+    int ExtensionCount);
 public sealed record DashboardReport(decimal CompletedOrderValue, int OrderCount, decimal AverageOrderValue,
     IReadOnlyList<BestSeller> BestSellers);
 public sealed record BestSeller(string Name, int Quantity, decimal Value);
@@ -106,6 +112,16 @@ public interface IOrderService
     Task TransitionAsync(Guid orderId, OrderStatus next, string actorId, string? reason = null,
         CancellationToken cancellationToken = default);
     Task ConfirmPaymentAsync(Guid orderId, string adminId, CancellationToken cancellationToken = default);
+    Task RequestTimerExtensionAsync(Guid orderId, WorkflowTimerKind kind, int additionalMinutes, string reason, string actorId,
+        CancellationToken cancellationToken = default);
+}
+
+public interface IWorkflowService
+{
+    Task<WorkflowSettingsView> GetSettingsAsync(CancellationToken cancellationToken = default);
+    Task UpdateSettingsAsync(int orderEntryMinutes, int kitchenAcceptanceMinutes, string actorId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ManagerLiveOrderView>> GetLiveOrdersAsync(CancellationToken cancellationToken = default);
 }
 
 public interface ICatalogService

@@ -75,8 +75,15 @@ SignalR notifications are advisory and never replace the database state.
   for an accepted order is the sum of `configured minutes × ordered quantity`
   for its active items. The target is snapshotted when preparation begins so
   later menu changes cannot rewrite an active order's timing evidence.
-- Extension requests record the actor, reason, timestamp, and cumulative count.
-  They do not erase the original timer or silently change the target.
+- Extension requests record the actor, reason, timestamp, requested minutes,
+  and cumulative count in `OrderTimerExtensions`. They extend only the active
+  deadline; the original start/target values remain persisted. Requests are
+  role-checked (waiter for order entry; Kitchen/Admin for kitchen timers).
+- The implementation defaults to 15 minutes for order entry and 5 minutes for
+  kitchen acceptance. A Manager or Admin can change those bounded settings;
+  each change is audited. Preparation extension support is persisted for the
+  same audit-safe mechanism, while the preparation base target remains the
+  item-timing sum snapshotted at acceptance.
 
 ## Inventory contract
 
@@ -130,6 +137,9 @@ The following scenarios are the minimum contract-based test set. They are not
 claimed as passed by this document; they are the checklist for the next
 waiter/kitchen/management acceptance run.
 
+- [x] Backend persists draft/order-entry and kitchen-acceptance timer starts,
+      deadlines, bounded extensions, and extension audit records.
+- [x] Backend persists item-based preparation targets and due times.
 - [ ] Waiter creates a draft, adds/removes items, and submits exactly once.
 - [ ] Another waiter cannot open or mutate the assigned order.
 - [ ] Kitchen moves `New → Preparing → Ready` and cannot skip or reverse states.

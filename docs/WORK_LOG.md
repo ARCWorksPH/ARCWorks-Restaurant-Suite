@@ -1094,3 +1094,24 @@ independent security scan.
   anonymous routes redirected to login; `AI_ENABLED=false` remained active.
 - Full technical evidence and the remaining AI acceptance gate are recorded in
   `docs/SECURITY_HARDENING_2026-08-02.md`.
+
+## 2026-08-06 - Deterministic workflow backend implementation
+
+Status: implemented and unit/integration checked; browser and isolated MariaDB
+acceptance remain required before the UI redesign gate opens.
+
+- Added persisted manager-controlled order-entry and kitchen-acceptance timer
+  settings with bounded values and audited updates.
+- Draft creation now starts the waiter timer; submission starts the kitchen
+  acceptance timer; preparation still snapshots item timing × quantity.
+- Added persisted, role-checked timer extension requests with required reason,
+  requested minutes, actor, timestamp, cumulative count, and audit entries.
+- Added manager live-order projections and the `ManagerOrAdmin` authorization
+  policy without granting managers waiter/kitchen transaction or history-edit
+  authority.
+- Added migration `20260806143000_AddWorkflowTimers` and updated the frozen
+  contract, roadmap, and rollback/evidence log.
+- Verification: release solution build 0 warnings/0 errors; Domain 15/15;
+  focused order workflow integration 5/5. The full solution test command was
+  stopped at the 120-second limit while waiting on the broader environment;
+  no failure result was recorded.
