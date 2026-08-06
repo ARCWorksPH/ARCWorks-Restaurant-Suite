@@ -1,7 +1,7 @@
 namespace Roms.Domain;
 
-public enum UserRole { Admin, Waiter, Kitchen }
-public enum OrderStatus { Draft, New, Preparing, Ready, Completed, Cancelled }
+public enum UserRole { Admin, Waiter, Kitchen, Manager }
+public enum OrderStatus { Draft, New, ReturnedToWaiter, Preparing, Ready, Completed, Cancelled }
 public enum TableStatus { Available, Occupied, Preparing, ReadyToServe, PendingPayment }
 public enum StockMovementType { Receipt, Consumption, Adjustment, Reversal, Waste, Spoilage }
 public enum InventoryLossType { Waste, Spoilage }
@@ -90,6 +90,7 @@ public sealed class MenuItem
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
     public decimal Price { get; set; }
+    public int PreparationMinutes { get; set; } = 5;
     public bool IsActive { get; set; } = true;
     public bool IsAvailable { get; set; } = true;
 }
@@ -108,6 +109,9 @@ public sealed class Order
     public DateTime? PaymentConfirmedUtc { get; private set; }
     public string? PaymentConfirmedBy { get; private set; }
     public string? CancellationReason { get; private set; }
+    public int ResubmissionCount { get; private set; }
+    public int? PreparationTargetMinutes { get; private set; }
+    public DateTime? PreparationTargetDueUtc { get; private set; }
     public int Revision { get; private set; } = 1;
     public long Version { get; private set; }
     public List<OrderItem> Items { get; set; } = [];
@@ -176,13 +180,27 @@ public sealed class Order
         Touch(utcNow);
     }
 
-    public void Submit(DateTime utcNow)
+    public void Submit(DateTime utcNow, string? resubmissionNote = null)
     {
-        if (Status != OrderStatus.Draft) throw new DomainException("Only a draft can be submitted.");
+        if (Status is not (OrderStatus.Draft or OrderStatus.ReturnedToWaiter))
+            throw new DomainException("Only a draft or returned order can be submitted.");
         if (Items.Count == 0) throw new DomainException("Add at least one item before submitting.");
+        if (Status == OrderStatus.ReturnedToWaiter && string.IsNullOrWhiteSpace(resubmissionNote))
+            throw new DomainException("A resubmission note is required for a returned order.");
+        var previous = Status;
+        if (previous == OrderStatus.ReturnedToWaiter) ResubmissionCount++;
         Status = OrderStatus.New;
         SubmittedUtc = utcNow;
-        AddHistory(OrderStatus.Draft, OrderStatus.New, WaiterId, null, utcNow);
+        AddHistory(previous, OrderStatus.New, WaiterId, resubmissionNote, utcNow);
+    }
+
+    public void SetPreparationTarget(int targetMinutes, DateTime utcNow)
+    {
+        if (Status != OrderStatus.Preparing) throw new DomainException("Preparation target can only be set when preparation begins.");
+        if (targetMinutes < 1 || targetMinutes > 24 * 60) throw new DomainException("Preparation target must be between 1 and 1440 minutes.");
+        PreparationTargetMinutes = targetMinutes;
+        PreparationTargetDueUtc = utcNow.AddMinutes(targetMinutes);
+        Touch(utcNow);
     }
 
     public void TransitionTo(
@@ -210,6 +228,14 @@ public sealed class Order
             OrderStatus.Ready => OrderStatus.Completed,
             _ => (OrderStatus?)null
         };
+        if (next == OrderStatus.ReturnedToWaiter && Status == OrderStatus.New)
+        {
+            if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("A return reason is required.");
+            if (reason.Trim().Length > 500) throw new DomainException("A return reason cannot exceed 500 characters.");
+            Status = next;
+            AddHistory(OrderStatus.New, next, actorId, reason, utcNow);
+            return;
+        }
         if (expected != next) throw new DomainException($"Invalid transition from {Status} to {next}.");
         var from = Status;
         Status = next;

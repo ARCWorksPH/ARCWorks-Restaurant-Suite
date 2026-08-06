@@ -85,6 +85,24 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Kitchen_can_return_order_and_waiter_can_resubmit_with_note()
+    {
+        await using var db = new RomsDbContext(options);
+        var service = CreateService();
+        var id = await service.GetOrCreateDraftAsync((await db.RestaurantTables.SingleAsync()).Id, "waiter");
+        await service.AddItemAsync(id, (await db.MenuItems.SingleAsync()).Id, 1, null, "waiter");
+        await service.SubmitAsync(id, "return-flow-1", "waiter");
+        await service.TransitionAsync(id, OrderStatus.ReturnedToWaiter, "kitchen", "Missing side selection");
+        await Assert.ThrowsAsync<DomainException>(() => service.SubmitAsync(id, "return-flow-2", "waiter"));
+        await service.SubmitAsync(id, "return-flow-2", "waiter", "Confirmed side selection");
+
+        var order = await db.Orders.Include(x => x.StatusHistory).SingleAsync(x => x.Id == id);
+        Assert.Equal(OrderStatus.New, order.Status);
+        Assert.Equal(1, order.ResubmissionCount);
+        Assert.Contains(order.StatusHistory, x => x.ToStatus == OrderStatus.ReturnedToWaiter);
+    }
+
+    [Fact]
     public async Task Prepared_order_amendment_and_cancellation_do_not_write_stock_movements()
     {
         await using var db = new RomsDbContext(options);

@@ -36,8 +36,8 @@ resubmission, serving, and payment.
 1. Waiter selects a table and creates a draft.
 2. Waiter adds, removes, replaces, and annotates items while the draft is not
    submitted.
-3. A manager-configured order-entry timer begins when the waiter selects the
-   table or starts the draft.
+3. One standard order-entry timer, configured by the Manager for all waiters,
+   begins when the waiter selects the table and starts the draft.
 4. The waiter submits the order before the timer expires.
 5. If more time is needed, the waiter requests an extension. The request and
    extension count are retained in the order history.
@@ -52,14 +52,17 @@ resubmission, serving, and payment.
 ### Kitchen flow
 
 1. Kitchen staff see submitted orders in the kitchen display.
-2. A manager-configured acceptance timer begins when the order is submitted.
+2. One standard kitchen acceptance timer, configured by the Manager, begins
+   when the order is submitted. It is the same acceptance limit for all
+   submitted orders.
 3. Kitchen staff may accept the order or return it to the waiter.
 4. A return requires a clear reason and sends the order back for correction.
 5. Kitchen staff may request an acceptance-time extension; the request and
    extension count are audited.
 6. Once accepted, the order enters preparation and a preparation timer starts.
-7. Preparation duration is calculated from the configured timing rules for the
-   ordered menu items.
+7. Preparation duration is calculated from Admin-configured preparation minutes
+   for each menu item and the ordered quantities. For example, two five-minute
+   burgers plus one ten-minute fried chicken produces a twenty-minute target.
 8. Kitchen staff mark the order ready when preparation is complete.
 9. Kitchen staff may mark a menu item unavailable (`86`) when it cannot be
    served. This changes menu availability, not historical inventory movements.
@@ -75,8 +78,7 @@ The Manager may:
 
 - View live tables, submitted orders, kitchen queue, and timer state.
 - Configure future waiter order-entry limits.
-- Configure future kitchen acceptance and preparation limits.
-- Configure menu-item preparation durations.
+- Configure the standard future kitchen acceptance timer.
 - Manage staff schedules and active roster membership.
 - View live/current-shift performance indicators.
 - View current inventory balances and low-stock conditions.
@@ -105,6 +107,10 @@ corrections, protected overrides, audit review, and recovery operations.
 
 Admin actions that alter an existing record require an explicit reason and are
 recorded with the original value, new value, actor, and timestamp.
+
+Admin also configures the preparation minutes for each menu item. These values
+are used to calculate each accepted order's preparation target from its item
+quantities.
 
 ## Independent inventory boundary
 

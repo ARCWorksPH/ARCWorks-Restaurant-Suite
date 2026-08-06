@@ -15,7 +15,7 @@ public sealed class OrderService(
     IOrderEventPublisher publisher,
     ILogger<OrderService> logger) : IOrderService
 {
-    private static readonly OrderStatus[] ActiveStatuses = [OrderStatus.Draft, OrderStatus.New, OrderStatus.Preparing, OrderStatus.Ready];
+    private static readonly OrderStatus[] ActiveStatuses = [OrderStatus.Draft, OrderStatus.New, OrderStatus.ReturnedToWaiter, OrderStatus.Preparing, OrderStatus.Ready];
 
     public async Task<IReadOnlyList<TableCard>> GetTablesAsync(CancellationToken ct = default)
     {
@@ -43,7 +43,7 @@ public sealed class OrderService(
     public async Task<OrderView?> GetOrderAsync(Guid orderId, string actorId, CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        var order = await db.Orders.AsNoTracking().Include(x => x.Table).Include(x => x.Items).SingleOrDefaultAsync(x => x.Id == orderId, ct);
+        var order = await db.Orders.AsNoTracking().Include(x => x.Table).Include(x => x.Items).Include(x => x.StatusHistory).SingleOrDefaultAsync(x => x.Id == orderId, ct);
         if (order is null) return null;
         await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
         var waiterNames = await GetWaiterNamesAsync(db, [order.WaiterId], ct);
@@ -160,7 +160,7 @@ public sealed class OrderService(
         await Publish(order, "OrderAmended", ct);
     }
 
-    public async Task<Guid> SubmitAsync(Guid orderId, string idempotencyKey, string actorId, CancellationToken ct = default)
+    public async Task<Guid> SubmitAsync(Guid orderId, string idempotencyKey, string actorId, string? resubmissionNote = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Length > 100) throw new DomainException("A valid submission key is required.");
         await using var db = await factory.CreateDbContextAsync(ct);
@@ -168,9 +168,10 @@ public sealed class OrderService(
         var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == orderId, ct);
         await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
         if (existing is not null) return existing.ResourceId;
-        order.Submit(clock.UtcNow);
+        order.Submit(clock.UtcNow, resubmissionNote);
         db.IdempotencyRecords.Add(new IdempotencyRecord { Key = idempotencyKey, Operation = "SubmitOrder", ResourceId = order.Id, CreatedUtc = clock.UtcNow });
-        db.AuditEntries.Add(Audit(actorId, "SubmitOrder", order.Id, null));
+        db.AuditEntries.Add(Audit(actorId, order.ResubmissionCount > 0 ? "ResubmitOrder" : "SubmitOrder", order.Id,
+            string.IsNullOrWhiteSpace(resubmissionNote) ? null : JsonSerializer.Serialize(new { resubmissionNote, order.ResubmissionCount })));
         await db.SaveChangesAsync(ct);
         await Publish(order, "OrderSubmitted", ct);
         return order.Id;
@@ -201,9 +202,24 @@ public sealed class OrderService(
                 }
                 else if (next == OrderStatus.Completed)
                     await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
-                else
+                else if (next is OrderStatus.Preparing or OrderStatus.ReturnedToWaiter or OrderStatus.Ready)
                     await EnsureKitchenOrAdminAsync(db, actorId, ct);
+                else
+                    await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
                 order.TransitionTo(next, actorId, reason, clock.UtcNow);
+
+                if (next == OrderStatus.Preparing)
+                {
+                    var itemIds = order.Items.Where(x => !x.IsRemoved).Select(x => x.MenuItemId).Distinct().ToList();
+                    var preparationMinutes = await db.MenuItems.AsNoTracking()
+                        .Where(x => itemIds.Contains(x.Id))
+                        .ToDictionaryAsync(x => x.Id, x => x.PreparationMinutes, ct);
+                    if (preparationMinutes.Count != itemIds.Count)
+                        throw new DomainException("One or more ordered menu items no longer has a preparation target.");
+                    var target = order.Items.Where(x => !x.IsRemoved)
+                        .Sum(x => checked(x.Quantity * preparationMinutes[x.MenuItemId]));
+                    order.SetPreparationTarget(target, clock.UtcNow);
+                }
 
                 db.AuditEntries.Add(Audit(actorId, next == OrderStatus.Cancelled ? "CancelOrder" : "ChangeOrderStatus", order.Id,
                     JsonSerializer.Serialize(new
@@ -266,7 +282,7 @@ public sealed class OrderService(
         OrderStatus.Completed when order.PaymentConfirmedUtc is null => TableStatus.PendingPayment,
         OrderStatus.Preparing => TableStatus.Preparing,
         OrderStatus.Ready => TableStatus.ReadyToServe,
-        OrderStatus.Draft or OrderStatus.New => TableStatus.Occupied,
+        OrderStatus.Draft or OrderStatus.New or OrderStatus.ReturnedToWaiter => TableStatus.Occupied,
         _ => TableStatus.Available
     };
 
@@ -325,7 +341,8 @@ public sealed class OrderService(
     private static OrderView Map(Order x, IReadOnlyDictionary<string, string> waiterNames) => new(
         x.Id, x.TableId, x.Table?.Number ?? "?", x.WaiterId, WaiterName(x.WaiterId, waiterNames), x.Status,
         x.CreatedUtc, x.SubmittedUtc, x.CompletedUtc, x.PaymentConfirmedUtc, x.Revision, x.Version, x.Total,
-        x.CancellationReason,
+        x.CancellationReason, x.StatusHistory.OrderByDescending(h => h.OccurredUtc).FirstOrDefault(h => h.ToStatus == OrderStatus.ReturnedToWaiter)?.Reason,
+        x.ResubmissionCount, x.PreparationTargetMinutes, x.PreparationTargetDueUtc,
         x.Items.OrderBy(i => i.MenuItemName).Select(i => new OrderItemView(
             i.Id,
             i.MenuItemName,

@@ -38,12 +38,14 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
             e.Property(x => x.Name).HasMaxLength(120);
             e.Property(x => x.Description).HasMaxLength(500);
             e.Property(x => x.Price).HasPrecision(12, 2);
+            e.Property(x => x.PreparationMinutes).HasDefaultValue(5);
             e.HasOne(x => x.Category).WithMany(x => x.Items).HasForeignKey(x => x.CategoryId);
         });
         builder.Entity<Order>(e =>
         {
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             e.Property(x => x.PaymentConfirmedBy).HasMaxLength(256);
+            e.Property(x => x.CancellationReason).HasMaxLength(500);
             // The production relational provider enforces optimistic concurrency.
             // EF's in-memory test provider doesn't preserve manually incremented tokens reliably.
             if (Database.IsRelational()) e.Property(x => x.Version).IsConcurrencyToken();

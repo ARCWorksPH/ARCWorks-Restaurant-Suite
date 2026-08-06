@@ -43,7 +43,8 @@
         </ul>
         @if (item.Status == OrderStatus.New)
         {
-            <button class="btn btn-warning btn-lg touch-button w-100" @onclick="() => Move(item.Id, OrderStatus.Preparing)">Start preparing</button>
+            <textarea class="form-control mb-2" placeholder="Return reason (required)" @bind="returnReasons[item.Id]"></textarea>
+            <div class="d-flex gap-2"><button class="btn btn-warning btn-lg touch-button flex-fill" @onclick="() => Move(item.Id, OrderStatus.Preparing)">Accept & start</button><button class="btn btn-outline-danger btn-lg touch-button flex-fill" @onclick="() => Return(item.Id)">Return to waiter</button></div>
         }
         else if (item.Status == OrderStatus.Preparing) { <button class="btn btn-success btn-lg touch-button w-100" @onclick="() => Move(item.Id, OrderStatus.Ready)">Ready</button> }
         else { <div class="ready-callout">Waiting for waiter</div> }
@@ -57,6 +58,7 @@
     private IReadOnlyList<OrderView> orders = [];
     private string actor = "unknown";
     private string? error;
+    private readonly Dictionary<Guid, string> returnReasons = [];
     private string currentTime = RestaurantTime();
     private System.Threading.Timer? clockTimer;
 
@@ -87,6 +89,18 @@
         try
         {
             await Orders.TransitionAsync(id, next, actor);
+            await Load();
+        }
+        catch (Exception ex) { error = ex.Message; }
+    }
+
+    private async Task Return(Guid id)
+    {
+        try
+        {
+            if (!returnReasons.TryGetValue(id, out var reason) || string.IsNullOrWhiteSpace(reason)) throw new InvalidOperationException("A return reason is required.");
+            await Orders.TransitionAsync(id, OrderStatus.ReturnedToWaiter, actor, reason);
+            returnReasons.Remove(id);
             await Load();
         }
         catch (Exception ex) { error = ex.Message; }

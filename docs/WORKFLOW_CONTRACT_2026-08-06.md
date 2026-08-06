@@ -5,16 +5,21 @@ derived from the current domain entities, application services, authorization
 policies, and pages. Any change to these rules must update this document and
 the corresponding tests before UI work proceeds.
 
+The four-role timer and return/resubmission additions are approved clarifications
+to the earlier contract and are recorded here before implementation.
+
 ## Active role model
 
 | Role | Primary responsibility | Explicit boundary |
 | --- | --- | --- |
 | Waiter | Create and submit table orders; follow served orders through completion; clock in/out | Owns assigned orders only; cannot advance kitchen preparation or confirm payment |
-| Kitchen | View the active kitchen queue; start and finish preparation; report waste/spoilage | Cannot edit menu/orders, confirm payments, or approve loss reports |
-| Management (`Admin`) | Manage catalog, payments, inventory, schedules, corrections, reports, and protected order overrides | All protected actions remain audited and require the administrator identity |
+| Kitchen | View the active kitchen queue; accept/return orders; start and finish preparation; report operational availability | Cannot edit completed orders, confirm payments, or change historical records |
+| Manager | Supervise live operations; configure standard waiter/kitchen timers; manage schedules and current operational settings | Cannot perform waiter/kitchen transactions or edit processed/historical records |
+| Admin/Owner | Manage users, security, catalog, payments, inventory, per-item preparation times, corrections, reports, and protected overrides | All protected actions remain audited and require the administrator identity |
 
-The application has three persisted roles: `Admin`, `Waiter`, and `Kitchen`.
-Management in this contract means the `Admin` role; it is not a fourth role.
+The application target is four persisted roles: `Admin`, `Waiter`, `Kitchen`, and
+`Manager`. Admin/Owner is the unrestricted system authority; Manager is an
+operational oversight role.
 
 ## Order lifecycle
 
@@ -22,6 +27,7 @@ Management in this contract means the `Admin` role; it is not a fourth role.
 
 `Draft → New → Preparing → Ready → Completed`
 
+`ReturnedToWaiter` is a correction branch from `New` before preparation begins.
 `Cancelled` is a terminal branch from `Draft`, `New`, `Preparing`, or `Ready`.
 `Completed` and `Cancelled` are terminal for status changes.
 
@@ -29,7 +35,9 @@ Management in this contract means the `Admin` role; it is not a fourth role.
 | --- | --- | --- | --- |
 | Draft | New | Owning waiter or Admin | At least one item; idempotent submission key |
 | Draft | Cancelled | Owning waiter or Admin | Non-empty cancellation reason |
-| New | Preparing | Kitchen or Admin | Audited status transition |
+| New | Preparing | Kitchen or Admin | Audited acceptance transition |
+| New | ReturnedToWaiter | Kitchen or Admin | Non-empty return reason; waiter correction required |
+| ReturnedToWaiter | New | Owning waiter or Admin | Correction/resubmission note; new idempotency key |
 | New | Cancelled | Owning waiter or Admin | Non-empty cancellation reason |
 | New | Amend items | Owning waiter or Admin | Non-empty amendment reason |
 | Preparing | Ready | Kitchen or Admin | Audited status transition |
@@ -54,6 +62,21 @@ SignalR notifications are advisory and never replace the database state.
   limited to 500 characters.
 - Completed or cancelled orders cannot be amended.
 - Cancellation and amendment records are retained in audit/status history.
+- Returned orders retain the kitchen reason, waiter resubmission note, and
+  resubmission count; the prior submission is never erased.
+
+## Timers and preparation targets
+
+- A single Manager-configured order-entry duration applies to all waiters. It
+  starts when a waiter selects a table and starts a draft.
+- A single Manager-configured kitchen acceptance duration applies to all
+  submitted orders. It starts when an order is submitted to the kitchen.
+- Admin configures preparation minutes per menu item. The preparation target
+  for an accepted order is the sum of `configured minutes × ordered quantity`
+  for its active items. The target is snapshotted when preparation begins so
+  later menu changes cannot rewrite an active order's timing evidence.
+- Extension requests record the actor, reason, timestamp, and cumulative count.
+  They do not erase the original timer or silently change the target.
 
 ## Inventory contract
 
@@ -62,16 +85,12 @@ consumption, costing, and automatic order-to-stock deduction are out of scope.
 
 | Operation | Who may perform it | Rule |
 | --- | --- | --- |
-| View balances, items, movements, counts, and loss requests | Authenticated Kitchen/Admin through the inventory route | Read current persisted facts only |
+| View balances, items, movements, and counts | Authenticated Kitchen/Manager/Admin through the inventory route | Read current persisted facts only |
 | Add or edit an item | Admin | Name, unit, and minimum stock are validated and audited |
 | Receive stock | Admin | Positive quantity, delivery/invoice reference, idempotency key |
 | Reconcile physical count | Admin | Witnessed non-negative count, reason, idempotency key, serializable correction |
 | Post adjustment | Admin | Reason and idempotency key; negative result requires explicit override and override reason |
-| Report waste/spoilage | Kitchen or Admin | Positive quantity, type, reason, idempotency key; remains pending |
-| Approve/reject waste/spoilage | Admin | Approval changes stock; rejection requires review reason; action is audited |
-
-No loss report changes stock until an Admin approves it. Duplicate idempotency
-keys must not create duplicate movements or approvals.
+| Mark item unavailable (`86`) | Kitchen or Manager | Availability change is audited and does not rewrite inventory movements |
 
 ## Schedule, attendance, and reports
 
@@ -83,6 +102,7 @@ keys must not create duplicate movements or approvals.
 | Attendance export | Export the authorized seven-day CSV | Admin |
 | Reports | View completed-order summaries for a valid date range | Admin |
 | Catalog and tables | Manage active categories, menu items, prices, availability, and tables | Admin |
+| Menu preparation targets | Set validated per-item preparation minutes | Admin |
 | Pending payments | View completed unpaid orders and confirm payment | Admin |
 
 Report ranges must have an end strictly after the start. Date filters use the
@@ -95,7 +115,7 @@ must return an empty result rather than an error.
 | --- | --- |
 | `/tables`, `/orders/{id}` | Waiter or Admin |
 | `/kitchen` | Kitchen or Admin |
-| `/inventory` | Kitchen or Admin route; mutation methods enforce Admin, loss reporting allows Kitchen/Admin |
+| `/inventory` | Kitchen, Manager, or Admin route; mutation methods enforce Admin, availability actions enforce Kitchen/Manager/Admin |
 | `/admin/catalog`, `/admin/users`, `/admin/attendance`, `/admin/payments`, `/reports` | Admin |
 | `/attendance` | Authenticated staff |
 | `/assistant` | Future-version hold; hidden/not found while `AI_HOLD=true` |
@@ -116,8 +136,8 @@ waiter/kitchen/management acceptance run.
 - [ ] Waiter completes a `Ready` order; Admin confirms payment once.
 - [ ] Cancellation and amendment reasons are required and audited.
 - [ ] Preparing/Ready cancellation is denied to a waiter and allowed to Admin.
-- [ ] Inventory receipt, count, adjustment, loss report, approval, rejection,
-      and duplicate-idempotency cases behave as documented.
+- [ ] Inventory receipt, count, adjustment, availability, and duplicate-
+      idempotency cases behave as documented.
 - [ ] Schedule overlap, attendance ownership, correction reason, report date
       range, and empty-period cases behave as documented.
 - [ ] Unauthorized direct route access is denied even when a page link is

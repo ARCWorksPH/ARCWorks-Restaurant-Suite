@@ -48,13 +48,14 @@ public sealed class CatalogService(IDbContextFactory<RomsDbContext> factory, ICl
     {
         if (string.IsNullOrWhiteSpace(item.Name) || item.Price < 0) throw new DomainException("A name and non-negative price are required.");
         if (item.Name.Trim().Length > 120) throw new DomainException("Menu item name cannot exceed 120 characters.");
+        if (item.PreparationMinutes < 1 || item.PreparationMinutes > 1440) throw new DomainException("Preparation time must be between 1 and 1440 minutes.");
         if (item.Description.Trim().Length > 500) throw new DomainException("Menu item description cannot exceed 500 characters.");
         if (item.Price > 9_999_999_999.99m) throw new DomainException("Menu item price is too large.");
         await using var db = await factory.CreateDbContextAsync(ct);
         var current = await db.MenuItems.SingleOrDefaultAsync(x => x.Id == item.Id, ct);
         if (current is null) db.MenuItems.Add(item);
         else { current.Name = item.Name.Trim(); current.Description = item.Description.Trim(); current.Price = item.Price;
-            current.CategoryId = item.CategoryId; current.IsActive = item.IsActive; current.IsAvailable = item.IsAvailable; }
+            current.PreparationMinutes = item.PreparationMinutes; current.CategoryId = item.CategoryId; current.IsActive = item.IsActive; current.IsAvailable = item.IsAvailable; }
         db.AuditEntries.Add(Audit(actorId, "SaveMenuItem", item.Id, item));
         await db.SaveChangesAsync(ct);
     }

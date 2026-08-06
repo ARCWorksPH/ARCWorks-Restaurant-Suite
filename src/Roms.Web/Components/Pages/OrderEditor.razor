@@ -21,7 +21,7 @@ else
                 <div class="order-line"><div><strong>@item.Quantity × @item.Name</strong>@if (!string.IsNullOrWhiteSpace(item.Notes)) { <small>@item.Notes</small> }</div><span>₱@((item.UnitPrice * item.Quantity).ToString("N2"))</span>@if (order.Status == OrderStatus.Draft || order.Status == OrderStatus.New || (order.Status == OrderStatus.Preparing && isAdmin)) { <button class="btn btn-sm btn-outline-danger" disabled="@busy" @onclick="() => Remove(item.Id)">Remove</button> }</div>
             }
             <div class="order-total"><span>Total</span><strong>₱@order.Total.ToString("N2")</strong></div>
-            @if (order.Status == OrderStatus.Draft) { <button class="btn btn-success btn-lg touch-button w-100" disabled="@(busy || order.Items.Count == 0)" @onclick="Submit">Send to kitchen</button> }
+            @if (order.Status is OrderStatus.Draft or OrderStatus.ReturnedToWaiter) { @if (order.Status == OrderStatus.ReturnedToWaiter) { <div class="alert alert-warning">Kitchen returned this order. Reason: <strong>@order.LastReturnReason</strong><textarea class="form-control mt-2" placeholder="Resubmission note (required)" @bind="resubmissionNote"></textarea></div> } <button class="btn btn-success btn-lg touch-button w-100" disabled="@(busy || order.Items.Count == 0 || (order.Status == OrderStatus.ReturnedToWaiter && string.IsNullOrWhiteSpace(resubmissionNote)))" @onclick="Submit">@(order.Status == OrderStatus.ReturnedToWaiter ? "Resubmit to kitchen" : "Send to kitchen")</button> }
             else if (order.Status == OrderStatus.Ready) { <button class="btn btn-success btn-lg touch-button w-100" disabled="@busy" @onclick="Complete">Mark served</button> }
             else if (order.Status == OrderStatus.Completed && order.PaymentConfirmedUtc is null) { <div class="alert alert-warning"><strong>Pending payment.</strong> The table will be released after Admin confirms payment.</div> }
             else if (order.Status == OrderStatus.Completed) { <div class="alert alert-success">Payment confirmed and order completed.</div> }
@@ -43,10 +43,10 @@ else
                 </div>
             }
         </section>
-        @if (order.Status is OrderStatus.Draft or OrderStatus.New or OrderStatus.Preparing)
+        @if (order.Status is OrderStatus.Draft or OrderStatus.ReturnedToWaiter or OrderStatus.New or OrderStatus.Preparing)
         {
             <section><h2>@(order.Status == OrderStatus.Draft ? "Add menu items" : "Amend order")</h2>
-                @if (order.Status != OrderStatus.Draft)
+                @if (order.Status is not (OrderStatus.Draft or OrderStatus.ReturnedToWaiter))
                 {
                     <div class="alert alert-warning">
                         Kitchen will be notified.
@@ -62,13 +62,13 @@ else
 
 @code {
     [Parameter] public Guid OrderId { get; set; }
-    private OrderView? order; private IReadOnlyList<MenuItemChoice> menu = []; private string notes = "", amendmentReason = "", cancellationReason = ""; private int quantity = 1; private bool busy, isAdmin; private string? error; private string actor = "unknown"; private string submissionKey = Guid.NewGuid().ToString("N");
+    private OrderView? order; private IReadOnlyList<MenuItemChoice> menu = []; private string notes = "", amendmentReason = "", cancellationReason = "", resubmissionNote = ""; private int quantity = 1; private bool busy, isAdmin; private string? error; private string actor = "unknown"; private string submissionKey = Guid.NewGuid().ToString("N");
     protected override async Task OnInitializedAsync() { var state = await Authentication.GetAuthenticationStateAsync(); actor = state.User.Identity?.Name ?? "unknown"; isAdmin = state.User.IsInRole(RomsRoles.Admin); Events.Changed += OnChanged; }
     protected override async Task OnParametersSetAsync() => await Load();
     private async Task Load() { try { order = await Orders.GetOrderAsync(OrderId, actor); menu = await Orders.GetMenuAsync(); if (order is null) error = "Order not found."; } catch (Exception ex) { order = null; error = ex.Message; } }
-    private async Task Add(Guid menuId) => await Run(async () => { if (order!.Status == OrderStatus.Draft) await Orders.AddItemAsync(OrderId, menuId, quantity, notes, actor); else await Orders.AmendAddItemAsync(OrderId, menuId, quantity, notes, amendmentReason, actor); notes = amendmentReason = ""; quantity = 1; });
-    private async Task Remove(Guid itemId) => await Run(async () => { if (order!.Status == OrderStatus.Draft) await Orders.RemoveDraftItemAsync(OrderId, itemId, actor); else await Orders.AmendRemoveItemAsync(OrderId, itemId, amendmentReason, actor); amendmentReason = ""; });
-    private async Task Submit() => await Run(async () => { await Orders.SubmitAsync(OrderId, submissionKey, actor); submissionKey = Guid.NewGuid().ToString("N"); });
+    private async Task Add(Guid menuId) => await Run(async () => { if (order!.Status is OrderStatus.Draft or OrderStatus.ReturnedToWaiter) await Orders.AddItemAsync(OrderId, menuId, quantity, notes, actor); else await Orders.AmendAddItemAsync(OrderId, menuId, quantity, notes, amendmentReason, actor); notes = amendmentReason = ""; quantity = 1; });
+    private async Task Remove(Guid itemId) => await Run(async () => { if (order!.Status is OrderStatus.Draft or OrderStatus.ReturnedToWaiter) await Orders.RemoveDraftItemAsync(OrderId, itemId, actor); else await Orders.AmendRemoveItemAsync(OrderId, itemId, amendmentReason, actor); amendmentReason = ""; });
+    private async Task Submit() => await Run(async () => { await Orders.SubmitAsync(OrderId, submissionKey, actor, order!.Status == OrderStatus.ReturnedToWaiter ? resubmissionNote : null); submissionKey = Guid.NewGuid().ToString("N"); resubmissionNote = ""; });
     private async Task Complete() => await Run(() => Orders.TransitionAsync(OrderId, OrderStatus.Completed, actor));
     private async Task Cancel() => await Run(async () => { await Orders.TransitionAsync(OrderId, OrderStatus.Cancelled, actor, cancellationReason); cancellationReason = ""; });
     private void OnChanged(OrderEvent message) { if(message.OrderId==OrderId) _=InvokeAsync(async()=>{await Load();StateHasChanged();}); }

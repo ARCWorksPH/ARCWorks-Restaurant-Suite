@@ -46,6 +46,37 @@ public sealed class OrderTests
     }
 
     [Fact]
+    public void Kitchen_return_requires_reason_and_waiter_resubmission_keeps_history()
+    {
+        var order = WithItem();
+        order.Submit(Now);
+        Assert.Throws<DomainException>(() => order.TransitionTo(OrderStatus.ReturnedToWaiter, "kitchen", " ", Now.AddMinutes(1)));
+
+        order.TransitionTo(OrderStatus.ReturnedToWaiter, "kitchen", "Missing side", Now.AddMinutes(1));
+        Assert.Throws<DomainException>(() => order.Submit(Now.AddMinutes(2)));
+        order.Submit(Now.AddMinutes(2), "Added side and corrected note");
+
+        Assert.Equal(OrderStatus.New, order.Status);
+        Assert.Equal(1, order.ResubmissionCount);
+        Assert.Contains(order.StatusHistory, x => x.ToStatus == OrderStatus.ReturnedToWaiter && x.Reason == "Missing side");
+        Assert.Contains(order.StatusHistory, x => x.FromStatus == OrderStatus.ReturnedToWaiter && x.ToStatus == OrderStatus.New && x.Reason == "Added side and corrected note");
+    }
+
+    [Fact]
+    public void Preparation_target_is_snapshotted_from_item_minutes_and_quantity()
+    {
+        var order = NewOrder();
+        order.AddItem(new MenuItem { Name = "Burger", Price = 100m, PreparationMinutes = 5 }, 2, null, Now);
+        order.AddItem(new MenuItem { Name = "Chicken", Price = 100m, PreparationMinutes = 10 }, 1, null, Now);
+        order.Submit(Now);
+        order.TransitionTo(OrderStatus.Preparing, "kitchen", null, Now.AddMinutes(1));
+        order.SetPreparationTarget(20, Now.AddMinutes(1));
+
+        Assert.Equal(20, order.PreparationTargetMinutes);
+        Assert.Equal(Now.AddMinutes(21), order.PreparationTargetDueUtc);
+    }
+
+    [Fact]
     public void Payment_can_only_be_confirmed_after_serving_and_only_once()
     {
         var order = WithItem();

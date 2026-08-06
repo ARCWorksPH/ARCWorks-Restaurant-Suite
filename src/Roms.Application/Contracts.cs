@@ -7,6 +7,7 @@ public static class RomsRoles
     public const string Admin = "Admin";
     public const string Waiter = "Waiter";
     public const string Kitchen = "Kitchen";
+    public const string Manager = "Manager";
 }
 
 public interface IClock { DateTime UtcNow { get; } }
@@ -20,7 +21,8 @@ public sealed record MenuItemChoice(Guid Id, string Name, string Category, decim
 public sealed record OrderItemView(Guid Id, string Name, decimal UnitPrice, int Quantity, string Notes, bool IsRemoved);
 public sealed record OrderView(Guid Id, Guid TableId, string TableNumber, string WaiterId, string WaiterName, OrderStatus Status,
     DateTime CreatedUtc, DateTime? SubmittedUtc, DateTime? CompletedUtc, DateTime? PaymentConfirmedUtc,
-    int Revision, long Version, decimal Total, string? CancellationReason,
+    int Revision, long Version, decimal Total, string? CancellationReason, string? LastReturnReason, int ResubmissionCount,
+    int? PreparationTargetMinutes, DateTime? PreparationTargetDueUtc,
     IReadOnlyList<OrderItemView> Items);
 public sealed record DashboardReport(decimal CompletedOrderValue, int OrderCount, decimal AverageOrderValue,
     IReadOnlyList<BestSeller> BestSellers);
@@ -100,7 +102,7 @@ public interface IOrderService
         CancellationToken cancellationToken = default);
     Task AmendRemoveItemAsync(Guid orderId, Guid itemId, string reason, string actorId,
         CancellationToken cancellationToken = default);
-    Task<Guid> SubmitAsync(Guid orderId, string idempotencyKey, string actorId, CancellationToken cancellationToken = default);
+    Task<Guid> SubmitAsync(Guid orderId, string idempotencyKey, string actorId, string? resubmissionNote = null, CancellationToken cancellationToken = default);
     Task TransitionAsync(Guid orderId, OrderStatus next, string actorId, string? reason = null,
         CancellationToken cancellationToken = default);
     Task ConfirmPaymentAsync(Guid orderId, string adminId, CancellationToken cancellationToken = default);

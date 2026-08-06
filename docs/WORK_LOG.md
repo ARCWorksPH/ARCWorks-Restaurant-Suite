@@ -1,5 +1,33 @@
 # ROMS Work Log
 
+## 2026-08-06 — Timer and item-preparation rules approved
+
+- Approved one standard Manager-configured order-entry timer for all waiters,
+  starting when a table is selected and a draft begins.
+- Approved one standard Manager-configured kitchen acceptance timer for all
+  submitted orders.
+- Approved Admin-configured per-menu-item preparation minutes; an accepted
+  order's preparation target is the sum of minutes multiplied by quantities.
+- Approved the kitchen return-to-waiter/resubmission path and retained
+  rejection/resubmission history.
+- Updated the workflow contract, revised draft, and roadmap before code work.
+
+## 2026-08-06 — Workflow foundation implementation started
+
+- Added the `Manager` role to the role catalog and administrator staff creation
+  options.
+- Added the `ReturnedToWaiter` order state, required return reason, required
+  resubmission note, resubmission count, and retained status history.
+- Added Admin-configured per-menu-item preparation minutes and preparation
+  target fields calculated from item quantities when kitchen preparation starts.
+- Added the first kitchen return-to-waiter UI path and waiter resubmission UI.
+- Added migration `20260806120000_AddWorkflowTimingFields`.
+- Release build passed with 0 warnings and 0 errors; Domain 13/13 and focused
+  OrderWorkflow integration tests 5/5 passed.
+- Standard waiter/kitchen timer configuration, extension requests, and the
+  Manager live dashboard remain the next implementation slice; no live
+  acceptance is claimed yet.
+
 ## 2026-08-06 — Revised four-role workflow and deferred operational alerts
 
 - Added `docs/REVISED_WORKFLOW_DRAFT_2026-08-06.md` for review before changing
