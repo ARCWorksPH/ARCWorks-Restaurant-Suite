@@ -21,6 +21,10 @@ intentionally untouched until supervised browser acceptance passes.
   `ManagerOrAdmin` authorization policy. Managers receive live operational
   facts; historical editing/payment remains outside their authority.
 - Added MariaDB migration `20260806143000_AddWorkflowTimers`.
+- Regenerated the EF migration and model snapshot through EF tooling after the
+  first manual draft exposed pending-model-change warnings. The final
+  migration contains only the new timer columns/tables; older preparation
+  fields remain owned by `20260806120000_AddWorkflowTimingFields`.
 
 ## Verification performed
 
@@ -28,11 +32,16 @@ intentionally untouched until supervised browser acceptance passes.
 dotnet build Roms.slnx --no-restore                 PASS (0 warnings, 0 errors)
 dotnet test tests/Roms.Domain.Tests/... --no-restore PASS (15/15)
 dotnet test tests/Roms.IntegrationTests/... --filter OrderWorkflowTests PASS (5/5)
+isolated MariaDB migration on a temporary database PASS
+  (all migrations through 20260806143000; 2 workflow tables verified)
+live app health http://127.0.0.1:7070/health PASS (200)
 ```
 
-The migration has not been applied to the production-like database in this
-change. Apply it only in an isolated/staging database first, then run the
-browser and simultaneous-role acceptance scenarios from the contract.
+The migration was applied to the current production-like ROMS database after
+the isolated check and the application returned healthy. A temporary database
+was then removed after confirming the complete migration chain. No production
+data was deleted. The broader integration command was attempted separately but
+exceeded the 120-second execution window without returning a failure result.
 
 ## Rollback
 
@@ -47,7 +56,7 @@ browser and simultaneous-role acceptance scenarios from the contract.
 
 ## Remaining gate before UI redesign
 
-- Apply and verify the migration in an isolated database.
+- ~~Apply and verify the migration in an isolated database.~~ Completed.
 - Run simultaneous waiter, kitchen, manager, and admin browser acceptance.
 - Verify timer expiry/extension behavior and rejected role boundaries.
 - Verify the real MariaDB/SignalR/Docker path, not only InMemory tests.
