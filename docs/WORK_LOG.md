@@ -22,6 +22,17 @@
 - Recorded the role-aware navigation, timer display, local-image, and visual
   acceptance boundaries in `docs/UI_REVISION_ALIGNMENT_REVIEW_2026-08-06.md`.
 
+## 2026-08-06 — UI redesign implementation instructions
+
+- Added `docs/UI_REDESIGN_IMPLEMENTATION_INSTRUCTIONS_2026-08-06.md` as the
+  authoritative handoff for the future UI redesign.
+- Made workflow implementation, migration, backup, rollback, and acceptance
+  hard prerequisites for UI work.
+- Defined role-specific surfaces, component states, accessibility, responsive
+  behavior, browser gates, documentation, and Git/rollback procedure.
+- Explicitly prohibited recipe UI and unsupported inventory fields from being
+  reintroduced through the mockups.
+
 ## 2026-08-06 — Workflow foundation implementation started
 
 - Added the `Manager` role to the role catalog and administrator staff creation
