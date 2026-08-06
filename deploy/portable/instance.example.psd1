@@ -14,7 +14,7 @@
     DatabaseServerId = 1
 
     # Source and operational boundaries.
-    RomsRoot = 'D:\GBServerPH - Staff-side Restaurant Ordering App'
+    RomsRoot = 'D:\ARCWorks_Restaurant_Suite'
     MonitoringRoot = 'D:\ARCWorks_Monitoring'
     PortfolioRoot = 'E:\ARCANUM VAULT\PROJECTS\ARCWorks-Portfolio'
 

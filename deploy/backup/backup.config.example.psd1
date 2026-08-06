@@ -12,7 +12,7 @@
 
     InstanceId     = 'arcworks-resto-main'
     ComposeProjectName = 'arcworks-resto-main'
-    RomsRoot       = 'D:\GBServerPH - Staff-side Restaurant Ordering App'
+    RomsRoot       = 'D:\ARCWorks_Restaurant_Suite'
     MonitoringRoot = 'D:\ARCWorks_Monitoring'
     PortfolioRoot  = 'E:\ARCANUM VAULT\PROJECTS\ARCWorks-Portfolio'
     CodexRoot      = 'C:\Users\GBServerPH\.codex'

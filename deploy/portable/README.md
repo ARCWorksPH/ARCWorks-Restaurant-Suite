@@ -7,7 +7,7 @@ for each VM; never put passwords or Cloudflare tokens in the manifest.
 The current canonical source is:
 
 ```text
-D:\GBServerPH - Staff-side Restaurant Ordering App
+D:\ARCWorks_Restaurant_Suite
 ```
 
 The live workstation stack still runs from the legacy `D:\ARCWorks_Restaurant

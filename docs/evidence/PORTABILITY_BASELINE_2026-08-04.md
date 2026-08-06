@@ -5,7 +5,7 @@
 The canonical release source for the portable ROMS work is:
 
 ```text
-D:\GBServerPH - Staff-side Restaurant Ordering App
+D:\ARCWorks_Restaurant_Suite
 ```
 
 The live workstation containers are intentionally unchanged during this
