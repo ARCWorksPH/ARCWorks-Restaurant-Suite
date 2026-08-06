@@ -105,6 +105,7 @@ consumption, costing, and automatic order-to-stock deduction are out of scope.
 | --- | --- | --- |
 | Attendance | View own records/schedules; clock in; clock out | Any authenticated staff member |
 | Staff schedule | Add, edit, delete non-overlapping shifts | Admin |
+| Manager schedule view | View current schedules, current-shift staffing, and presence indicators; no mutations | Manager or Admin |
 | Attendance correction | Correct a record with a mandatory reason | Admin |
 | Attendance export | Export the authorized seven-day CSV | Admin |
 | Reports | View completed-order summaries for a valid date range | Admin |
@@ -122,6 +123,7 @@ must return an empty result rather than an error.
 | --- | --- |
 | `/tables`, `/orders/{id}` | Waiter or Admin |
 | `/kitchen` | Kitchen or Admin |
+| `/manager` (or `/manager/dashboard`) | ManagerOrAdmin; live/current operational data and configuration only |
 | `/inventory` | Kitchen, Manager, or Admin route; mutation methods enforce Admin, availability actions enforce Kitchen/Manager/Admin |
 | `/admin/catalog`, `/admin/users`, `/admin/attendance`, `/admin/payments`, `/reports` | Admin |
 | `/attendance` | Authenticated staff |

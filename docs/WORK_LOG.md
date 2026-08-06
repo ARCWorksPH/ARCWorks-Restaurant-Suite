@@ -47,6 +47,20 @@
 - Required the KDS to render the backend-snapshotted preparation target rather
   than calculating it in the browser.
 
+## 2026-08-06 — UI feedback clarification update
+
+- Defined `/manager` (or `/manager/dashboard`) as a `ManagerOrAdmin` route and
+  kept direct-route authorization mandatory.
+- Clarified that Manager schedule and roster views are read-only; shift and
+  roster mutations remain Admin/Owner-only.
+- Clarified that `Reserved` is not a live table status and that `Locked` is a
+  display-only ownership indication, never a new persisted status.
+- Required late waiter drafts to show `EXPIRED`/`LATE` while retaining the
+  current domain's late submission behavior; no client-only hard block was
+  introduced.
+- Removed the inventory mockup's misleading automatic-deduction-paused banner
+  because automatic deduction is out of scope, not paused.
+
 ## 2026-08-06 — Workflow foundation implementation started
 
 - Added the `Manager` role to the role catalog and administrator staff creation

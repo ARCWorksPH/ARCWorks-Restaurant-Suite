@@ -30,7 +30,8 @@ are confirmed:
 - Manager live-only access boundaries are implemented and tested.
 - The workflow migration has been applied successfully to an isolated database.
 - The migration has been backed up and a rollback path has been verified.
-- Focused domain, integration, and role-authorization tests pass.
+- Focused domain, integration, and role-authorization tests pass for the
+  implemented backend slice.
 - The workflow contract has been updated to reflect the final implementation.
 
 These prerequisites are now satisfied for the current workflow slice. The
@@ -134,6 +135,11 @@ Manager must not receive buttons that submit, accept, return, prepare, mark
 ready, serve, pay, or resubmit an order. Do not provide impersonation controls.
 Do not present unrestricted historical records or edit processed records.
 
+Manager schedule and roster data is read-only in this interface. The Manager
+may view current schedules, current-shift staffing, and presence indicators,
+but must not add, edit, or delete shifts or roster records. Those mutations
+remain Admin/Owner-only in the Administrator interface.
+
 Manager live-data boundary: dashboard queries may include active orders and
 drafts currently in operational states (`Draft`, `New`, `ReturnedToWaiter`,
 `Preparing`, and `Ready`), current table assignments, currently clocked-in
@@ -179,13 +185,19 @@ Use the table-card concept, but preserve current status semantics:
 Each card may show table number, assigned waiter, item/order count, total where
 the role is allowed to see it, elapsed activity, and the permitted next action.
 
-Do not invent `Reserved` or `Locked` behavior unless it exists in the approved
-domain contract. If a mockup shows a future state, label it as unavailable or
-omit it.
+Do not invent a `Reserved` state: it is not in the current `TableStatus` domain
+enum. Omit the Reserved card, or render it only as a clearly disabled/static
+future-state specimen that has no action and is not presented as live data.
+If a table card shows `Locked`, calculate that as a display-only indication of
+current waiter ownership; it is not a new persisted status and must never
+replace server-side ownership or authorization checks.
 
 The standard waiter order-entry timer begins when a waiter selects a table and
 starts a draft. The visual timer must use persisted/authoritative values, not a
-client-only approximation.
+client-only approximation. When `OrderEntryDueUtc` has passed, show a clear
+`EXPIRED`/`LATE` state and elapsed lateness, but keep `Send to Kitchen`
+available because the current domain permits late submission. Do not silently
+turn this visual state into a hard block or invent a client-only extension.
 
 ### 4.2 Waiter order editor
 
@@ -203,6 +215,7 @@ Required behaviors:
 - visible availability state;
 - visible validation and busy states;
 - submit button with clear timer state;
+- an `EXPIRED`/`LATE` banner when the order-entry deadline has passed;
 - extension request control;
 - returned-order reason and resubmission-note field;
 - resubmit action only when the order is returned;
@@ -263,6 +276,11 @@ example:
 - low-stock state;
 - configuration panels for the standard timers.
 
+The Manager dashboard route must be `/manager` (or the explicitly equivalent
+`/manager/dashboard`) and must use the `ManagerOrAdmin` policy. Direct URL
+access must be denied for Waiter and Kitchen roles even if navigation links are
+hidden.
+
 Do not expose completed-order history or historical editing in the Manager
 dashboard. If a metric requires historical aggregation, obtain explicit
 approval for its time window and data boundary first.
@@ -292,6 +310,8 @@ Do not implement or visually imply:
 - waste/spoilage approval
 
 The current inventory scope is intentionally simpler than the mockup.
+Do not display the mockup banner stating that automatic stock deduction is
+paused; automatic deduction is out of scope, not a paused feature.
 
 ## 5. Component and state requirements
 
