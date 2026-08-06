@@ -25,6 +25,11 @@ intentionally untouched until supervised browser acceptance passes.
   first manual draft exposed pending-model-change warnings. The final
   migration contains only the new timer columns/tables; older preparation
   fields remain owned by `20260806120000_AddWorkflowTimingFields`.
+- Added `SyntheticWorkflowAcceptanceTests`, a reusable four-role simulation
+  using a fixed clock and isolated InMemory database. It covers manager timer
+  configuration, waiter draft/submission, kitchen authorization, extension
+  audit, return/resubmission, item-based preparation timing, completion, and
+  Admin-only payment.
 
 ## Verification performed
 
@@ -35,6 +40,7 @@ dotnet test tests/Roms.IntegrationTests/... --filter OrderWorkflowTests PASS (5/
 isolated MariaDB migration on a temporary database PASS
   (all migrations through 20260806143000; 2 workflow tables verified)
 live app health http://127.0.0.1:7070/health PASS (200)
+synthetic four-role acceptance PASS (1/1)
 ```
 
 The migration was applied to the current production-like ROMS database after
@@ -61,3 +67,13 @@ exceeded the 120-second execution window without returning a failure result.
 - Verify timer expiry/extension behavior and rejected role boundaries.
 - Verify the real MariaDB/SignalR/Docker path, not only InMemory tests.
 - Record evidence and then unlock the UI redesign instructions.
+
+## Re-running the synthetic acceptance
+
+```text
+dotnet test tests/Roms.IntegrationTests/Roms.IntegrationTests.csproj \
+  --filter FullyQualifiedName~SyntheticWorkflowAcceptanceTests
+```
+
+The simulation is a deterministic correctness/security test. It does not claim
+that the final visual layout is usable or replace a supervised browser run.
