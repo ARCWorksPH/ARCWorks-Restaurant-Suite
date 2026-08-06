@@ -12,6 +12,16 @@
   rejection/resubmission history.
 - Updated the workflow contract, revised draft, and roadmap before code work.
 
+## 2026-08-06 — UI revision alignment review
+
+- Confirmed the supplied dark glass/component-sheet, tables, KDS, and order
+  editor concepts align with the intended product direction.
+- Rejected the inventory mockup's recipe configuration as incompatible with
+  the approved recipe removal; supplier, unit-cost, barcode, total-value, and
+  automatic-deduction fields remain unsupported unless separately approved.
+- Recorded the role-aware navigation, timer display, local-image, and visual
+  acceptance boundaries in `docs/UI_REVISION_ALIGNMENT_REVIEW_2026-08-06.md`.
+
 ## 2026-08-06 — Workflow foundation implementation started
 
 - Added the `Manager` role to the role catalog and administrator staff creation
