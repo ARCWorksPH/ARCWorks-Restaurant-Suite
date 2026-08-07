@@ -115,7 +115,7 @@ main {
     }
 
     .page.standard-mode .sidebar ::deep .navbar-brand {
-        display: block;
+        display: block !important;
     }
 
     .page.kds-mode .sidebar {
