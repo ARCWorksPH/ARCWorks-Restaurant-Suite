@@ -73,7 +73,7 @@ main {
 }
 
 .page.standard-mode {
-    flex-direction: column !important;
+    flex-direction: column;
 }
 
 .page.standard-mode main {
@@ -89,7 +89,7 @@ main {
 
 @media (min-width: 641px) {
     .page.standard-mode {
-        flex-direction: row;
+        flex-direction: row !important;
     }
 
     .sidebar {
@@ -106,6 +106,12 @@ main {
 
     .page.standard-mode .sidebar {
         display: block;
+    }
+
+    .page.standard-mode main {
+        width: auto;
+        min-width: 0;
+        flex: 1;
     }
 
     .page.standard-mode .sidebar ::deep .navbar-brand {
