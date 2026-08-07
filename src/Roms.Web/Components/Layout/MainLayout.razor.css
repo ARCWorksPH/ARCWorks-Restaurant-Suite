@@ -102,6 +102,7 @@ main {
 
     .page.kds-mode .sidebar {
         width: 72px;
+        display: block !important;
         overflow: hidden;
     }
 
