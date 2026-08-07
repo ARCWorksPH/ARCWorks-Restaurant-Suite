@@ -90,3 +90,11 @@ that acceptance should workflow completion be claimed.
 - Responsive phone drawer behavior and the intentional landscape-only KDS
   gate remain the next UI phases; they are not being claimed complete by this
   change.
+
+## 2026-08-07 — Landscape shell regression correction
+
+- Corrected the standard shell's flex rule so landscape desktop/tablet views
+  place the side navigation beside the content instead of pushing the content
+  below a full-width sidebar.
+- Verified one visible desktop brand, no unintended horizontal overflow, and
+  the responsive shell through the Playwright smoke suite.
