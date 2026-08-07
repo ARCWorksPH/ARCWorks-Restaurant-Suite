@@ -21,9 +21,10 @@ public sealed class CatalogService(IDbContextFactory<RomsDbContext> factory, ICl
         await using var db = await factory.CreateDbContextAsync(ct);
         await EnsureAdminAsync(db, actorId, ct);
         var current = await db.RestaurantTables.SingleOrDefaultAsync(x => x.Id == table.Id, ct);
+        var oldValues = current is null ? null : new { current.Number, current.SortOrder, current.IsActive };
         if (current is null) db.RestaurantTables.Add(table);
         else { current.Number = table.Number.Trim(); current.SortOrder = table.SortOrder; current.IsActive = table.IsActive; }
-        db.AuditEntries.Add(Audit(actorId, "SaveTable", table.Id, table));
+        db.AuditEntries.Add(Audit(actorId, "SaveTable", table.Id, table, oldValues));
         await db.SaveChangesAsync(ct);
     }
 
@@ -40,9 +41,10 @@ public sealed class CatalogService(IDbContextFactory<RomsDbContext> factory, ICl
         await using var db = await factory.CreateDbContextAsync(ct);
         await EnsureAdminAsync(db, actorId, ct);
         var current = await db.MenuCategories.SingleOrDefaultAsync(x => x.Id == category.Id, ct);
+        var oldValues = current is null ? null : new { current.Name, current.SortOrder, current.IsActive };
         if (current is null) db.MenuCategories.Add(category);
         else { current.Name = category.Name.Trim(); current.SortOrder = category.SortOrder; current.IsActive = category.IsActive; }
-        db.AuditEntries.Add(Audit(actorId, "SaveCategory", category.Id, category));
+        db.AuditEntries.Add(Audit(actorId, "SaveCategory", category.Id, category, oldValues));
         await db.SaveChangesAsync(ct);
     }
 
@@ -72,6 +74,7 @@ public sealed class CatalogService(IDbContextFactory<RomsDbContext> factory, ICl
         }
 
         var current = await db.MenuItems.SingleOrDefaultAsync(x => x.Id == item.Id, ct);
+        var oldValues = current is null ? null : new { current.Name, current.Description, current.Price, current.PreparationMinutes, current.CategoryId, current.IsActive, current.IsAvailable };
         if (current is null)
         {
             if (!isAdmin) throw new DomainException("Only an administrator can add new menu items.");
@@ -103,7 +106,7 @@ public sealed class CatalogService(IDbContextFactory<RomsDbContext> factory, ICl
             current.IsActive = item.IsActive;
             current.IsAvailable = item.IsAvailable;
         }
-        db.AuditEntries.Add(Audit(actorId, "SaveMenuItem", item.Id, item));
+        db.AuditEntries.Add(Audit(actorId, "SaveMenuItem", item.Id, item, oldValues));
         await db.SaveChangesAsync(ct);
     }
 
@@ -117,6 +120,8 @@ public sealed class CatalogService(IDbContextFactory<RomsDbContext> factory, ICl
         if (!allowed) throw new DomainException("Only an administrator can perform this action.");
     }
 
-    private AuditEntry Audit(string actor, string action, Guid id, object values) => new()
-        { ActorId = actor, Action = action, EntityType = "Catalog", EntityId = id.ToString(), NewValuesJson = JsonSerializer.Serialize(values), OccurredUtc = clock.UtcNow };
+    private AuditEntry Audit(string actor, string action, Guid id, object values, object? oldValues = null) => new()
+        { ActorId = actor, Action = action, EntityType = "Catalog", EntityId = id.ToString(),
+            OldValuesJson = oldValues is null ? null : JsonSerializer.Serialize(oldValues),
+            NewValuesJson = JsonSerializer.Serialize(values), OccurredUtc = clock.UtcNow };
 }

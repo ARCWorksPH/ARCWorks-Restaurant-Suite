@@ -1,6 +1,7 @@
 @page "/kitchen"
 @attribute [Authorize(Policy = "KitchenOrAdmin")]
 @inject IOrderService Orders
+@inject ICatalogService Catalog
 @inject AuthenticationStateProvider Authentication
 @inject OrderEventBus Events
 @implements IDisposable
@@ -19,6 +20,31 @@
         <button class="btn btn-outline-primary touch-button" @onclick="Load">Refresh</button>
     </div>
 </div>
+
+@if (availabilityItems.Count > 0)
+{
+    <section class="panel mb-4 kitchen-availability-panel">
+        <div class="page-heading">
+            <div>
+                <h2>86 menu item</h2>
+                <p>Use this when the kitchen confirms an item cannot be served. Manager/Admin can restore it with code 68.</p>
+            </div>
+        </div>
+        <div class="admin-list">
+            @foreach (var menuItem in availabilityItems)
+            {
+                <div>
+                    <span><strong>@menuItem.Name</strong> · @(menuItem.IsAvailable ? "Available" : "86 unavailable")</span>
+                    <button class="btn btn-sm @(menuItem.IsAvailable ? "btn-outline-danger" : "btn-outline-secondary")"
+                            disabled="@(!menuItem.IsAvailable || busy)"
+                            @onclick="() => MarkUnavailable(menuItem)">
+                        @(menuItem.IsAvailable ? "86 item" : "86 applied")
+                    </button>
+                </div>
+            }
+        </div>
+    </section>
+}
 
 @if (!string.IsNullOrEmpty(error))
 {
@@ -110,8 +136,10 @@ else
     private static readonly TimeZoneInfo ManilaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila");
 
     private IReadOnlyList<OrderView> orders = [];
+    private IReadOnlyList<MenuItem> availabilityItems = [];
     private string actor = "unknown";
     private string? error;
+    private bool busy;
     private readonly Dictionary<Guid, string> returnReasons = [];
     private string currentTime = RestaurantTime();
     private System.Threading.Timer? clockTimer;
@@ -141,6 +169,10 @@ else
         try
         {
             orders = await Orders.GetKitchenOrdersAsync();
+            var categories = await Catalog.GetCategoriesAsync();
+            availabilityItems = categories.Where(x => x.IsActive)
+                .SelectMany(x => x.Items.Where(item => item.IsActive).OrderBy(item => item.Name))
+                .ToList();
             foreach (var o in orders)
             {
                 if (!returnReasons.ContainsKey(o.Id))
@@ -153,6 +185,26 @@ else
         catch (Exception ex)
         {
             error = ex.Message;
+        }
+    }
+
+    private async Task MarkUnavailable(MenuItem menuItem)
+    {
+        if (busy) return;
+        busy = true;
+        try
+        {
+            menuItem.IsAvailable = false;
+            await Catalog.SaveMenuItemAsync(menuItem, actor);
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
         }
     }
 

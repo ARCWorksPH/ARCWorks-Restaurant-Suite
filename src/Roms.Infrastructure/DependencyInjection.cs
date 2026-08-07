@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IWorkflowService, WorkflowService>();
         services.AddScoped<ICatalogService, CatalogService>();
         services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IInventoryService, InventoryService>();
         // Keep the AI implementation available in source for a future version,
         // but do not activate it while the product hold is in force. This also

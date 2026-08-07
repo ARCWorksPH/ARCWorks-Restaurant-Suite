@@ -179,6 +179,22 @@ public sealed class Order
         if (quantity < 1 || quantity > 99) throw new DomainException("Quantity must be between 1 and 99.");
         if ((notes?.Trim().Length ?? 0) > 500) throw new DomainException("Special instructions cannot exceed 500 characters.");
 
+        var normalizedNotes = notes?.Trim() ?? "";
+        var existing = Items.SingleOrDefault(x =>
+            !x.IsRemoved &&
+            x.MenuItemId == menuItem.Id &&
+            string.Equals(x.Notes, normalizedNotes, StringComparison.Ordinal));
+
+        if (existing is not null)
+        {
+            if (existing.Quantity + quantity > 99)
+                throw new DomainException("The quantity for one item line cannot exceed 99.");
+
+            existing.Quantity += quantity;
+            Touch(utcNow);
+            return;
+        }
+
         Items.Add(new OrderItem
         {
             OrderId = Id,
@@ -186,7 +202,7 @@ public sealed class Order
             MenuItemName = menuItem.Name,
             UnitPrice = menuItem.Price,
             Quantity = quantity,
-            Notes = notes?.Trim() ?? ""
+            Notes = normalizedNotes
         });
         Touch(utcNow);
     }

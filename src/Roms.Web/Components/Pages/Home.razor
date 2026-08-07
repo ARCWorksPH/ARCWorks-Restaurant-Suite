@@ -11,7 +11,7 @@
             <AuthorizeView Policy="WaiterOrAdmin"><a class="action-card" href="tables"><strong>Tables & Orders</strong><span>Take orders and serve ready meals</span></a></AuthorizeView>
             <AuthorizeView Policy="KitchenOrAdmin"><a class="action-card" href="kitchen"><strong>Kitchen Display</strong><span>Prepare incoming orders</span></a></AuthorizeView>
             <AuthorizeView Roles="Admin"><a class="action-card" href="admin/catalog"><strong>Administration</strong><span>Manage tables, categories, and menu</span></a></AuthorizeView>
-            <AuthorizeView Roles="Admin"><a class="action-card" href="admin/payments"><strong>Pending Payments</strong><span>Review served orders and confirm payment</span></a></AuthorizeView>
+            <AuthorizeView Roles="Admin,Manager"><a class="action-card" href="admin/payments"><strong>Pending Payments</strong><span>Review served orders and confirm payment</span></a></AuthorizeView>
             <AuthorizeView Roles="Admin"><a class="action-card" href="reports"><strong>Order-value Reports</strong><span>Review completed order performance</span></a></AuthorizeView>
             <AuthorizeView Roles="Admin"><a class="action-card" href="admin/attendance"><strong>Staff Schedule</strong><span>Schedule staff and see who is present</span></a></AuthorizeView>
         </div>

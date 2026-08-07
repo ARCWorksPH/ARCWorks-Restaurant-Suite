@@ -26,6 +26,23 @@ public sealed class OrderTests
     }
 
     [Fact]
+    public void Matching_item_notes_merge_quantity_but_different_notes_stay_separate()
+    {
+        var menuItem = new MenuItem { Name = "Burger", Price = 185m };
+        var order = NewOrder();
+
+        order.AddItem(menuItem, 4, null, Now);
+        order.AddItem(menuItem, 1, "No onions", Now);
+        order.AddItem(menuItem, 2, null, Now);
+        order.AddItem(menuItem, 1, "No onions", Now);
+
+        Assert.Equal(2, order.Items.Count);
+        Assert.Equal(6, order.Items.Single(x => x.Notes == "").Quantity);
+        Assert.Equal(2, order.Items.Single(x => x.Notes == "No onions").Quantity);
+        Assert.Equal(8 * 185m, order.Total);
+    }
+
+    [Fact]
     public void Happy_path_enforces_each_status_transition()
     {
         var order = WithItem();

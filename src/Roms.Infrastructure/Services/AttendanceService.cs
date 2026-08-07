@@ -69,8 +69,12 @@ public sealed class AttendanceService(IDbContextFactory<RomsDbContext> factory, 
         await EnsureAdminAsync(db, adminId, ct);
         var users = await db.Users.AsNoTracking().Where(x => x.UserName != null)
             .Select(x => new StaffIdentity(x.Id, x.UserName!, x.DisplayName)).ToDictionaryAsync(x => x.Id, ct);
+        var activeUserIds = await db.Users.AsNoTracking()
+            .Where(x => x.IsActive)
+            .Select(x => x.Id)
+            .ToListAsync(ct);
         var schedules = await db.StaffSchedules.AsNoTracking()
-            .Where(x => x.ScheduledEndUtc >= fromUtc && x.ScheduledStartUtc < toUtc)
+            .Where(x => activeUserIds.Contains(x.UserId) && x.ScheduledEndUtc >= fromUtc && x.ScheduledStartUtc < toUtc)
             .OrderBy(x => x.ScheduledStartUtc).ToListAsync(ct);
         var records = await db.AttendanceRecords.AsNoTracking()
             .Where(x => x.ClockInUtc >= fromUtc && x.ClockInUtc < toUtc)

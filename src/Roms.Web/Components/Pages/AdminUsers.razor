@@ -1,6 +1,8 @@
 @page "/admin/users"
 @attribute [Authorize(Roles = "Admin")]
 @inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider Authentication
+@inject IDbContextFactory<Roms.Infrastructure.Persistence.RomsDbContext> DbFactory
 
 <PageTitle>Users</PageTitle>
 
@@ -35,7 +37,7 @@
 <section class="panel mt-4">
     <div class="d-flex justify-content-between align-items-center gap-3">
         <h2 class="m-0">Staff access</h2>
-        <small class="text-muted">Removing access keeps the account and its audit history.</small>
+        <small class="text-muted">Removed staff are hidden here, but their account and audit history remain preserved.</small>
     </div>
     <div class="admin-list">
         @foreach (var user in users)
@@ -46,10 +48,10 @@
                     <small class="d-block text-muted">@(user.IsActive ? "Access enabled" : "Access removed; record retained")</small>
                 </span>
                 <button type="button"
-                        class="btn btn-sm @(user.IsActive ? "btn-outline-danger" : "btn-outline-success")"
+                        class="btn btn-sm btn-outline-danger"
                         @onclick="() => Toggle(user)"
-                        aria-label="@(user.IsActive ? $"Remove access for {user.DisplayName}" : $"Restore access for {user.DisplayName}")">
-                    @(user.IsActive ? "Remove access" : "Restore access")
+                        aria-label="Remove access for @user.DisplayName">
+                    Remove access
                 </button>
             </div>
         }
@@ -65,12 +67,18 @@
     private string role = RomsRoles.Waiter;
     private string? message;
     private bool failed;
+    private string actor = "unknown";
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Authentication.GetAuthenticationStateAsync();
+        actor = state.User.Identity?.Name ?? "unknown";
+        await Load();
+    }
 
     private async Task Load()
     {
-        users = await UserManager.Users.OrderBy(x => x.DisplayName).ToListAsync();
+        users = await UserManager.Users.Where(x => x.IsActive).OrderBy(x => x.DisplayName).ToListAsync();
         roles.Clear();
         foreach (var user in users)
         {
@@ -82,15 +90,27 @@
     // and audit history retain their original actor. Login already rejects inactive users.
     private async Task Toggle(ApplicationUser user)
     {
-        user.IsActive = !user.IsActive;
+        user.IsActive = false;
         var result = await UserManager.UpdateAsync(user);
         if (result.Succeeded && !user.IsActive)
         {
             await UserManager.UpdateSecurityStampAsync(user);
+            await using var db = await DbFactory.CreateDbContextAsync();
+            db.AuditEntries.Add(new Roms.Domain.AuditEntry
+            {
+                ActorId = actor,
+                Action = "RemoveUserAccess",
+                EntityType = nameof(ApplicationUser),
+                EntityId = user.Id,
+                OldValuesJson = "{\"IsActive\":true}",
+                NewValuesJson = "{\"IsActive\":false}",
+                OccurredUtc = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
         }
 
         message = result.Succeeded
-            ? user.IsActive ? "User access restored." : "User access removed. The account and history were retained."
+            ? "User access removed. The account and history were retained."
             : string.Join("; ", result.Errors.Select(x => x.Description));
         failed = !result.Succeeded;
         await Load();

@@ -107,11 +107,38 @@ that acceptance should workflow completion be claimed.
   compaction explicit and reversible.
 - Corrected pending-payment ticket contrast by using dark text on the light
   invoice surface, including headings, amounts, and timestamps.
-- Added Admin **Remove access** / **Restore access** actions. Removal is a
-  soft deactivation (`IsActive = false`), so the Identity row and all order,
-  attendance, and audit references remain available for historical records;
-  inactive users are rejected by the existing login gate.
+- Added the Admin **Remove access** action. Removal is a soft deactivation
+  (`IsActive = false`), so the Identity row and all order, attendance, and
+  audit references remain available for historical records; inactive users are
+  rejected by the existing login gate. A restore control was intentionally
+  removed in the follow-up policy pass: reactivation is an Admin-only
+  administrative operation, not an employee-facing workflow.
 - Rebuilt the app container and ran the Playwright smoke suite: **3/3 passed**
   (including expanded KDS navigation, explicit collapse/restore, and the
   existing workflow smoke coverage). The solution build completed with **0
   warnings, 0 errors**.
+
+## 2026-08-07 — Catalog, access, payments, and audit follow-up
+
+- Added the Kitchen-facing availability panel: Kitchen can mark an active
+  menu item unavailable (`86`) as soon as the shortage is known, while
+  Manager/Admin retain restore authority (`68`). The server remains
+  authoritative for the role restriction.
+- Repeated additions now merge only when the menu item and its notes match.
+  Identical notes increase one line quantity; different notes remain separate
+  lines, preserving kitchen instructions and the combined total.
+- Pending Payments is now explicitly Manager-or-Admin only, including payment
+  confirmation. Waiters and Kitchen staff remain excluded.
+- Staff removal remains Admin-only and is now hidden from the normal user list
+  after deactivation. The Identity row and historical references are retained;
+  inactive staff are excluded from new scheduling choices and current schedule
+  rows while historical attendance remains preserved.
+- Admin catalog controls now provide Edit and Delete actions for menu items and
+  Delete actions for tables/categories. These are reversible soft removals
+  (`IsActive = false`), not destructive database deletes, so historical orders
+  remain valid. Menu edits include name, description, price, category, and
+  preparation time, with old/new values captured in the audit record.
+- Added the Admin-only historical action log to Reports with date filtering,
+  server-recorded actor/action/entity data, and expandable raw JSON values.
+  This is an operational audit log rather than noisy client-side click
+  telemetry.

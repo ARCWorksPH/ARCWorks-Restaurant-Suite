@@ -134,16 +134,16 @@ public sealed class RomsApplicationSmokeTests : PageTest
 
             var sidebar = Page.Locator(".sidebar");
             await Expect(sidebar).ToBeVisibleAsync();
-            var sidebarBox = await sidebar.BoundingBoxAsync();
+            var sidebarBox = await WaitForBoundingBoxAsync(sidebar, Page);
             Assert.That(sidebarBox, Is.Not.Null);
-            Assert.That(sidebarBox!.Width, Is.InRange(248, 252));
+            Assert.That(sidebarBox!.Value.Width, Is.InRange(248, 252));
             await Expect(sidebar.Locator(".nav-text").First).ToBeVisibleAsync();
 
             await Page.GetByRole(AriaRole.Button, new() { Name = "Minimize kitchen navigation panel" }).ClickAsync();
             await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Expand kitchen navigation panel" })).ToBeVisibleAsync();
-            var collapsedSidebarBox = await sidebar.BoundingBoxAsync();
+            var collapsedSidebarBox = await WaitForBoundingBoxAsync(sidebar, Page);
             Assert.That(collapsedSidebarBox, Is.Not.Null);
-            Assert.That(collapsedSidebarBox!.Width, Is.InRange(70, 74));
+            Assert.That(collapsedSidebarBox!.Value.Width, Is.InRange(70, 74));
 
             await Page.GotoAsync($"{baseAddress}/tables");
             await Page.GetByRole(AriaRole.Button, new()
@@ -381,6 +381,19 @@ public sealed class RomsApplicationSmokeTests : PageTest
     private async Task WaitForInteractiveAsync(IPage page) =>
         await Expect(page.Locator("#roms-connection-indicator")).ToContainTextAsync(
             "Connected", new() { Timeout = 15_000 });
+
+    private static async Task<(float X, float Y, float Width, float Height)?> WaitForBoundingBoxAsync(ILocator locator, IPage page)
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var box = await locator.BoundingBoxAsync();
+            if (box is not null) return (box.X, box.Y, box.Width, box.Height);
+            await page.WaitForTimeoutAsync(100);
+        }
+
+        var finalBox = await locator.BoundingBoxAsync();
+        return finalBox is null ? null : (finalBox.X, finalBox.Y, finalBox.Width, finalBox.Height);
+    }
 
     private static async Task SeedStaffAsync(
         string connectionString,

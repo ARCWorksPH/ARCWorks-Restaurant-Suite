@@ -288,7 +288,7 @@ public sealed class OrderService(
         await using var db = await factory.CreateDbContextAsync(ct);
         var order = await db.Orders.Include(x => x.Items).SingleOrDefaultAsync(x => x.Id == orderId, ct)
             ?? throw new DomainException("Order not found.");
-        await EnsureAdminAsync(db, adminId, ct);
+        await EnsureManagerOrAdminAsync(db, adminId, ct);
         order.ConfirmPayment(adminId, clock.UtcNow);
         db.AuditEntries.Add(Audit(adminId, "ConfirmPayment", order.Id,
             JsonSerializer.Serialize(new { order.PaymentConfirmedUtc, order.Total })));
@@ -343,6 +343,13 @@ public sealed class OrderService(
     {
         if (await IsInRoleAsync(db, actorId, RomsRoles.Admin, ct)) return;
         throw new DomainException("Only an administrator can perform this protected action.");
+    }
+
+    private static async Task EnsureManagerOrAdminAsync(RomsDbContext db, string actorId, CancellationToken ct)
+    {
+        if (await IsInRoleAsync(db, actorId, RomsRoles.Manager, ct) ||
+            await IsInRoleAsync(db, actorId, RomsRoles.Admin, ct)) return;
+        throw new DomainException("Only a manager or administrator can perform this protected action.");
     }
 
     private static Task<bool> IsInRoleAsync(RomsDbContext db, string actorId, string role, CancellationToken ct) =>

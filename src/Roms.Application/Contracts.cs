@@ -33,6 +33,8 @@ public sealed record ManagerLiveOrderView(Guid OrderId, string TableNumber, stri
 public sealed record DashboardReport(decimal CompletedOrderValue, int OrderCount, decimal AverageOrderValue,
     IReadOnlyList<BestSeller> BestSellers);
 public sealed record BestSeller(string Name, int Quantity, decimal Value);
+public sealed record AuditRecordView(long Id, string ActorId, string Action, string EntityType, string EntityId,
+    string? OldValuesJson, string? NewValuesJson, string? Reason, DateTime OccurredUtc);
 public sealed record InventoryBalance(Guid Id, string Name, string Unit, decimal CurrentStock, decimal MinimumStock, bool IsLow);
 public sealed record StockMovementView(
     long Id,
@@ -138,6 +140,12 @@ public interface ICatalogService
 public interface IReportService
 {
     Task<DashboardReport> GetDashboardAsync(DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default);
+}
+
+public interface IAuditService
+{
+    Task<IReadOnlyList<AuditRecordView>> GetRecentAsync(string adminId, DateTime fromUtc, DateTime toUtc,
+        int take = 200, CancellationToken cancellationToken = default);
 }
 
 public interface IInventoryService

@@ -79,8 +79,7 @@ public sealed class SyntheticWorkflowAcceptanceTests : IAsyncLifetime
         Assert.Equal(clock.UtcNow.AddMinutes(20), preparing.PreparationTargetDueUtc);
         await orders.TransitionAsync(orderId, OrderStatus.Ready, "kitchen");
         await orders.TransitionAsync(orderId, OrderStatus.Completed, "waiter");
-        await Assert.ThrowsAsync<DomainException>(() => orders.ConfirmPaymentAsync(orderId, "manager"));
-        await orders.ConfirmPaymentAsync(orderId, "admin");
+        await orders.ConfirmPaymentAsync(orderId, "manager");
         Assert.Empty(await workflow.GetLiveOrdersAsync("admin"));
     }
 
