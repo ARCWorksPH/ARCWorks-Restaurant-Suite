@@ -76,3 +76,17 @@ linked below.
 The next gate is supervised visual and role-based acceptance of the redesigned
 UI. It must not expand the domain scope or reintroduce AI/recipes. Only after
 that acceptance should workflow completion be claimed.
+
+## 2026-08-07 — UI data population and Phase 1 shell correction
+
+- Created a reversible pre-change MariaDB dump under `backups/` before adding
+  demo catalog data.
+- Populated the active test instance with 12 tables, 4 menu categories, 12
+  menu items, and 10 independent inventory items. No orders, attendance
+  history, stock movements, or recipe data were changed.
+- Began Phase 1 UI shell work: removed the desktop horizontal navigation,
+  restored the standard left-side navigation, and made the brand render once
+  per responsive viewport.
+- Responsive phone drawer behavior and the intentional landscape-only KDS
+  gate remain the next UI phases; they are not being claimed complete by this
+  change.

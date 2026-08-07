@@ -72,11 +72,11 @@ main {
     color: var(--roms-danger, #F87171);
 }
 
-.page.horizontal-mode {
+.page.standard-mode {
     flex-direction: column !important;
 }
 
-.page.horizontal-mode main {
+.page.standard-mode main {
     width: 100%;
 }
 
@@ -88,7 +88,7 @@ main {
 }
 
 @media (min-width: 641px) {
-    .page:not(.horizontal-mode) {
+    .page.standard-mode {
         flex-direction: row;
     }
 
@@ -98,6 +98,18 @@ main {
         position: sticky;
         top: 0;
         z-index: 10;
+    }
+
+    .page.standard-mode .top-row .roms-brand-title {
+        display: none;
+    }
+
+    .page.standard-mode .sidebar {
+        display: block;
+    }
+
+    .page.standard-mode .sidebar ::deep .navbar-brand {
+        display: block;
     }
 
     .page.kds-mode .sidebar {
@@ -198,13 +210,14 @@ main {
     display: block;
 }
 
+/* The compact mobile header owns the brand on phones; the desktop rail owns it on larger screens. */
+.page.standard-mode .sidebar ::deep .navbar-brand {
+    display: none;
+}
+
 /* On desktop */
 @media (min-width: 641px) {
     .desktop-nav-only {
         display: flex !important;
-    }
-    /* Only hide mobile-sidebar-only if it's NOT a kitchen page (which always needs sidebar) */
-    .page:not(.kds-mode) .mobile-sidebar-only {
-        display: none !important;
     }
 }
