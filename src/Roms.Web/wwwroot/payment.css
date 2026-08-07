@@ -5,9 +5,20 @@
 
 .payment-ticket {
     background: #fff;
+    color: #1f2937;
     border: 2px solid #8b5cf6;
     border-radius: 14px;
     padding: 1rem;
+}
+
+.payment-ticket h2,
+.payment-ticket strong,
+.payment-ticket span {
+    color: #1f2937;
+}
+
+.payment-ticket small {
+    color: #4b5563;
 }
 
 .payment-ticket header {

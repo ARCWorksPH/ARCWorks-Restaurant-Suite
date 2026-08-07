@@ -88,7 +88,8 @@ main {
 }
 
 @media (min-width: 641px) {
-    .page.standard-mode {
+    .page.standard-mode,
+    .page.kds-mode {
         flex-direction: row !important;
     }
 
@@ -119,31 +120,51 @@ main {
     }
 
     .page.kds-mode .sidebar {
-        width: 72px;
+        width: 250px;
         display: block !important;
         overflow: hidden;
     }
 
-    .page.kds-mode .sidebar ::deep .navbar-brand,
+    .page.kds-mode .sidebar ::deep .navbar-brand {
+        display: block !important;
+    }
+
     .page.kds-mode .sidebar ::deep .nav-user-item {
-        display: none;
+        display: flex;
     }
 
     .page.kds-mode .sidebar ::deep .top-row {
+        padding: 0 1rem !important;
+    }
+
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar {
+        width: 72px;
+    }
+
+    .page.kds-mode .sidebar.kitchen-sidebar-collapsed {
+        width: 72px !important;
+    }
+
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .navbar-brand,
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .nav-user-item {
+        display: none;
+    }
+
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .top-row {
         padding: 0 !important;
     }
 
-    .page.kds-mode .sidebar ::deep .container-fluid {
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .container-fluid {
         justify-content: center;
         padding: 0;
     }
 
-    .page.kds-mode .sidebar ::deep .nav-item {
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .nav-item {
         padding-left: 0 !important;
         padding-right: 0 !important;
     }
 
-    .page.kds-mode .sidebar ::deep .nav-link {
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .nav-link {
         justify-content: center;
         gap: 0;
         width: 48px;
@@ -152,7 +173,7 @@ main {
         padding-right: 0 !important;
     }
 
-    .page.kds-mode .sidebar ::deep .nav-text {
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .nav-text {
         position: absolute;
         width: 1px;
         height: 1px;
@@ -169,6 +190,10 @@ main {
         width: 100% !important;
         padding-left: 1.5rem !important;
         padding-right: 1.5rem !important;
+    }
+
+    .kitchen-sidebar-toggle {
+        white-space: nowrap;
     }
 
     .top-row {

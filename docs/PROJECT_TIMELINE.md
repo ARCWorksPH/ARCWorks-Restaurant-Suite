@@ -98,3 +98,20 @@ that acceptance should workflow completion be claimed.
   below a full-width sidebar.
 - Verified one visible desktop brand, no unintended horizontal overflow, and
   the responsive shell through the Playwright smoke suite.
+
+## 2026-08-07 — Kitchen display and staff-access corrective pass
+
+- Fixed the desktop KDS shell so the Kitchen Display renders beside the
+  navigation rail rather than below it. The rail now stays expanded by
+  default; the top-bar **Minimize panel / Expand panel** control makes
+  compaction explicit and reversible.
+- Corrected pending-payment ticket contrast by using dark text on the light
+  invoice surface, including headings, amounts, and timestamps.
+- Added Admin **Remove access** / **Restore access** actions. Removal is a
+  soft deactivation (`IsActive = false`), so the Identity row and all order,
+  attendance, and audit references remain available for historical records;
+  inactive users are rejected by the existing login gate.
+- Rebuilt the app container and ran the Playwright smoke suite: **3/3 passed**
+  (including expanded KDS navigation, explicit collapse/restore, and the
+  existing workflow smoke coverage). The solution build completed with **0
+  warnings, 0 errors**.

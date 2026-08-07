@@ -136,17 +136,14 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Expect(sidebar).ToBeVisibleAsync();
             var sidebarBox = await sidebar.BoundingBoxAsync();
             Assert.That(sidebarBox, Is.Not.Null);
-            Assert.That(sidebarBox!.Width, Is.InRange(70, 74));
+            Assert.That(sidebarBox!.Width, Is.InRange(248, 252));
+            await Expect(sidebar.Locator(".nav-text").First).ToBeVisibleAsync();
 
-            var compactLabel = sidebar.Locator(".nav-text").First;
-            await Expect(compactLabel).ToBeAttachedAsync();
-            var compactLabelBox = await compactLabel.BoundingBoxAsync();
-            Assert.That(compactLabelBox, Is.Not.Null);
-            Assert.Multiple(() =>
-            {
-                Assert.That(compactLabelBox!.Width, Is.LessThanOrEqualTo(1));
-                Assert.That(compactLabelBox.Height, Is.LessThanOrEqualTo(1));
-            });
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Minimize kitchen navigation panel" }).ClickAsync();
+            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Expand kitchen navigation panel" })).ToBeVisibleAsync();
+            var collapsedSidebarBox = await sidebar.BoundingBoxAsync();
+            Assert.That(collapsedSidebarBox, Is.Not.Null);
+            Assert.That(collapsedSidebarBox!.Width, Is.InRange(70, 74));
 
             await Page.GotoAsync($"{baseAddress}/tables");
             await Page.GetByRole(AriaRole.Button, new()
