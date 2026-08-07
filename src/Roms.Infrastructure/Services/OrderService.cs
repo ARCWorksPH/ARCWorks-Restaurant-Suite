@@ -220,10 +220,11 @@ public sealed class OrderService(
 
                 if (next == OrderStatus.Preparing)
                 {
-                    var itemIds = order.Items.Where(x => !x.IsRemoved).Select(x => x.MenuItemId).Distinct().ToList();
-                    var preparationMinutes = await db.MenuItems.AsNoTracking()
+                    var itemIds = order.Items.Where(x => !x.IsRemoved).Select(x => x.MenuItemId).Distinct().ToHashSet();
+                    var menuItems = await db.MenuItems.AsNoTracking().ToListAsync(ct);
+                    var preparationMinutes = menuItems
                         .Where(x => itemIds.Contains(x.Id))
-                        .ToDictionaryAsync(x => x.Id, x => x.PreparationMinutes, ct);
+                        .ToDictionary(x => x.Id, x => x.PreparationMinutes);
                     if (preparationMinutes.Count != itemIds.Count)
                         throw new DomainException("One or more ordered menu items no longer has a preparation target.");
                     var target = order.Items.Where(x => !x.IsRemoved)
@@ -274,7 +275,7 @@ public sealed class OrderService(
 
     private async Task<WorkflowSettings> GetOrCreateWorkflowSettingsAsync(RomsDbContext db, CancellationToken ct)
     {
-        var settings = await db.WorkflowSettings.SingleOrDefaultAsync(ct);
+        var settings = await db.WorkflowSettings.FirstOrDefaultAsync(ct);
         if (settings is not null) return settings;
         settings = new WorkflowSettings();
         db.WorkflowSettings.Add(settings);

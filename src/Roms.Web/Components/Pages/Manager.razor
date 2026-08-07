@@ -1,0 +1,271 @@
+@page "/manager"
+@attribute [Authorize(Policy = "ManagerOrAdmin")]
+@inject IWorkflowService Workflow
+@inject IInventoryService Inventory
+@inject IAttendanceService Attendance
+@inject AuthenticationStateProvider Authentication
+@inject NavigationManager Navigation
+
+<PageTitle>Manager Dashboard</PageTitle>
+
+<div class="page-heading glass-card mb-4">
+    <div>
+        <h1>Manager Operations Dashboard</h1>
+        <p>Live operational oversight, staff schedule reviews, inventory balances, and workflow configurations.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger mb-4">@error</div>
+}
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success mb-4">@successMessage</div>
+}
+
+<div class="metric-grid mb-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+    <div class="metric-card glass-card p-3">
+        <span class="small text-muted">Active Table Orders</span>
+        <h2 class="font-weight-bold mt-2 text-primary">@liveOrders.Count</h2>
+    </div>
+    <div class="metric-card glass-card p-3">
+        <span class="small text-muted">New (Submitted)</span>
+        <h2 class="font-weight-bold mt-2 text-warning">@liveOrders.Count(x => x.Status == OrderStatus.New)</h2>
+    </div>
+    <div class="metric-card glass-card p-3">
+        <span class="small text-muted">Preparing in Kitchen</span>
+        <h2 class="font-weight-bold mt-2 text-info">@liveOrders.Count(x => x.Status == OrderStatus.Preparing)</h2>
+    </div>
+    <div class="metric-card glass-card p-3">
+        <span class="small text-muted">Ready to Serve</span>
+        <h2 class="font-weight-bold mt-2 text-success">@liveOrders.Count(x => x.Status == OrderStatus.Ready)</h2>
+    </div>
+</div>
+
+<div class="manager-layout-grid d-flex flex-column gap-4">
+    <!-- Live Orders and Workload -->
+    <section class="glass-card p-3">
+        <h2>Live Shifts Operations & Workload</h2>
+        @if (liveOrders.Count == 0)
+        {
+            <div class="empty-state text-center py-4 text-muted">No active orders in operation currently.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Table</th>
+                            <th>Status</th>
+                            <th>Assigned Waiter</th>
+                            <th>Extensions</th>
+                            <th>Active Deadlines / Due Timestamps</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var order in liveOrders)
+                        {
+                            var statusClass = order.Status.ToString().ToLowerInvariant();
+                            <tr>
+                                <td><strong>Table @order.TableNumber</strong></td>
+                                <td><span class="status-badge status-@statusClass">@order.Status</span></td>
+                                <td>@order.WaiterId</td>
+                                <td><span class="badge bg-secondary">@order.ExtensionCount request(s)</span></td>
+                                <td class="font-monospace text-warning">
+                                    @if (order.Status == OrderStatus.Draft && order.OrderEntryDueUtc is not null)
+                                    {
+                                        <span>Draft Entry Due: @order.OrderEntryDueUtc.Value.ToLocalTime().ToString("t")</span>
+                                    }
+                                    else if (order.Status == OrderStatus.New && order.KitchenAcceptanceDueUtc is not null)
+                                    {
+                                        <span>Kitchen Acceptance Due: @order.KitchenAcceptanceDueUtc.Value.ToLocalTime().ToString("t")</span>
+                                    }
+                                    else if (order.Status == OrderStatus.Preparing && order.PreparationTargetDueUtc is not null)
+                                    {
+                                        <span>Preparation Target Due: @order.PreparationTargetDueUtc.Value.ToLocalTime().ToString("t")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">None</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    <div class="row">
+        <!-- Settings Timer Configurations -->
+        <div class="col-md-6 mb-4">
+            <section class="glass-card p-3 h-100">
+                <h2>Workflow Configurations</h2>
+                <p class="text-muted small">Update standard timing limits for the ordering cycle. These configurations apply to future drafts/tickets.</p>
+                
+                @if (settings is null)
+                {
+                    <p>Loading timer settings...</p>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <label class="form-label">Standard Waiter Order-Entry (Minutes: @orderEntryMinutes)</label>
+                        <input type="range" class="form-range" min="1" max="60" @bind="orderEntryMinutes" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Standard Kitchen Acceptance (Minutes: @kitchenAcceptanceMinutes)</label>
+                        <input type="range" class="form-range" min="1" max="30" @bind="kitchenAcceptanceMinutes" />
+                    </div>
+                    <button class="btn btn-primary touch-button w-100 mt-2" disabled="@busy" @onclick="UpdateTimerSettings">Save Configurations</button>
+                }
+            </section>
+        </div>
+
+        <!-- Inventory Balance & Low Stock Overview -->
+        <div class="col-md-6 mb-4">
+            <section class="glass-card p-3 h-100">
+                <h2>Inventory Low-Stock Overview</h2>
+                @if (balances is null)
+                {
+                    <p>Loading stock levels...</p>
+                }
+                else if (balances.Count == 0)
+                {
+                    <p class="text-muted small">No inventory items tracked.</p>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush" style="max-height: 250px; overflow-y: auto;">
+                        @foreach (var item in balances)
+                        {
+                            <div class="list-group-item bg-transparent text-white d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>@item.Name</strong>
+                                    <div class="small text-muted">Stock: @item.CurrentStock @item.Unit (Min: @item.MinimumStock)</div>
+                                </div>
+                                @if (item.IsLow)
+                                {
+                                    <span class="status-badge status-cancelled">LOW STOCK</span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-ready">OK</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+        </div>
+    </div>
+
+    <!-- Clocked-in Staff Presence -->
+    <section class="glass-card p-3">
+        <h2>Shift Staff Presence (Read-Only)</h2>
+        <p class="text-muted small">Current-shift attendance roster. All corrections must be authorized and executed via the Administrator panel.</p>
+        
+        @if (attendance is null)
+        {
+            <p>Loading roster...</p>
+        }
+        else if (attendance.Present.Count == 0)
+        {
+            <div class="empty-state text-center py-3 text-muted">No staff members are currently clocked in.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-dark align-middle">
+                    <thead>
+                        <tr>
+                            <th>Staff Member</th>
+                            <th>Role / Title</th>
+                            <th>Clock In Time (Local)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var record in attendance.Present)
+                        {
+                            <tr>
+                                <td><strong>@record.DisplayName</strong> (@record.Username)</td>
+                                <td><span class="badge bg-primary">Active</span></td>
+                                <td>@record.ClockInUtc.ToLocalTime().ToString("g")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+@code {
+    private IReadOnlyList<ManagerLiveOrderView> liveOrders = [];
+    private int orderEntryMinutes;
+    private int kitchenAcceptanceMinutes;
+    private WorkflowSettingsView? settings;
+    private IReadOnlyList<InventoryBalance>? balances;
+    private ManagerOperationalView? attendance;
+    
+    private string actor = "unknown";
+    private string? error;
+    private string? successMessage;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Authentication.GetAuthenticationStateAsync();
+        actor = state.User.Identity?.Name ?? "unknown";
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        busy = true;
+        error = null;
+        try
+        {
+            liveOrders = await Workflow.GetLiveOrdersAsync(actor);
+            settings = await Workflow.GetSettingsAsync();
+            orderEntryMinutes = settings.OrderEntryMinutes;
+            kitchenAcceptanceMinutes = settings.KitchenAcceptanceMinutes;
+            balances = await Inventory.GetBalancesAsync();
+            
+            attendance = await Attendance.GetManagerViewAsync(actor);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task UpdateTimerSettings()
+    {
+        if (settings is null) return;
+        busy = true;
+        error = null;
+        successMessage = null;
+        try
+        {
+            await Workflow.UpdateSettingsAsync(orderEntryMinutes, kitchenAcceptanceMinutes, actor);
+            successMessage = "Timer settings updated successfully.";
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

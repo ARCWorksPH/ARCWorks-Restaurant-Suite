@@ -640,3 +640,183 @@ h3 {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* Glassmorphism surfaces */
+.glass-card {
+    background: rgba(23, 30, 39, 0.65) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(52, 65, 83, 0.45) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Card Glow Accent */
+.card-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.05), transparent 60%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Header line accents based on status */
+.card-header-accent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    z-index: 2;
+}
+
+.status-bg-available { background-color: var(--roms-status-available); }
+.status-bg-occupied { background-color: var(--roms-status-occupied); }
+.status-bg-preparing { background-color: var(--roms-status-preparing); }
+.status-bg-ready { background-color: var(--roms-status-ready); }
+.status-bg-pendingpayment { background-color: var(--roms-status-pending-payment); }
+.status-bg-new { background-color: var(--roms-focus); }
+
+/* Glass Card Status Glow Borders */
+.table-card.status-available { border-color: rgba(45, 212, 191, 0.3) !important; box-shadow: 0 0 12px rgba(45, 212, 191, 0.05); }
+.table-card.status-occupied { border-color: rgba(96, 165, 250, 0.3) !important; box-shadow: 0 0 12px rgba(96, 165, 250, 0.05); }
+.table-card.status-preparing { border-color: rgba(245, 158, 11, 0.3) !important; box-shadow: 0 0 12px rgba(245, 158, 11, 0.05); }
+.table-card.status-ready, .table-card.status-readytoserve { border-color: rgba(74, 222, 128, 0.3) !important; box-shadow: 0 0 12px rgba(74, 222, 128, 0.05); }
+.table-card.status-pendingpayment { border-color: rgba(167, 139, 250, 0.3) !important; box-shadow: 0 0 12px rgba(167, 139, 250, 0.05); }
+
+/* Table Filters Bar styling */
+.tables-filter-bar {
+    background-color: var(--roms-surface);
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--roms-border);
+}
+
+.filter-tab {
+    background: transparent;
+    border: 1px solid var(--roms-border);
+    color: var(--roms-text-muted);
+    padding: 0.4rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 150ms ease-in-out;
+}
+
+.filter-tab.active, .filter-tab:hover:not(:disabled) {
+    background: var(--roms-surface-soft);
+    color: var(--roms-text);
+    border-color: var(--roms-border-strong);
+}
+
+.filter-tab:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Three Pane Layout for Order Editor */
+.order-layout-three-pane {
+    display: grid;
+    grid-template-columns: 220px 1fr 380px;
+    gap: 1.25rem;
+}
+
+@media (max-width: 1100px) {
+    .order-layout-three-pane {
+        grid-template-columns: 180px 1fr 300px;
+    }
+}
+
+@media (max-width: 900px) {
+    .order-layout-three-pane {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Category Sidebar Links styling */
+.category-sidebar .category-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--roms-text-muted);
+    font-weight: 600;
+    transition: all 150ms ease-in-out;
+}
+
+.category-sidebar .category-btn.active, .category-sidebar .category-btn:hover {
+    background: var(--roms-surface-soft) !important;
+    border-color: var(--roms-border) !important;
+    color: var(--roms-text) !important;
+}
+
+/* Menu Item Grid Card styling */
+.menu-catalog .menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.menu-card-image-box {
+    height: 120px;
+    background: rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--roms-border);
+    position: relative;
+}
+
+.menu-card-image-box svg.fallback-svg {
+    opacity: 0.25;
+    transition: opacity 150ms ease-in-out;
+}
+
+.menu-card:hover .menu-card-image-box svg.fallback-svg {
+    opacity: 0.5;
+}
+
+/* Timer styles */
+.timer-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.bg-danger-soft {
+    background-color: rgba(248, 113, 113, 0.1) !important;
+}
+
+.bg-success-soft {
+    background-color: rgba(74, 222, 128, 0.1) !important;
+}
+
+/* KDS Columns and Ticket details styling */
+.kds-ticket {
+    display: flex;
+    flex-direction: column;
+    min-height: 380px;
+    border: 1px solid var(--roms-border);
+    transition: box-shadow 150ms ease-in-out;
+}
+
+.kds-ticket.status-new { border-color: rgba(96, 165, 250, 0.4) !important; box-shadow: 0 0 16px rgba(96, 165, 250, 0.05); }
+.kds-ticket.status-preparing { border-color: rgba(245, 158, 11, 0.4) !important; box-shadow: 0 0 16px rgba(245, 158, 11, 0.05); }
+.kds-ticket.status-ready { border-color: rgba(74, 222, 128, 0.4) !important; box-shadow: 0 0 16px rgba(74, 222, 128, 0.05); }
+
+.kds-ticket-header {
+    border-bottom: 1px solid var(--roms-border);
+}
+
+.text-muted-light {
+    color: rgba(244, 247, 253, 0.6) !important;
+}
+
+/* Stock tabs for Inventory Bento view */
+.stock-tabs button {
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}

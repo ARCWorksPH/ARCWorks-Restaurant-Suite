@@ -58,9 +58,21 @@ linked below.
   document paths, Manager query boundaries, uniform missing-image fallbacks,
   and server-snapshotted preparation targets.
 
+## 2026-08-07 — UI corrective pass: availability and Manager read model
+
+- Enforced the availability role matrix in the application service: Kitchen
+  may apply `86` (mark unavailable) only; Manager and Admin may apply `68`
+  (restore) as well as `86`. The server remains authoritative even if a UI
+  control is bypassed.
+- Replaced the Manager attendance payload that reused the Admin three-day
+  view with a dedicated, read-only `ManagerOperationalView` containing only
+  currently clocked-in active staff. Historical attendance, schedules, and
+  administrative corrections remain Admin-only.
+- Added targeted authorization and role-matrix coverage. Build and targeted
+  Manager tests pass; full browser/visual acceptance remains a user test gate.
+
 ## Current decision
 
-The next implementation focus is the UI redesign. It must not expand the
-domain scope or reintroduce AI/recipes. After the UI is implemented, run the
-full role-based browser/visual acceptance and only then claim workflow
-acceptance.
+The next gate is supervised visual and role-based acceptance of the redesigned
+UI. It must not expand the domain scope or reintroduce AI/recipes. Only after
+that acceptance should workflow completion be claimed.

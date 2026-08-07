@@ -1,282 +1,428 @@
 @page "/inventory"
-@attribute [Authorize(Policy = "KitchenOrAdmin")]
+@attribute [Authorize(Policy = "KitchenManagerOrAdmin")]
 @inject IInventoryService InventoryService
+@inject ICatalogService CatalogService
 @inject AuthenticationStateProvider Authentication
 
-<PageTitle>Inventory</PageTitle><h1>Inventory</h1>
-@if (!string.IsNullOrWhiteSpace(message)) { <div class="alert @(failed ? "alert-danger" : "alert-success")">@message</div> }
+<PageTitle>Inventory</PageTitle>
+<h1>Inventory</h1>
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="alert @(failed ? "alert-danger" : "alert-success") mb-4">@message</div>
+}
+
 @if (isAdmin && readiness is not null)
 {
-    <section class="panel mb-4" aria-labelledby="inventory-readiness-heading">
+    <section class="panel mb-4 glass-card" aria-labelledby="inventory-readiness-heading">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
             <div>
                 <h2 id="inventory-readiness-heading">Inventory readiness</h2>
-                <p class="mb-1">Technical evidence for the external audit. This checklist does not replace the required human approvals.</p>
-                <small>Evaluated @readiness.EvaluatedUtc.ToLocalTime().ToString("g")</small>
+                <p class="mb-1 text-muted">Technical checks checklist for the external auditor.</p>
+                <small class="text-muted">Last evaluated @readiness.EvaluatedUtc.ToLocalTime().ToString("g")</small>
             </div>
-            <span class="status-pill @(readiness.TechnicalChecksPassed ? "status-approved" : "status-rejected")">
+            <span class="status-badge @(readiness.TechnicalChecksPassed ? "status-ready" : "status-cancelled")">
                 @(readiness.TechnicalChecksPassed ? "Technical checks passed" : $"{readiness.BlockingIssueCount} blocker(s)")
             </span>
         </div>
-        <div class="admin-list mt-3">
+        <div class="mt-3 list-group list-group-flush">
             @foreach (var check in readiness.Checks)
             {
-                <div>
-                    <span>
+                <div class="list-group-item bg-transparent text-white d-flex justify-content-between align-items-center px-0">
+                    <div>
                         <strong>@check.Code · @check.Name</strong>
-                        <small>@check.Evidence</small>
-                    </span>
-                    <span class="status-pill @ReadinessClass(check.Status)">@ReadinessLabel(check.Status)</span>
+                        <div class="small text-muted">@check.Evidence</div>
+                    </div>
+                    <span class="status-badge @ReadinessClass(check.Status)">@ReadinessLabel(check.Status)</span>
                 </div>
             }
         </div>
-        <p class="mt-3 mb-0"><strong>Guardrail:</strong> production use remains supervised until audit acceptance, backup verification, and pilot approval.</p>
+        <p class="mt-3 mb-0 text-muted small"><strong>Notice:</strong> Production database is supervised until final pilot audit approvals are confirmed.</p>
     </section>
 }
+
 @if (isAdmin)
 {
-<div class="admin-grid">
-    <section class="panel">
-        <h2>Add inventory item</h2>
-        <div class="user-form">
-            <input class="form-control" placeholder="Name" @bind="newItemName" @bind:event="oninput" />
-            <select class="form-select" @bind="newItemUnit">
-                <option value="piece">piece</option>
-                <option value="g">g</option>
-                <option value="ml">ml</option>
-            </select>
-            <input class="form-control" type="number" min="0" step="0.001" placeholder="Minimum stock" @bind="newMinimumStock" />
-            <button class="btn btn-primary touch-button" @onclick="SaveItem">Add item</button>
-        </div>
-    </section>
-    <section class="panel">
-        <h2>Receive stock</h2>
-        <p>Record a delivery as a positive receipt with its delivery or invoice reference.</p>
-        @if (HasActiveInventoryItems)
-        {
-            <div class="user-form">
-                <select class="form-select" aria-label="Received inventory item" @bind="receiveItemId">
-                    @foreach (var item in items.Where(x => x.IsActive))
-                    {
-                        <option value="@item.Id">@item.Name (@item.Unit)</option>
-                    }
-                </select>
-                <input class="form-control" type="number" min="0.001" step="0.001"
-                       placeholder="Received quantity" @bind="receivedQuantity" />
-                <input class="form-control" maxlength="120" placeholder="Delivery or invoice reference (required)"
-                       @bind="deliveryReference" @bind:event="oninput" />
-                <input class="form-control" maxlength="350" placeholder="Delivery note (optional)"
-                       @bind="deliveryNote" @bind:event="oninput" />
-                <button class="btn btn-primary touch-button"
-                        disabled="@(busy || receiveItemId == Guid.Empty)"
-                        @onclick="Receive">Post receipt</button>
+    <!-- Bento Grid Container -->
+    <div class="bento-grid mb-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.25rem;">
+
+        <!-- Add inventory item -->
+        <section class="panel glass-card p-3 d-flex flex-column">
+            <h2>Add inventory item</h2>
+            <p class="text-muted small mb-2">Configure raw items. Supplier cost and barcode mapping are currently disabled.</p>
+            <div class="user-form mt-auto">
+                <div class="mb-3">
+                    <label class="form-label">Item Name</label>
+                    <input class="form-control" placeholder="Name" @bind="newItemName" @bind:event="oninput" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Unit of Measure</label>
+                    <select class="form-select" @bind="newItemUnit">
+                        <option value="piece">piece</option>
+                        <option value="g">g</option>
+                        <option value="ml">ml</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Minimum Safety Stock</label>
+                    <input class="form-control" type="number" min="0" step="0.001" placeholder="Minimum stock" @bind="newMinimumStock" />
+                </div>
+                <button class="btn btn-primary touch-button w-100" disabled="@(busy || string.IsNullOrWhiteSpace(newItemName))" @onclick="SaveItem">Add item</button>
             </div>
-        }
-        else
-        {
-            <div class="empty-state py-3">No active inventory items are available for receiving.</div>
-        }
-    </section>
-    <section class="panel">
-        <h2>Physical count reconciliation</h2>
-        <p>Enter the witnessed quantity on hand. @ProductBrand.Name records the count even when the variance is zero and posts only the required correction.</p>
-        @if (HasActiveInventoryItems)
-        {
-            <div class="user-form">
-                <select class="form-select" aria-label="Counted inventory item" @bind="countItemId">
-                    @foreach (var item in items.Where(x => x.IsActive))
+        </section>
+
+        <!-- Receive stock -->
+        <section class="panel glass-card p-3 d-flex flex-column">
+            <h2>Receive stock</h2>
+            <p class="text-muted small mb-2">Record a delivery as a positive receipt with its delivery or reference.</p>
+            @if (HasActiveInventoryItems)
+            {
+                <div class="user-form mt-auto">
+                    <div class="mb-2">
+                        <label class="form-label small">Select Item</label>
+                        <select class="form-select" aria-label="Received inventory item" @bind="receiveItemId">
+                            @foreach (var item in items.Where(x => x.IsActive))
+                            {
+                                <option value="@item.Id">@item.Name (@item.Unit)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Received Quantity</label>
+                        <input class="form-control" type="number" min="0.001" step="0.001" placeholder="Received quantity" @bind="receivedQuantity" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Delivery or Invoice Ref (Required)</label>
+                        <input class="form-control" maxlength="120" placeholder="Delivery or invoice reference (required)" @bind="deliveryReference" @bind:event="oninput" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Notes (Optional)</label>
+                        <input class="form-control" maxlength="350" placeholder="Delivery note (optional)" @bind="deliveryNote" @bind:event="oninput" />
+                    </div>
+                    <button class="btn btn-primary touch-button w-100 mt-2" disabled="@(busy || receiveItemId == Guid.Empty || string.IsNullOrWhiteSpace(deliveryReference))" @onclick="Receive">Post receipt</button>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state my-auto">No items configured.</div>
+            }
+        </section>
+
+        <!-- Physical count reconciliation -->
+        <section class="panel glass-card p-3 d-flex flex-column">
+            <h2>Physical count reconciliation</h2>
+            <p class="text-muted small mb-2">Record a physical witness count reconciliation.</p>
+            @if (HasActiveInventoryItems)
+            {
+                <div class="user-form mt-auto">
+                    <div class="mb-2">
+                        <label class="form-label small">Select Item</label>
+                        <select class="form-select" aria-label="Counted inventory item" @bind="countItemId">
+                            @foreach (var item in items.Where(x => x.IsActive))
+                            {
+                                <option value="@item.Id">@item.Name (@item.Unit)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Witness Count Quantity</label>
+                        <input class="form-control" type="number" min="0" step="0.001" placeholder="Physical quantity counted" @bind="countedQuantity" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Count Reason / Sheet Ref (Required)</label>
+                        <input class="form-control" placeholder="Count reason or count-sheet reference (required)" @bind="countReason" @bind:event="oninput" />
+                    </div>
+                    <button class="btn btn-success touch-button w-100 mt-3" disabled="@(busy || countItemId == Guid.Empty || string.IsNullOrWhiteSpace(countReason))" @onclick="ReconcileCount">Reconcile count</button>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state my-auto">No items configured.</div>
+            }
+        </section>
+
+        <!-- Stock adjustment -->
+        <section class="panel glass-card p-3 d-flex flex-column">
+            <h2>Stock adjustment</h2>
+            <p class="text-muted small mb-2">Execute manual adjustments to current balances.</p>
+            @if (HasActiveInventoryItems)
+            {
+                <div class="user-form mt-auto">
+                    <div class="mb-2">
+                        <label class="form-label small">Select Item</label>
+                        <select class="form-select" aria-label="Adjusted inventory item" @bind="adjustItemId">
+                            @foreach (var item in items.Where(x => x.IsActive))
+                            {
+                                <option value="@item.Id">@item.Name (@item.Unit)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Adjustment Delta</label>
+                        <input class="form-control" type="number" step="0.001" placeholder="Quantity Delta" @bind="adjustment" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Adjustment Reason (Required)</label>
+                        <input class="form-control" placeholder="Adjustment reason" @bind="adjustmentReason" @bind:event="oninput" />
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="allowNegativeAdjustment" @bind="allowNegativeAdjustment" />
+                        <label class="form-check-label text-muted small" for="allowNegativeAdjustment">Allow negative balance override</label>
+                    </div>
+                    @if (allowNegativeAdjustment)
                     {
-                        <option value="@item.Id">@item.Name (@item.Unit)</option>
+                        <div class="mb-2">
+                            <label class="form-label small text-warning">Negative Balance Reason (Required)</label>
+                            <input class="form-control" placeholder="Reason for negative stock override" @bind="adjustmentOverrideReason" @bind:event="oninput" />
+                        </div>
                     }
-                </select>
-                <input class="form-control" type="number" min="0" step="0.001"
-                       placeholder="Physical quantity counted" @bind="countedQuantity" />
-                <input class="form-control" maxlength="500" placeholder="Count reason or count-sheet reference (required)"
-                       @bind="countReason" @bind:event="oninput" />
-                <button class="btn btn-success touch-button"
-                        disabled="@(busy || countItemId == Guid.Empty)"
-                        @onclick="ReconcileCount">Reconcile count</button>
-            </div>
-        }
-        else
-        {
-            <div class="empty-state py-3">No active inventory items are available for physical counting.</div>
-        }
-    </section>
-    <section class="panel">
-        <h2>Stock adjustment</h2>
-        <p>Advanced correction only. Use receiving and physical count reconciliation for normal operations.</p>
-        @if (HasActiveInventoryItems)
-        {
-            <div class="user-form">
-                <select class="form-select" @bind="adjustItemId">
-                    @foreach (var item in items.Where(x => x.IsActive))
-                    {
-                        <option value="@item.Id">@item.Name</option>
-                    }
-                </select>
-                <input class="form-control" type="number" step="0.001" placeholder="Quantity + or -" @bind="adjustment" />
-                <input class="form-control" placeholder="Reason (required)" @bind="adjustmentReason" />
-                <label class="form-check">
-                    <input class="form-check-input" type="checkbox" @bind="allowNegativeAdjustment" />
-                    <span class="form-check-label">Manager override if this would make stock negative</span>
-                </label>
-                @if (allowNegativeAdjustment)
+                    <button class="btn btn-primary touch-button w-100 mt-2" disabled="@(busy || adjustItemId == Guid.Empty || string.IsNullOrWhiteSpace(adjustmentReason) || (allowNegativeAdjustment && string.IsNullOrWhiteSpace(adjustmentOverrideReason)))" @onclick="Adjust">Post adjustment</button>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state my-auto">No items configured.</div>
+            }
+        </section>
+
+
+
+        <!-- Bottom-Right: Current Balances -->
+        <section class="panel glass-card p-3 d-flex flex-column">
+            <h2>Current balances</h2>
+            <div class="table-responsive mt-3" style="max-height: 380px; overflow-y: auto;">
+                @if (balances.Count == 0)
                 {
-                    <input class="form-control" placeholder="Manager override reason (required)" @bind="adjustmentOverrideReason" />
+                    <div class="empty-state text-center py-5 text-muted">No items configured. Add items to see stock levels.</div>
                 }
-                <button class="btn btn-primary touch-button" disabled="@(busy || adjustItemId == Guid.Empty)" @onclick="Adjust">Post adjustment</button>
+                else
+                {
+                    <table class="table table-dark table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th class="text-end">Current Stock</th>
+                                <th class="text-end">Minimum</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in balances)
+                            {
+                                <tr class="@(item.IsLow ? "low-stock" : "")">
+                                    <td><strong>@item.Name</strong> <small class="text-muted">(@item.Unit)</small></td>
+                                    <td class="text-end font-monospace">@item.CurrentStock.ToString("N3") @item.Unit</td>
+                                    <td class="text-end font-monospace text-muted">@item.MinimumStock.ToString("N3")</td>
+                                    <td class="text-center">
+                                        @if (item.IsLow)
+                                        {
+                                            <span class="status-badge status-cancelled">LOW STOCK</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge status-ready">OK</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
             </div>
-        }
-        else
-        {
-            <div class="empty-state py-3">No active inventory items are available. Activate or add an inventory item before posting adjustments.</div>
-        }
-    </section>
-</div>
+        </section>
+    </div>
+
+
+
+    <div class="row">
+        <!-- Physical Count History -->
+        <div class="col-md-6 mb-4">
+            <section class="glass-card p-3 h-100">
+                <h2>Recent physical counts logs</h2>
+                @if (counts.Count == 0)
+                {
+                    <p class="text-muted small">No physical counts logged.</p>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush" style="max-height: 250px; overflow-y: auto;">
+                        @foreach (var count in counts)
+                        {
+                            <div class="list-group-item bg-transparent text-white px-0 py-2 border-secondary">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>@count.InventoryItemName: @count.CountedQuantity.ToString("N3") @count.Unit counted</strong>
+                                        <div class="small text-muted">Ledger: @count.LedgerQuantity.ToString("N3") · Counted: @count.CountedQuantity.ToString("N3")</div>
+                                        <div class="small text-warning">Variance: @Signed(count.Variance) · @count.Reason</div>
+                                    </div>
+                                    <div class="text-end small text-muted">
+                                        <div>@count.CountedBy</div>
+                                        <div>@count.CountedUtc.ToLocalTime().ToString("t")</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+        </div>
+
+        <!-- Recent Activity Feed -->
+        <div class="col-md-6 mb-4">
+            <section class="glass-card p-3 h-100">
+                <h2>Recent stock activity feed</h2>
+                @if (movements.Count == 0)
+                {
+                    <p class="text-muted small">No movements tracked.</p>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush" style="max-height: 250px; overflow-y: auto;">
+                        @foreach (var movement in movements)
+                        {
+                            <div class="list-group-item bg-transparent text-white px-0 py-2 border-secondary">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>@movement.Type: @Signed(movement.QuantityDelta) @movement.Unit @movement.InventoryItemName</strong>
+                                        <div class="small text-muted">Reason: @movement.Reason</div>
+                                    </div>
+                                    <div class="text-end small text-muted">
+                                        <div>@movement.ActorId</div>
+                                        <div>@movement.OccurredUtc.ToLocalTime().ToString("t")</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+        </div>
+    </div>
 }
-<section class="panel mt-4">
-    <h2>Report waste or spoilage</h2>
-    <p>Reports remain pending and do not change stock until an administrator approves them.</p>
-    @if (HasActiveInventoryItems)
-    {
-        <div class="user-form">
-            <select class="form-select" aria-label="Loss inventory item" @bind="lossItemId">
-                @foreach (var item in items.Where(x => x.IsActive))
-                {
-                    <option value="@item.Id">@item.Name (@item.Unit)</option>
-                }
-            </select>
-            <select class="form-select" aria-label="Loss type" @bind="lossType">
-                <option value="@InventoryLossType.Waste">Waste</option>
-                <option value="@InventoryLossType.Spoilage">Spoilage</option>
-            </select>
-            <input class="form-control" type="number" min="0.001" step="0.001" placeholder="Quantity" @bind="lossQuantity" />
-            <input class="form-control" placeholder="What happened? (required)" @bind="lossReason" @bind:event="oninput" />
-            <button class="btn btn-warning touch-button" disabled="@(lossItemId == Guid.Empty)" @onclick="ReportLoss">Submit for approval</button>
-        </div>
-    }
-    else
-    {
-        <div class="empty-state py-3">No active inventory items are available for loss reporting.</div>
-    }
-</section>
-<section class="panel mt-4">
-    <h2>Waste and spoilage approvals</h2>
-    @if (lossRequests.Count == 0)
-    {
-        <div class="empty-state">No loss reports have been submitted.</div>
-    }
-    else
-    {
-        <div class="admin-list">
-            @foreach (var request in lossRequests)
+else
+{
+    <!-- Kitchen User view of Balances only -->
+    <section class="glass-card p-4">
+        <h2>Current Inventory Balances</h2>
+        <div class="table-responsive mt-3">
+            @if (balances.Count == 0)
             {
-                <div>
-                    <span>
-                        <strong>@request.Type: @request.Quantity.ToString("N3") @request.Unit @request.InventoryItemName</strong>
-                        <small>@request.Reason · reported by @request.ReportedBy · @request.ReportedUtc.ToLocalTime().ToString("g")</small>
-                    </span>
-                    <span class="status-pill status-@request.Status.ToString().ToLowerInvariant()">@request.Status</span>
-                    @if (isAdmin && request.Status == InventoryLossStatus.Pending)
+                <p class="text-muted">No items configured.</p>
+            }
+            else
+            {
+                <table class="table table-dark table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th class="text-end">Current Stock</th>
+                            <th class="text-end">Minimum</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in balances)
+                        {
+                            <tr>
+                                <td><strong>@item.Name</strong> <small class="text-muted">(@item.Unit)</small></td>
+                                <td class="text-end font-monospace">@item.CurrentStock.ToString("N3") @item.Unit</td>
+                                <td class="text-end font-monospace text-muted">@item.MinimumStock.ToString("N3")</td>
+                                <td class="text-center">
+                                    @if (item.IsLow)
+                                    {
+                                        <span class="status-badge status-cancelled">LOW STOCK</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-ready">OK</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </section>
+}
+
+<!-- Menu Item Availability (86 / 68) — visible to Admin, Kitchen, and Manager -->
+<section class="glass-card p-4 mb-4">
+    <h2>Menu Item Availability (86 / 68)</h2>
+    <p class="text-muted small mb-3">Toggle operational availability of menu items. This action does not alter inventory stock levels.</p>
+    @if (categories.Count == 0)
+    {
+        <div class="empty-state text-center py-3 text-muted">No menu items configured.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Menu Item</th>
+                        <th>Category</th>
+                        <th>Prep Time</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var category in categories)
                     {
-                        <input class="form-control" placeholder="Review note (required to reject)"
-                               value="@ReviewReason(request.Id)"
-                               @oninput="eventArgs => SetReviewReason(request.Id, eventArgs.Value?.ToString())" />
-                        <button class="btn btn-success" @onclick="() => ReviewLoss(request.Id, true)">Approve</button>
-                        <button class="btn btn-outline-danger" @onclick="() => ReviewLoss(request.Id, false)">Reject</button>
+                        @foreach (var item in category.Items.Where(x => x.IsActive).OrderBy(x => x.Name))
+                        {
+                            <tr>
+                                <td><strong>@item.Name</strong></td>
+                                <td>@category.Name</td>
+                                <td>@item.PreparationMinutes mins</td>
+                                <td class="text-center">
+                                    @if (item.IsAvailable)
+                                    {
+                                        <span class="status-badge status-ready">Available</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-cancelled">86ed (Unavailable)</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (item.IsAvailable || canRestoreAvailability)
+                                    {
+                                        <button class="btn btn-sm btn-outline-warning" disabled="@busy" @onclick="() => ToggleAvailable(item)">
+                                            @(item.IsAvailable ? "86 Item" : "Restore (68)")
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="small text-muted" title="Only Manager or Admin can restore an 86ed item">Restore (68) · Manager/Admin</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
                     }
-                    else if (request.Status != InventoryLossStatus.Pending)
-                    {
-                        <small>Reviewed by @request.ReviewedBy@if (!string.IsNullOrWhiteSpace(request.ReviewReason)) { <text>: @request.ReviewReason</text> }</small>
-                    }
-                </div>
-            }
-        </div>
-    }
-</section>
-<section class="panel mt-4">
-    <h2>Current balances</h2>
-    @if (balances.Count == 0)
-    {
-        <div class="empty-state">No inventory items have been configured.</div>
-    }
-    else
-    {
-        <div class="admin-list">
-            @foreach (var item in balances)
-            {
-                <div class="@(item.IsLow ? "low-stock" : "")">
-                    <span>@item.Name</span>
-                    <strong>@item.CurrentStock.ToString("N3") @item.Unit @if (item.IsLow) { <em>Low stock</em> }</strong>
-                </div>
-            }
-        </div>
-    }
-</section>
-<section class="panel mt-4">
-    <h2>Recent physical counts</h2>
-    @if (counts.Count == 0)
-    {
-        <div class="empty-state">No physical counts have been recorded.</div>
-    }
-    else
-    {
-        <div class="admin-list">
-            @foreach (var count in counts)
-            {
-                <div>
-                    <span>
-                        <strong>@count.InventoryItemName: @count.CountedQuantity.ToString("N3") @count.Unit counted</strong>
-                        <small>Ledger @count.LedgerQuantity.ToString("N3") · variance @Signed(count.Variance) · @count.Reason</small>
-                    </span>
-                    <small>@count.CountedBy · @count.CountedUtc.ToLocalTime().ToString("g")</small>
-                </div>
-            }
-        </div>
-    }
-</section>
-<section class="panel mt-4">
-    <h2>Recent stock activity</h2>
-    @if (movements.Count == 0)
-    {
-        <div class="empty-state">No stock movements have been recorded.</div>
-    }
-    else
-    {
-        <div class="admin-list">
-            @foreach (var movement in movements)
-            {
-                <div>
-                    <span>
-                        <strong>@movement.Type: @Signed(movement.QuantityDelta) @movement.Unit @movement.InventoryItemName</strong>
-                        <small>@movement.Reason</small>
-                    </span>
-                    <small>@movement.ActorId · @movement.OccurredUtc.ToLocalTime().ToString("g")</small>
-                </div>
-            }
+                </tbody>
+            </table>
         </div>
     }
 </section>
 
 @code {
-    private bool failed, isAdmin, allowNegativeAdjustment, busy;
+    private bool failed, isAdmin, isManager, canRestoreAvailability, allowNegativeAdjustment, busy;
     private string actor = "unknown", adjustmentReason = "", adjustmentOverrideReason = "";
     private string newItemName = "", newItemUnit = "piece";
-    private string lossReason = "", deliveryReference = "", deliveryNote = "", countReason = "";
+    private string deliveryReference = "", deliveryNote = "", countReason = "";
     private string receiptKey = Guid.NewGuid().ToString("N"), countKey = Guid.NewGuid().ToString("N");
-    private readonly Dictionary<Guid, string> reviewReasons = [];
     private string? message;
     private IReadOnlyList<InventoryBalance> balances = [];
     private IReadOnlyList<InventoryItem> items = [];
-    private IReadOnlyList<InventoryLossRequestView> lossRequests = [];
     private IReadOnlyList<StockMovementView> movements = [];
     private IReadOnlyList<InventoryCountView> counts = [];
+    private IReadOnlyList<MenuCategory> categories = [];
     private InventoryReadinessReport? readiness;
-    private Guid adjustItemId, lossItemId, receiveItemId, countItemId;
-    private decimal adjustment, lossQuantity = 1, newMinimumStock;
+    private Guid adjustItemId, receiveItemId, countItemId;
+    private decimal adjustment, newMinimumStock;
     private decimal receivedQuantity = 1, countedQuantity;
-    private InventoryLossType lossType = InventoryLossType.Waste;
 
     private bool HasActiveInventoryItems => items.Any(x => x.IsActive);
 
@@ -285,6 +431,8 @@
         var state = await Authentication.GetAuthenticationStateAsync();
         actor = state.User.Identity?.Name ?? "unknown";
         isAdmin = state.User.IsInRole(RomsRoles.Admin);
+        isManager = state.User.IsInRole(RomsRoles.Manager);
+        canRestoreAvailability = isAdmin || isManager;
         await Load();
     }
 
@@ -292,7 +440,7 @@
     {
         balances = await InventoryService.GetBalancesAsync();
         items = await InventoryService.GetItemsAsync();
-        lossRequests = await InventoryService.GetLossRequestsAsync();
+        categories = await CatalogService.GetCategoriesAsync();
         movements = await InventoryService.GetRecentMovementsAsync();
         counts = await InventoryService.GetRecentCountsAsync();
         if (isAdmin)
@@ -301,8 +449,6 @@
         var activeItems = items.Where(x => x.IsActive).ToList();
         if (!activeItems.Any(x => x.Id == adjustItemId))
             adjustItemId = activeItems.FirstOrDefault()?.Id ?? Guid.Empty;
-        if (!activeItems.Any(x => x.Id == lossItemId))
-            lossItemId = activeItems.FirstOrDefault()?.Id ?? Guid.Empty;
         if (!activeItems.Any(x => x.Id == receiveItemId))
             receiveItemId = activeItems.FirstOrDefault()?.Id ?? Guid.Empty;
         if (!activeItems.Any(x => x.Id == countItemId))
@@ -375,26 +521,28 @@
         });
     }
 
-    private Task ReportLoss()
+    private async Task ToggleAvailable(MenuItem item)
     {
-        if (lossItemId == Guid.Empty) return Task.CompletedTask;
-        return Run(async () =>
+        busy = true;
+        message = null;
+        failed = false;
+        try
         {
-            await InventoryService.ReportLossAsync(
-                lossItemId, lossType, lossQuantity, lossReason, actor, Guid.NewGuid().ToString("N"));
-            lossQuantity = 1;
-            lossReason = "";
-        });
+            item.IsAvailable = !item.IsAvailable;
+            await CatalogService.SaveMenuItemAsync(item, actor);
+            message = $"Availability of '{item.Name}' updated successfully.";
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message;
+            failed = true;
+        }
+        finally
+        {
+            busy = false;
+        }
     }
-
-    private Task ReviewLoss(Guid requestId, bool approve) => Run(async () =>
-    {
-        await InventoryService.ReviewLossAsync(requestId, approve, ReviewReason(requestId), actor);
-        reviewReasons.Remove(requestId);
-    });
-
-    private string ReviewReason(Guid requestId) => reviewReasons.GetValueOrDefault(requestId, "");
-    private void SetReviewReason(Guid requestId, string? value) => reviewReasons[requestId] = value ?? "";
     private static string Signed(decimal value) => value >= 0 ? $"+{value:N3}" : value.ToString("N3");
     private static string ReadinessClass(InventoryReadinessStatus status) => status switch
     {

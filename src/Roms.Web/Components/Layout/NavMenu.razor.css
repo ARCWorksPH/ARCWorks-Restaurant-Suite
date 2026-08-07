@@ -86,6 +86,14 @@
     background-color: var(--roms-surface-soft, #253140) !important;
 }
 
+.btn-link-form {
+    border: none !important;
+    background: none !important;
+    padding: 0 !important;
+    width: 100%;
+    text-align: left;
+}
+
 .nav-scrollable {
     display: none;
     background-color: var(--roms-surface, #171E27);
@@ -95,12 +103,38 @@
     display: block;
 }
 
+.nav-scrollable.nav-horizontal {
+    display: block !important;
+    background-color: transparent !important;
+    height: auto !important;
+    overflow-y: visible !important;
+    box-shadow: none !important;
+}
+
+.nav-horizontal nav {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.nav-horizontal .nav-item {
+    padding-bottom: 0 !important;
+}
+
+.nav-horizontal ::deep .nav-link {
+    min-height: 38px !important;
+    padding: 0.4rem 0.8rem !important;
+    font-size: 0.9rem;
+}
+
 @media (min-width: 641px) {
     .navbar-toggler {
         display: none;
     }
 
-    .nav-scrollable {
+    .nav-scrollable.nav-vertical {
         display: block;
         height: calc(100vh - 3.5rem);
         overflow-y: auto;

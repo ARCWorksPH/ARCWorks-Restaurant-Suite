@@ -72,8 +72,23 @@ main {
     color: var(--roms-danger, #F87171);
 }
 
+.page.horizontal-mode {
+    flex-direction: column !important;
+}
+
+.page.horizontal-mode main {
+    width: 100%;
+}
+
+.horizontal-nav-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
 @media (min-width: 641px) {
-    .page {
+    .page:not(.horizontal-mode) {
         flex-direction: row;
     }
 
@@ -172,4 +187,23 @@ main {
     right: 1.25rem;
     top: 0.75rem;
     color: var(--roms-text-muted, #A8B3C2);
+}
+
+/* By default (mobile), hide desktop header nav and show mobile sidebar */
+.desktop-nav-only {
+    display: none !important;
+}
+.mobile-sidebar-only {
+    display: block;
+}
+
+/* On desktop */
+@media (min-width: 641px) {
+    .desktop-nav-only {
+        display: flex !important;
+    }
+    /* Only hide mobile-sidebar-only if it's NOT a kitchen page (which always needs sidebar) */
+    .page:not(.kds-mode) .mobile-sidebar-only {
+        display: none !important;
+    }
 }

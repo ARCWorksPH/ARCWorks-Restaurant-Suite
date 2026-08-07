@@ -7,26 +7,36 @@
     <Authorized><SessionTimeout /></Authorized>
 </AuthorizeView>
 
-<div class="page @(isKitchenPage ? "kds-mode" : "")">
-    <div class="sidebar">
-        <NavMenu />
+<div class="page @(isKitchenPage ? "kds-mode" : "horizontal-mode")">
+    <!-- Sidebar / Mobile Navigation -->
+    <div class="sidebar @(isKitchenPage ? "" : "mobile-sidebar-only")">
+        <NavMenu IsHorizontal="false" />
     </div>
 
     <main>
         <div class="top-row px-4">
-            <div class="d-flex align-items-center gap-3">
-                <strong class="roms-brand-title">@ProductBrand.Name</strong>
-                <span id="roms-connection-indicator"
-                      class="connection-indicator status-@connectionState.ToLowerInvariant()"
-                      role="status"
-                      aria-live="polite">● @GetConnectionLabel(connectionState)</span>
-            </div>
-            <div class="d-flex align-items-center gap-3">
-                <AuthorizeView>
-                    <Authorized>
-                        <span class="user-badge">● @context.User.Identity?.Name (@GetRole(context.User))</span>
-                    </Authorized>
-                </AuthorizeView>
+            <div class="d-flex align-items-center justify-content-between w-100">
+                <div class="d-flex align-items-center gap-4">
+                    <strong class="roms-brand-title">@ProductBrand.Name</strong>
+                    @if (!isKitchenPage)
+                    {
+                        <!-- Horizontal Nav is displayed on desktop only (handled by CSS) -->
+                        <div class="desktop-nav-only">
+                            <NavMenu IsHorizontal="true" />
+                        </div>
+                    }
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span id="roms-connection-indicator"
+                          class="connection-indicator status-@connectionState.ToLowerInvariant()"
+                          role="status"
+                          aria-live="polite">● @GetConnectionLabel(connectionState)</span>
+                    <AuthorizeView>
+                        <Authorized>
+                            <span class="user-badge">● @context.User.Identity?.Name (@GetRole(context.User))</span>
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
             </div>
         </div>
 

@@ -80,7 +80,8 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("WaiterOrAdmin", p => p.RequireRole(RomsRoles.Waiter, RomsRoles.Admin))
     .AddPolicy("KitchenOrAdmin", p => p.RequireRole(RomsRoles.Kitchen, RomsRoles.Admin))
-    .AddPolicy("ManagerOrAdmin", p => p.RequireRole(RomsRoles.Manager, RomsRoles.Admin));
+    .AddPolicy("ManagerOrAdmin", p => p.RequireRole(RomsRoles.Manager, RomsRoles.Admin))
+    .AddPolicy("KitchenManagerOrAdmin", p => p.RequireRole(RomsRoles.Kitchen, RomsRoles.Manager, RomsRoles.Admin));
 
 builder.Services.AddSignalR(o => o.MaximumReceiveMessageSize = 32 * 1024);
 builder.Services.AddSingleton<OrderEventBus>();

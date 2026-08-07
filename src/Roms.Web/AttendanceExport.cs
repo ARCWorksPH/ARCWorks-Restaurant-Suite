@@ -8,13 +8,14 @@ public static class AttendanceExport
 {
     public static IEndpointRouteBuilder MapAttendanceExport(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/admin/attendance/export.csv", async (DateOnly? from, IAttendanceService attendance, CancellationToken ct) =>
+        endpoints.MapGet("/admin/attendance/export.csv", async (DateOnly? from, System.Security.Claims.ClaimsPrincipal user, IAttendanceService attendance, CancellationToken ct) =>
         {
+            var adminId = user.Identity?.Name ?? "unknown";
             var zone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila");
             var startLocal = (from ?? DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone))).ToDateTime(TimeOnly.MinValue);
             var startUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(startLocal, DateTimeKind.Unspecified), zone);
             var endUtc = startUtc.AddDays(7);
-            var view = await attendance.GetAdminViewAsync(startUtc, endUtc, ct);
+            var view = await attendance.GetAdminViewAsync(adminId, startUtc, endUtc, ct);
             var csv = new StringBuilder("Staff,Username,Clock In,Clock Out,Hours,Correction Reason\r\n");
             foreach (var item in view.Records.OrderBy(x => x.DisplayName).ThenBy(x => x.ClockInUtc))
             {

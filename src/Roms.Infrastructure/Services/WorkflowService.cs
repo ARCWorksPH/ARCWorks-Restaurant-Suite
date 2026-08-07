@@ -29,9 +29,10 @@ public sealed class WorkflowService(IDbContextFactory<RomsDbContext> factory, IC
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task<IReadOnlyList<ManagerLiveOrderView>> GetLiveOrdersAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<ManagerLiveOrderView>> GetLiveOrdersAsync(string actorId, CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
+        await EnsureManagerOrAdminAsync(db, actorId, ct);
         var orders = await db.Orders.AsNoTracking().Include(x => x.Table)
             .Where(x => x.Status != OrderStatus.Completed && x.Status != OrderStatus.Cancelled)
             .OrderBy(x => x.CreatedUtc).ToListAsync(ct);
@@ -44,7 +45,7 @@ public sealed class WorkflowService(IDbContextFactory<RomsDbContext> factory, IC
 
     private static async Task<WorkflowSettings> GetOrCreateAsync(RomsDbContext db, CancellationToken ct)
     {
-        var settings = await db.WorkflowSettings.SingleOrDefaultAsync(ct);
+        var settings = await db.WorkflowSettings.FirstOrDefaultAsync(ct);
         if (settings is not null) return settings;
         settings = new WorkflowSettings();
         db.WorkflowSettings.Add(settings);

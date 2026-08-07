@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.AspNetCore.Identity;
+using Roms.Application;
 using Roms.Domain;
 using Roms.Infrastructure.Identity;
 using Roms.Infrastructure.Persistence;
@@ -20,6 +22,13 @@ public sealed class AttendanceWorkflowTests : IAsyncLifetime
         await using var db = new RomsDbContext(options);
         await db.Database.EnsureCreatedAsync();
         db.Users.Add(new ApplicationUser { Id = "waiter-id", UserName = "waiter", NormalizedUserName = "WAITER", DisplayName = "Waiter One", IsActive = true });
+
+        var adminRole = new IdentityRole(RomsRoles.Admin) { NormalizedName = RomsRoles.Admin.ToUpperInvariant() };
+        var admin = new ApplicationUser { Id = "admin-id", UserName = "admin", NormalizedUserName = "ADMIN", DisplayName = "Admin One", IsActive = true };
+        db.Roles.Add(adminRole);
+        db.Users.Add(admin);
+        db.UserRoles.Add(new IdentityUserRole<string> { UserId = admin.Id, RoleId = adminRole.Id });
+
         await db.SaveChangesAsync();
     }
 
@@ -37,7 +46,7 @@ public sealed class AttendanceWorkflowTests : IAsyncLifetime
 
         clock.UtcNow = clock.UtcNow.AddHours(8);
         await service.ClockOutAsync("waiter");
-        var admin = await service.GetAdminViewAsync(clock.UtcNow.AddDays(-1), clock.UtcNow.AddDays(1));
+        var admin = await service.GetAdminViewAsync("admin", clock.UtcNow.AddDays(-1), clock.UtcNow.AddDays(1));
         Assert.Empty(admin.Present);
         Assert.Equal(8m, admin.Records.Single().Hours);
     }

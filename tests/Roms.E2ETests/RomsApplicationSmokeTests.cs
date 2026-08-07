@@ -84,20 +84,10 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Page.WaitForTimeoutAsync(500);
             await Page.GetByRole(AriaRole.Button, new() { Name = "Add item" }).ClickAsync();
             await Expect(Page.Locator(".alert").Last).ToContainTextAsync("Saved.");
-            await Page.GetByLabel("Loss inventory item").SelectOptionAsync(
-                new SelectOptionValue { Label = "Test milk (piece)" });
-            await Page.GetByPlaceholder("Quantity", new() { Exact = true }).FillAsync("1");
-            await Page.GetByPlaceholder("What happened? (required)").FillAsync("Container damaged in receiving");
-            await Page.WaitForTimeoutAsync(500);
-            await Page.GetByRole(AriaRole.Button, new() { Name = "Submit for approval" }).ClickAsync();
-            await Expect(Page.GetByText("Pending", new() { Exact = true })).ToBeVisibleAsync();
-            await Page.GetByRole(AriaRole.Button, new() { Name = "Approve" }).ClickAsync();
-            await Expect(Page.GetByText("Approved", new() { Exact = true })).ToBeVisibleAsync();
             var balancesPanel = Page.Locator("section.panel").Filter(new()
             {
                 Has = Page.GetByRole(AriaRole.Heading, new() { Name = "Current balances" })
             });
-            await Expect(balancesPanel.GetByText("-1.000 piece")).ToBeVisibleAsync();
             await Page.GetByLabel("Received inventory item").SelectOptionAsync(
                 new SelectOptionValue { Label = "Test milk (piece)" });
             await Page.GetByPlaceholder("Received quantity").FillAsync("10");

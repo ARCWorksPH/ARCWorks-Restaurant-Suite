@@ -62,10 +62,11 @@ public sealed class AttendanceService(IDbContextFactory<RomsDbContext> factory, 
             .OrderBy(x => x.DisplayName).Select(x => new StaffMemberView(x.Id, x.UserName!, x.DisplayName)).ToListAsync(ct);
     }
 
-    public async Task<AttendanceAdminView> GetAdminViewAsync(DateTime fromUtc, DateTime toUtc, CancellationToken ct = default)
+    public async Task<AttendanceAdminView> GetAdminViewAsync(string adminId, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default)
     {
         ValidateRange(fromUtc, toUtc);
         await using var db = await factory.CreateDbContextAsync(ct);
+        await EnsureAdminAsync(db, adminId, ct);
         var users = await db.Users.AsNoTracking().Where(x => x.UserName != null)
             .Select(x => new StaffIdentity(x.Id, x.UserName!, x.DisplayName)).ToDictionaryAsync(x => x.Id, ct);
         var schedules = await db.StaffSchedules.AsNoTracking()
@@ -79,9 +80,23 @@ public sealed class AttendanceService(IDbContextFactory<RomsDbContext> factory, 
         return new(schedules.Select(x => Map(x, users)).ToList(), records.Select(x => Map(x, users)).ToList(), present.Select(x => Map(x, users)).ToList());
     }
 
+    public async Task<ManagerOperationalView> GetManagerViewAsync(string actorId, CancellationToken ct = default)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await EnsureManagerOrAdminAsync(db, actorId, ct);
+        var present = await (from record in db.AttendanceRecords.AsNoTracking()
+                             join user in db.Users.AsNoTracking() on record.UserId equals user.Id
+                             where record.ClockOutUtc == null && user.IsActive && user.UserName != null
+                             orderby record.ClockInUtc
+                             select new ManagerPresenceView(record.UserId, user.UserName!, user.DisplayName, record.ClockInUtc))
+            .ToListAsync(ct);
+        return new(present);
+    }
+
     public async Task SaveScheduleAsync(Guid? scheduleId, string userId, DateTime startUtc, DateTime endUtc, string? notes, string adminId, CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
+        await EnsureAdminAsync(db, adminId, ct);
         if (!await db.Users.AnyAsync(x => x.Id == userId && x.IsActive, ct)) throw new DomainException("Staff member not found.");
         var overlaps = db.StaffSchedules.Where(x => x.UserId == userId && x.ScheduledStartUtc < endUtc && startUtc < x.ScheduledEndUtc);
         if (scheduleId.HasValue) overlaps = overlaps.Where(x => x.Id != scheduleId.Value);
@@ -100,6 +115,7 @@ public sealed class AttendanceService(IDbContextFactory<RomsDbContext> factory, 
     public async Task DeleteScheduleAsync(Guid scheduleId, string adminId, CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
+        await EnsureAdminAsync(db, adminId, ct);
         var schedule = await db.StaffSchedules.SingleOrDefaultAsync(x => x.Id == scheduleId, ct) ?? throw new DomainException("Schedule not found.");
         db.StaffSchedules.Remove(schedule);
         db.AuditEntries.Add(Audit(adminId, "DeleteStaffSchedule", schedule.Id, JsonSerializer.Serialize(schedule), null, entityType: nameof(StaffSchedule)));
@@ -109,6 +125,7 @@ public sealed class AttendanceService(IDbContextFactory<RomsDbContext> factory, 
     public async Task CorrectAsync(Guid attendanceId, DateTime clockInUtc, DateTime? clockOutUtc, string reason, string adminId, CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
+        await EnsureAdminAsync(db, adminId, ct);
         var record = await db.AttendanceRecords.SingleOrDefaultAsync(x => x.Id == attendanceId, ct) ?? throw new DomainException("Attendance record not found.");
         if (clockOutUtc is null && await db.AttendanceRecords.AnyAsync(x => x.UserId == record.UserId && x.Id != record.Id && x.ClockOutUtc == null, ct))
             throw new DomainException("This staff member already has another open attendance record.");
@@ -150,6 +167,26 @@ public sealed class AttendanceService(IDbContextFactory<RomsDbContext> factory, 
     private AuditEntry Audit(string actorId, string action, Guid id, string? oldValues, string? newValues, string? reason = null, string? entityType = null) => new()
         { ActorId = actorId, Action = action, EntityType = entityType ?? nameof(AttendanceRecord), EntityId = id.ToString(), OldValuesJson = oldValues,
             NewValuesJson = newValues, Reason = reason, OccurredUtc = clock.UtcNow };
+
+    private static async Task EnsureAdminAsync(RomsDbContext db, string actorId, CancellationToken ct)
+    {
+        var allowed = await (from user in db.Users
+                             join userRole in db.UserRoles on user.Id equals userRole.UserId
+                             join role in db.Roles on userRole.RoleId equals role.Id
+                             where user.UserName == actorId && role.Name == RomsRoles.Admin
+                             select user.Id).AnyAsync(ct);
+        if (!allowed) throw new DomainException("Only an administrator can perform this action.");
+    }
+
+    private static async Task EnsureManagerOrAdminAsync(RomsDbContext db, string actorId, CancellationToken ct)
+    {
+        var allowed = await (from user in db.Users
+                             join userRole in db.UserRoles on user.Id equals userRole.UserId
+                             join role in db.Roles on userRole.RoleId equals role.Id
+                             where user.UserName == actorId && (role.Name == RomsRoles.Manager || role.Name == RomsRoles.Admin)
+                             select user.Id).AnyAsync(ct);
+        if (!allowed) throw new DomainException("Only a manager or administrator can perform this action.");
+    }
 
     private sealed record StaffIdentity(string Id, string Username, string DisplayName);
 }

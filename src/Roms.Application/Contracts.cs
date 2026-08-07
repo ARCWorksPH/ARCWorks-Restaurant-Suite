@@ -93,6 +93,8 @@ public sealed record MyAttendanceView(AttendanceRecordView? OpenRecord,
     IReadOnlyList<StaffScheduleView> Schedules, IReadOnlyList<AttendanceRecordView> Records);
 public sealed record AttendanceAdminView(IReadOnlyList<StaffScheduleView> Schedules,
     IReadOnlyList<AttendanceRecordView> Records, IReadOnlyList<AttendanceRecordView> Present);
+public sealed record ManagerPresenceView(string UserId, string Username, string DisplayName, DateTime ClockInUtc);
+public sealed record ManagerOperationalView(IReadOnlyList<ManagerPresenceView> Present);
 
 public interface IOrderService
 {
@@ -121,7 +123,7 @@ public interface IWorkflowService
     Task<WorkflowSettingsView> GetSettingsAsync(CancellationToken cancellationToken = default);
     Task UpdateSettingsAsync(int orderEntryMinutes, int kitchenAcceptanceMinutes, string actorId,
         CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<ManagerLiveOrderView>> GetLiveOrdersAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ManagerLiveOrderView>> GetLiveOrdersAsync(string actorId, CancellationToken cancellationToken = default);
 }
 
 public interface ICatalogService
@@ -166,7 +168,8 @@ public interface IAttendanceService
     Task ClockInAsync(string username, CancellationToken cancellationToken = default);
     Task ClockOutAsync(string username, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StaffMemberView>> GetStaffAsync(CancellationToken cancellationToken = default);
-    Task<AttendanceAdminView> GetAdminViewAsync(DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default);
+    Task<AttendanceAdminView> GetAdminViewAsync(string adminId, DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default);
+    Task<ManagerOperationalView> GetManagerViewAsync(string actorId, CancellationToken cancellationToken = default);
     Task SaveScheduleAsync(Guid? scheduleId, string userId, DateTime startUtc, DateTime endUtc, string? notes, string adminId, CancellationToken cancellationToken = default);
     Task DeleteScheduleAsync(Guid scheduleId, string adminId, CancellationToken cancellationToken = default);
     Task CorrectAsync(Guid attendanceId, DateTime clockInUtc, DateTime? clockOutUtc, string reason, string adminId, CancellationToken cancellationToken = default);
