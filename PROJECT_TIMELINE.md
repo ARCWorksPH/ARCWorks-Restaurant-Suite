@@ -119,6 +119,23 @@ and the current [roadmap](docs/ROADMAP_2026-08-06.md).
 - Rebuilt and recreated the app, confirmed local and public health HTTP 200,
   and verified that the app runs only on the backend and edge networks.
 
+### 2026-08-08 — Backup recovery milestones completed
+
+- Corrected the installed backup source root from the retired
+  `D:\\ARCWorks_Restaurant Suite` path to the canonical
+  `D:\\ARCWorks_Restaurant_Suite` path after the normal restore drill exposed
+  the mismatch. The prior runtime configuration was preserved for rollback.
+- Completed the normal isolated restore drill with two accepted snapshots:
+  ideal restore and controlled interrupted-restore recovery.
+- Validated 992-file SHA-256 manifests, MariaDB dumps (24 tables), and
+  PostgreSQL dumps (203 tables) in disposable containers.
+- Completed the overwrite and damaged-data drill using disposable instances.
+  Missing and modified files were repaired, unexpected data was quarantined
+  with hashes and an inventory, and no data was permanently deleted.
+- Confirmed the live application remained HTTP 200 and live Docker volumes,
+  databases, tunnel, and monitoring services were not touched.
+- Cross-PC recovery remains the final pre-beta portability and runtime gate.
+
 ## Decision principles
 
 - **Core before expansion:** complete and accept the deterministic restaurant
