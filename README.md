@@ -2,6 +2,26 @@
 
 ARCWorks Restaurant Suite is a single-location, touch-first restaurant workflow for waiters, kitchen staff, and administrators. Its internal code name remains ROMS for namespaces, database migrations, and compatibility-sensitive tooling. It uses .NET 10 Blazor Interactive Server, ASP.NET Core Identity, EF Core 10, SignalR, and MariaDB 11.4.
 
+> **Project status:** active private-beta preparation. The core waiter → kitchen →
+> management workflow is implemented and continuously tested. Public production
+> rollout, multi-restaurant tenancy, and AI features are intentionally gated.
+
+## Collaboration and feedback
+
+ARCWorks Restaurant Suite is being prepared as a practical, auditable restaurant
+operations product. We welcome focused help with:
+
+- real-world waiter and kitchen workflow review;
+- accessibility, responsive-layout, and touch-screen testing;
+- MariaDB/Docker reliability and backup-recovery review;
+- test coverage, documentation, and deployment portability.
+
+Please open a GitHub issue with a reproducible example, expected behavior, actual
+behavior, environment details, and screenshots or logs with credentials removed.
+Security concerns should be reported privately through the repository security
+contact rather than posted publicly. Pull requests should remain focused and
+include tests or a clear explanation of why tests are not applicable.
+
 ## Implemented
 
 - Role-protected Admin, Waiter, and Kitchen experiences.
@@ -9,6 +29,9 @@ ARCWorks Restaurant Suite is a single-location, touch-first restaurant workflow 
 - Menu/table/user administration and completed order-value reporting.
 - Independent-item inventory ledger, low-stock balances, structured receiving, witnessed physical-count reconciliation, protected adjustments, and waste/spoilage approvals.
 - MariaDB migration, Docker Compose deployment, HTTPS reverse proxy, health monitoring, encrypted-backup script, and manual failover runbook.
+- Schedule management with future-only editing, schedule CSV export, an
+  Excel-compatible schedule template, and audited safety confirmations for
+  destructive actions, clock-out, and logout.
 
 ## Run locally with Docker
 
@@ -33,7 +56,7 @@ The first start applies EF migrations and creates the three roles plus the initi
 
 ## Lightweight attendance
 
-Every active staff account has a **My Attendance** page for explicit clock-in and clock-out plus upcoming schedules and recent hours. Administrators use **Staff Schedule** to add non-overlapping shifts, see who is currently present, review weekly hours, correct records with a mandatory audited reason, and export a seven-day CSV. This module intentionally excludes payroll, leave, overtime approval, biometrics, and other employee-management functions.
+Every active staff account has a **My Attendance** page for explicit clock-in and clock-out plus upcoming schedules and recent hours. Administrators use **Staff Schedule** to add non-overlapping shifts, edit today/future shifts only, see who is currently present, review weekly hours, correct records with a mandatory audited reason, export a seven-day schedule or attendance CSV, and download the schedule template. This module intentionally excludes payroll, leave, overtime approval, biometrics, and other employee-management functions.
 
 ## Build and test without Docker
 
