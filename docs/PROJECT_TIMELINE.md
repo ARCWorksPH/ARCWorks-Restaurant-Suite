@@ -156,3 +156,7 @@ that acceptance should workflow completion be claimed.
   remain preserved.
 - Added confirmation prompts before Admin staff removal, catalog/schedule
   deletion, clock-out, and both logout paths.
+- Added Admin schedule downloads: a seven-day schedule CSV export and a
+  download-ready CSV template using one schedule per row (`Staff`, `Username`,
+  `Start`, `End`, `Notes`). The existing attendance export remains available
+  separately.

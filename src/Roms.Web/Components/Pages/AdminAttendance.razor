@@ -5,7 +5,7 @@
 @inject IJSRuntime JS
 
 <PageTitle>Staff Schedule & Attendance</PageTitle>
-<div class="page-heading"><div><h1>Staff schedule & attendance</h1><p>Simple scheduling and time records. Times are shown in Asia/Manila.</p></div><div><a class="btn btn-outline-success touch-button me-2" href="@($"admin/attendance/export.csv?from={selectedDate:yyyy-MM-dd}")">Export CSV</a><button class="btn btn-outline-primary touch-button" @onclick="Load">Refresh</button></div></div>
+<div class="page-heading"><div><h1>Staff schedule & attendance</h1><p>Simple scheduling and time records. Times are shown in Asia/Manila.</p></div><div class="d-flex gap-2 flex-wrap"><a class="btn btn-outline-success touch-button" href="@($"admin/attendance/schedule-export.csv?from={selectedDate:yyyy-MM-dd}")">Export schedule</a><a class="btn btn-outline-secondary touch-button" href="admin/attendance/schedule-template.csv">Download template</a><a class="btn btn-outline-success touch-button" href="@($"admin/attendance/export.csv?from={selectedDate:yyyy-MM-dd}")">Export attendance</a><button class="btn btn-outline-primary touch-button" @onclick="Load">Refresh</button></div></div>
 @if (!string.IsNullOrEmpty(message)) { <div class="alert @(failed ? "alert-danger" : "alert-success")">@message</div> }
 
 <section class="panel mb-4"><h2>Currently present (@(view?.Present.Count ?? 0))</h2>
