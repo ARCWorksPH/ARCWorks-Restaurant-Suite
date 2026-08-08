@@ -11,7 +11,7 @@ passed before that gate.
 
 **Product:** ARCWorks Restaurant Suite
 
-**Repository:** `ARCWorksPH/GBServerPH-Restaurant-Ordering-System`
+**Repository:** `ARCWorksPH/ARCWorks-Restaurant-Suite`
 
 **Authoritative project root:** `D:\ARCWorks_Restaurant_Suite`.
 All source, docs, compose files, and test commands in this handoff refer to
