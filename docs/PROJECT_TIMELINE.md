@@ -142,3 +142,17 @@ that acceptance should workflow completion be claimed.
   server-recorded actor/action/entity data, and expandable raw JSON values.
   This is an operational audit log rather than noisy client-side click
   telemetry.
+
+## 2026-08-08 — Waiter summary, schedule safety, and confirmation safeguards
+
+- Added a read-only customer order summary to the waiter order editor. It is
+  refreshed with the order event stream and after each local edit, so the
+  displayed quantities, notes, and total remain current while the editable
+  controls stay separate.
+- Moved the Kitchen `86` availability panel to the bottom of the KDS so active
+  tickets remain the primary workspace.
+- Added Admin schedule editing for today and future schedules only. Past
+  schedules are not editable in the UI or service; historical schedule records
+  remain preserved.
+- Added confirmation prompts before Admin staff removal, catalog/schedule
+  deletion, clock-out, and both logout paths.

@@ -3,6 +3,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider Authentication
 @inject IDbContextFactory<Roms.Infrastructure.Persistence.RomsDbContext> DbFactory
+@inject IJSRuntime JS
 
 <PageTitle>Users</PageTitle>
 
@@ -90,6 +91,7 @@
     // and audit history retain their original actor. Login already rejects inactive users.
     private async Task Toggle(ApplicationUser user)
     {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Remove access for {user.DisplayName}? The account and history will be retained.")) return;
         user.IsActive = false;
         var result = await UserManager.UpdateAsync(user);
         if (result.Succeeded && !user.IsActive)

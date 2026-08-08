@@ -108,6 +108,8 @@ public sealed class AttendanceService(IDbContextFactory<RomsDbContext> factory, 
             throw new DomainException("This staff member already has an overlapping schedule.");
         var schedule = scheduleId is null ? new StaffSchedule { UserId = userId, CreatedBy = adminId, CreatedUtc = clock.UtcNow }
             : await db.StaffSchedules.SingleOrDefaultAsync(x => x.Id == scheduleId, ct) ?? throw new DomainException("Schedule not found.");
+        if (scheduleId is not null && schedule.ScheduledStartUtc.Date < clock.UtcNow.Date)
+            throw new DomainException("Only today's or future schedules can be edited.");
         var oldValues = scheduleId is null ? null : JsonSerializer.Serialize(new { schedule.ScheduledStartUtc, schedule.ScheduledEndUtc, schedule.Notes });
         schedule.SetSchedule(startUtc, endUtc, notes, clock.UtcNow);
         if (scheduleId is null) db.StaffSchedules.Add(schedule);

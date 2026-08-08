@@ -2,6 +2,7 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject IAttendanceService AttendanceService
 @inject AuthenticationStateProvider Authentication
+@inject IJSRuntime JS
 
 <PageTitle>Staff Schedule & Attendance</PageTitle>
 <div class="page-heading"><div><h1>Staff schedule & attendance</h1><p>Simple scheduling and time records. Times are shown in Asia/Manila.</p></div><div><a class="btn btn-outline-success touch-button me-2" href="@($"admin/attendance/export.csv?from={selectedDate:yyyy-MM-dd}")">Export CSV</a><button class="btn btn-outline-primary touch-button" @onclick="Load">Refresh</button></div></div>
@@ -13,20 +14,24 @@
     else { <div class="admin-list">@foreach(var item in view.Present){<div><span><strong>@item.DisplayName</strong> · since @Local(item.ClockInUtc).ToString("MMM d, h:mm tt")</span><span>@item.Hours.ToString("N2") hr</span></div>}</div> }
 </section>
 
-<section class="panel mb-4"><h2>Add schedule</h2>
+<section class="panel mb-4"><h2>@(editingScheduleId is null ? "Add schedule" : "Edit future schedule")</h2>
     <div class="user-form">
         <select class="form-select" @bind="scheduleUserId">@foreach(var staffMember in staff){<option value="@staffMember.Id">@staffMember.DisplayName (@staffMember.Username)</option>}</select>
         <input class="form-control" type="datetime-local" @bind="scheduleStartLocal" />
         <input class="form-control" type="datetime-local" @bind="scheduleEndLocal" />
         <input class="form-control" placeholder="Notes (optional)" @bind="scheduleNotes" />
-        <button class="btn btn-primary touch-button" disabled="@(busy || staff.Count == 0)" @onclick="SaveSchedule">Add schedule</button>
+        <button class="btn btn-primary touch-button" disabled="@(busy || staff.Count == 0)" @onclick="SaveSchedule">@(editingScheduleId is null ? "Add schedule" : "Save schedule")</button>
+        @if (editingScheduleId is not null)
+        {
+            <button class="btn btn-outline-secondary touch-button" @onclick="CancelScheduleEdit">Cancel</button>
+        }
     </div>
 </section>
 
 <section class="panel mb-4"><div class="page-heading"><div><h2>Schedule and records</h2><p>Seven days beginning on the selected date.</p></div><input class="form-control" style="max-width:190px" type="date" @bind="selectedDate" @bind:after="Load" /></div>
     <h3>Scheduled staff</h3>
     @if(view is not null && view.Schedules.Count==0){<div class="empty-state">No staff schedules in this period.</div>}
-    else if(view is not null){<div class="table-responsive"><table class="table"><thead><tr><th>Staff</th><th>Start</th><th>End</th><th>Notes</th><th></th></tr></thead><tbody>@foreach(var item in view.Schedules){<tr><td>@item.DisplayName</td><td>@Local(item.ScheduledStartUtc).ToString("ddd MMM d, h:mm tt")</td><td>@Local(item.ScheduledEndUtc).ToString("ddd MMM d, h:mm tt")</td><td>@item.Notes</td><td><button class="btn btn-sm btn-outline-danger" disabled="@busy" @onclick="()=>DeleteSchedule(item.Id)">Delete</button></td></tr>}</tbody></table></div>}
+    else if(view is not null){<div class="table-responsive"><table class="table"><thead><tr><th>Staff</th><th>Start</th><th>End</th><th>Notes</th><th></th></tr></thead><tbody>@foreach(var item in view.Schedules){<tr><td>@item.DisplayName</td><td>@Local(item.ScheduledStartUtc).ToString("ddd MMM d, h:mm tt")</td><td>@Local(item.ScheduledEndUtc).ToString("ddd MMM d, h:mm tt")</td><td>@item.Notes</td><td class="d-flex gap-2">@if(IsFutureOrToday(item)){<button class="btn btn-sm btn-outline-primary" disabled="@busy" @onclick="()=>BeginScheduleEdit(item)">Edit</button>}<button class="btn btn-sm btn-outline-danger" disabled="@busy" @onclick="()=>DeleteSchedule(item.Id)">Delete</button></td></tr>}</tbody></table></div>}
 
     <h3>Hours by staff</h3>
     @if(view is not null && view.Records.Count==0){<div class="empty-state">No attendance records in this period.</div>}
@@ -47,11 +52,14 @@
 
 @code {
     private static readonly TimeZoneInfo Manila=TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila");
-    private IReadOnlyList<StaffMemberView> staff=[];private AttendanceAdminView? view;private string actor="unknown",scheduleUserId="",scheduleNotes="",correctionReason="";private string? message;private bool failed,busy;private DateTime selectedDate=TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,Manila).Date;private DateTime scheduleStartLocal,scheduleEndLocal,correctionInLocal;private DateTime? correctionOutLocal;private Guid? correctionId;
+    private IReadOnlyList<StaffMemberView> staff=[];private AttendanceAdminView? view;private string actor="unknown",scheduleUserId="",scheduleNotes="",correctionReason="";private string? message;private bool failed,busy;private DateTime selectedDate=TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,Manila).Date;private DateTime scheduleStartLocal,scheduleEndLocal,correctionInLocal;private DateTime? correctionOutLocal;private Guid? correctionId;private Guid? editingScheduleId;
     protected override async Task OnInitializedAsync(){var state=await Authentication.GetAuthenticationStateAsync();actor=state.User.Identity?.Name??"unknown";staff=await AttendanceService.GetStaffAsync();scheduleUserId=staff.FirstOrDefault()?.Id??"";scheduleStartLocal=selectedDate.AddDays(1).AddHours(9);scheduleEndLocal=selectedDate.AddDays(1).AddHours(17);await Load();}
     private async Task Load(){try{view=await AttendanceService.GetAdminViewAsync(actor, ToUtc(selectedDate.Date),ToUtc(selectedDate.Date.AddDays(7)));message=null;failed=false;}catch(Exception ex){message=ex.Message;failed=true;}}
-    private Task SaveSchedule()=>Run(async()=>{await AttendanceService.SaveScheduleAsync(null,scheduleUserId,ToUtc(scheduleStartLocal),ToUtc(scheduleEndLocal),scheduleNotes,actor);scheduleNotes="";message="Schedule added.";});
-    private Task DeleteSchedule(Guid id)=>Run(async()=>{await AttendanceService.DeleteScheduleAsync(id,actor);message="Schedule deleted.";});
+    private Task SaveSchedule()=>Run(async()=>{await AttendanceService.SaveScheduleAsync(editingScheduleId,scheduleUserId,ToUtc(scheduleStartLocal),ToUtc(scheduleEndLocal),scheduleNotes,actor);editingScheduleId=null;scheduleNotes="";message="Schedule saved.";});
+    private async Task DeleteSchedule(Guid id){if(await JS.InvokeAsync<bool>("confirm", "Delete this schedule? The historical audit record will be retained.")){await Run(async()=>{await AttendanceService.DeleteScheduleAsync(id,actor);message="Schedule deleted.";});}}
+    private void BeginScheduleEdit(StaffScheduleView item){if(!IsFutureOrToday(item))return;editingScheduleId=item.Id;scheduleUserId=item.UserId;scheduleStartLocal=Local(item.ScheduledStartUtc);scheduleEndLocal=Local(item.ScheduledEndUtc);scheduleNotes=item.Notes;message="Editing a future schedule.";}
+    private void CancelScheduleEdit(){editingScheduleId=null;scheduleNotes="";}
+    private bool IsFutureOrToday(StaffScheduleView item)=>Local(item.ScheduledStartUtc).Date>=DateTime.Now.Date;
     private void BeginCorrection(AttendanceRecordView item){correctionId=item.Id;correctionInLocal=Local(item.ClockInUtc);correctionOutLocal=item.ClockOutUtc is null?null:Local(item.ClockOutUtc.Value);correctionReason="";}
     private void CancelCorrection(){correctionId=null;correctionReason="";}
     private Task SaveCorrection()=>Run(async()=>{await AttendanceService.CorrectAsync(correctionId!.Value,ToUtc(correctionInLocal),correctionOutLocal is null?null:ToUtc(correctionOutLocal.Value),correctionReason,actor);correctionId=null;correctionReason="";message="Attendance corrected.";});

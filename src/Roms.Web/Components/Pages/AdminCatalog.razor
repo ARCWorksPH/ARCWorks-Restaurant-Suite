@@ -2,6 +2,7 @@
 @attribute [Authorize(Roles = "Admin")]
 @inject ICatalogService Catalog
 @inject AuthenticationStateProvider Authentication
+@inject IJSRuntime JS
 
 <PageTitle>Menu & Tables</PageTitle>
 <h1>Menu and tables</h1>
@@ -18,9 +19,9 @@
  private IReadOnlyList<RestaurantTable> tables=[]; private IReadOnlyList<MenuCategory> categories=[]; private RestaurantTable newTable=new(); private MenuCategory newCategory=new(); private MenuItem newItem=new(); private string actor="unknown"; private string? message; private bool failed;
  protected override async Task OnInitializedAsync(){var state=await Authentication.GetAuthenticationStateAsync();actor=state.User.Identity?.Name??"unknown";await Load();}
  private async Task Load(){tables=await Catalog.GetTablesAsync();categories=await Catalog.GetCategoriesAsync();var active=categories.FirstOrDefault(x=>x.IsActive);if(newItem.CategoryId==Guid.Empty&&active is not null)newItem.CategoryId=active.Id;}
- private Task AddTable()=>Run(async()=>{await Catalog.SaveTableAsync(newTable,actor);newTable=new();}); private Task RemoveTable(RestaurantTable x)=>Run(async()=>{x.IsActive=false;await Catalog.SaveTableAsync(x,actor);});
- private Task AddCategory()=>Run(async()=>{await Catalog.SaveCategoryAsync(newCategory,actor);newCategory=new();}); private Task RemoveCategory(MenuCategory x)=>Run(async()=>{x.IsActive=false;await Catalog.SaveCategoryAsync(x,actor);});
- private Task AddItem()=>Run(async()=>{await Catalog.SaveMenuItemAsync(newItem,actor);newItem=new MenuItem{CategoryId=categories.First(x=>x.IsActive).Id};}); private Task ToggleAvailable(MenuItem x)=>Run(async()=>{x.IsAvailable=!x.IsAvailable;await Catalog.SaveMenuItemAsync(x,actor);}); private Task RemoveItem(MenuItem x)=>Run(async()=>{x.IsActive=false;await Catalog.SaveMenuItemAsync(x,actor);});
+ private Task AddTable()=>Run(async()=>{await Catalog.SaveTableAsync(newTable,actor);newTable=new();}); private async Task RemoveTable(RestaurantTable x){if(await JS.InvokeAsync<bool>("confirm",$"Delete Table {x.Number}? Historical records will be retained.")){await Run(async()=>{x.IsActive=false;await Catalog.SaveTableAsync(x,actor);});}}
+ private Task AddCategory()=>Run(async()=>{await Catalog.SaveCategoryAsync(newCategory,actor);newCategory=new();}); private async Task RemoveCategory(MenuCategory x){if(await JS.InvokeAsync<bool>("confirm",$"Delete category {x.Name}? Historical records will be retained.")){await Run(async()=>{x.IsActive=false;await Catalog.SaveCategoryAsync(x,actor);});}}
+ private Task AddItem()=>Run(async()=>{await Catalog.SaveMenuItemAsync(newItem,actor);newItem=new MenuItem{CategoryId=categories.First(x=>x.IsActive).Id};}); private Task ToggleAvailable(MenuItem x)=>Run(async()=>{x.IsAvailable=!x.IsAvailable;await Catalog.SaveMenuItemAsync(x,actor);}); private async Task RemoveItem(MenuItem x){if(await JS.InvokeAsync<bool>("confirm",$"Delete menu item {x.Name}? Historical records will be retained.")){await Run(async()=>{x.IsActive=false;await Catalog.SaveMenuItemAsync(x,actor);});}}
  private void EditItem(MenuItem item) => newItem = new MenuItem { Id = item.Id, CategoryId = item.CategoryId, Name = item.Name, Description = item.Description, Price = item.Price, PreparationMinutes = item.PreparationMinutes, IsAvailable = item.IsAvailable, IsActive = item.IsActive };
  private void CancelEdit() => newItem = new MenuItem { CategoryId = categories.FirstOrDefault(x => x.IsActive)?.Id ?? Guid.Empty };
  private async Task Run(Func<Task> action){try{await action();message="Saved.";failed=false;await Load();}catch(Exception ex){message=ex.Message;failed=true;}}

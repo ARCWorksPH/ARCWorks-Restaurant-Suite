@@ -21,31 +21,6 @@
     </div>
 </div>
 
-@if (availabilityItems.Count > 0)
-{
-    <section class="panel mb-4 kitchen-availability-panel">
-        <div class="page-heading">
-            <div>
-                <h2>86 menu item</h2>
-                <p>Use this when the kitchen confirms an item cannot be served. Manager/Admin can restore it with code 68.</p>
-            </div>
-        </div>
-        <div class="admin-list">
-            @foreach (var menuItem in availabilityItems)
-            {
-                <div>
-                    <span><strong>@menuItem.Name</strong> · @(menuItem.IsAvailable ? "Available" : "86 unavailable")</span>
-                    <button class="btn btn-sm @(menuItem.IsAvailable ? "btn-outline-danger" : "btn-outline-secondary")"
-                            disabled="@(!menuItem.IsAvailable || busy)"
-                            @onclick="() => MarkUnavailable(menuItem)">
-                        @(menuItem.IsAvailable ? "86 item" : "86 applied")
-                    </button>
-                </div>
-            }
-        </div>
-    </section>
-}
-
 @if (!string.IsNullOrEmpty(error))
 {
     <div class="alert alert-danger mb-4">@error</div>
@@ -130,6 +105,31 @@ else
             </article>
         }
     </div>
+}
+
+@if (availabilityItems.Count > 0)
+{
+    <section class="panel mt-4 kitchen-availability-panel">
+        <div class="page-heading">
+            <div>
+                <h2>86 menu item</h2>
+                <p>Use this when the kitchen confirms an item cannot be served. Manager/Admin can restore it with code 68.</p>
+            </div>
+        </div>
+        <div class="admin-list">
+            @foreach (var menuItem in availabilityItems)
+            {
+                <div>
+                    <span><strong>@menuItem.Name</strong> · @(menuItem.IsAvailable ? "Available" : "86 unavailable")</span>
+                    <button class="btn btn-sm @(menuItem.IsAvailable ? "btn-outline-danger" : "btn-outline-secondary")"
+                            disabled="@(!menuItem.IsAvailable || busy)"
+                            @onclick="() => MarkUnavailable(menuItem)">
+                        @(menuItem.IsAvailable ? "86 item" : "86 applied")
+                    </button>
+                </div>
+            }
+        </div>
+    </section>
 }
 
 @code {

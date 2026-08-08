@@ -50,8 +50,8 @@
                 {
                     <div class="nav-item px-2 nav-user-item"><span class="nav-user-label">● @context.User.Identity?.Name (@GetRole(context.User))</span></div>
                 }
-                <div class="nav-item px-2"><form action="Account/ClockOutAndLogout" method="post"><AntiforgeryToken /><button type="submit" class="nav-link nav-clockout btn-link-form" title="Clock Out + Log Out"><span class="nav-icon">⇥</span> <span class="nav-text">Clock Out + Log Out</span></button></form></div>
-                <div class="nav-item px-2"><form action="Account/Logout" method="post"><AntiforgeryToken /><input type="hidden" name="ReturnUrl" value="Account/Login" /><button type="submit" class="nav-link nav-session-logout btn-link-form" title="Log Out Only"><span class="nav-icon">🚪</span> <span class="nav-text">Log Out Only</span></button></form></div>
+                <div class="nav-item px-2"><form action="Account/ClockOutAndLogout" method="post" onsubmit="return confirm('Clock out and log out now?');"><AntiforgeryToken /><button type="submit" class="nav-link nav-clockout btn-link-form" title="Clock Out + Log Out"><span class="nav-icon">⇥</span> <span class="nav-text">Clock Out + Log Out</span></button></form></div>
+                <div class="nav-item px-2"><form action="Account/Logout" method="post" onsubmit="return confirm('Log out now?');"><AntiforgeryToken /><input type="hidden" name="ReturnUrl" value="Account/Login" /><button type="submit" class="nav-link nav-session-logout btn-link-form" title="Log Out Only"><span class="nav-icon">🚪</span> <span class="nav-text">Log Out Only</span></button></form></div>
             </Authorized>
             <NotAuthorized><div class="nav-item px-2"><NavLink class="nav-link" href="Account/Login"><span class="nav-icon">●</span> <span class="nav-text">Staff Login</span></NavLink></div></NotAuthorized>
         </AuthorizeView>

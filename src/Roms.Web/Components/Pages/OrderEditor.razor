@@ -126,6 +126,33 @@ else
                 }
             </div>
 
+            <section class="read-only-order-summary mt-3 p-3 rounded bg-surface-soft border border-secondary" aria-label="Read-only customer order summary">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>Customer summary</strong>
+                    <span class="small text-muted">Live</span>
+                </div>
+                @if (order.Items.Count == 0)
+                {
+                    <div class="small text-muted">No items added yet.</div>
+                }
+                else
+                {
+                    <ul class="list-unstyled mb-2">
+                        @foreach (var line in order.Items.Where(x => !x.IsRemoved))
+                        {
+                            <li class="d-flex justify-content-between gap-2 small">
+                                <span>@line.Quantity × @line.Name@(string.IsNullOrWhiteSpace(line.Notes) ? "" : $" ({line.Notes})")</span>
+                                <span>₱@((line.UnitPrice * line.Quantity).ToString("N2"))</span>
+                            </li>
+                        }
+                    </ul>
+                    <div class="d-flex justify-content-between border-top pt-2">
+                        <strong>Total</strong>
+                        <strong>₱@order.Total.ToString("N2")</strong>
+                    </div>
+                }
+            </section>
+
             <div class="summary-items-list flex-fill overflow-auto my-3" style="max-height: 400px;">
                 @if (order.Items.Count == 0)
                 {
@@ -192,7 +219,7 @@ else
                 else if (order.Status == OrderStatus.Completed && order.PaymentConfirmedUtc is null)
                 {
                     <div class="alert alert-warning m-0">
-                        <strong>Pending payment.</strong> Waiting for Admin confirmation.
+                        <strong>Pending payment.</strong> Waiting for Manager or Admin confirmation.
                     </div>
                 }
                 else if (order.Status == OrderStatus.Completed)
