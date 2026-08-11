@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="160" viewBox="0 0 480 160" role="img" aria-labelledby="title description">
+  <title id="title">Restaurant logo placeholder</title>
+  <desc id="description">Neutral placeholder used until an approved restaurant logo is supplied.</desc>
+  <rect width="480" height="160" rx="24" fill="#121c29"/>
+  <path d="M75 45v70m-20-70v70m40-70v70M55 45c0 18 9 27 20 27s20-9 20-27M145 44v73m-17-73h34" fill="none" stroke="#38bdf8" stroke-linecap="round" stroke-linejoin="round" stroke-width="7"/>
+  <text x="185" y="77" fill="#e5edf7" font-family="Arial, sans-serif" font-size="32" font-weight="700">YOUR RESTAURANT</text>
+  <text x="187" y="108" fill="#94a3b8" font-family="Arial, sans-serif" font-size="18" letter-spacing="3">ARCWORKS RESTAURANT SUITE</text>
+</svg>

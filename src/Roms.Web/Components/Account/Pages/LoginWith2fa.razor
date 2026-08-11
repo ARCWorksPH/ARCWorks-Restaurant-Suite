@@ -8,6 +8,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<LoginWith2fa> Logger
+@inject StaffSessionService StaffSessions
 
 <PageTitle>Two-factor authentication</PageTitle>
 
@@ -74,6 +75,16 @@
 
         if (result.Succeeded)
         {
+            var session = await StaffSessions.TryStartAsync(user);
+            if (!session.Started)
+            {
+                await SignInManager.SignOutAsync();
+                message = "This staff account is already signed in on another device. Log out there first, or wait 15 minutes without activity for that session to expire.";
+                return;
+            }
+
+            await SignInManager.SignInWithClaimsAsync(user, isPersistent: false,
+                new[] { new System.Security.Claims.Claim(StaffSessionService.SessionClaimType, session.SessionId!) });
             Logger.LogInformation("User with ID '{UserId}' logged in with 2fa.", userId);
             RedirectManager.RedirectTo(ReturnUrl);
         }

@@ -1,6 +1,9 @@
 @implements IAsyncDisposable
+@using Roms.Web.Components.Account
 @inject IJSRuntime JS
 @inject IConfiguration Configuration
+@inject AuthenticationStateProvider Authentication
+@inject StaffSessionService StaffSessions
 
 <div id="session-timeout-warning" class="session-warning" role="alertdialog" aria-modal="true" aria-labelledby="session-warning-title" hidden>
     <div>
@@ -16,13 +19,22 @@
 
 @code {
     private bool started;
-    private int IdleMinutes => Math.Clamp(Configuration.GetValue("Session:IdleTimeoutMinutes", 30), 5, 720);
+    private DotNetObjectReference<SessionTimeout>? selfReference;
+    private int IdleMinutes => Math.Clamp(Configuration.GetValue("Session:IdleTimeoutMinutes", 15), 5, 720);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        await JS.InvokeVoidAsync("romsSession.start", "session-timeout-form", IdleMinutes);
+        selfReference = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("romsSession.start", "session-timeout-form", IdleMinutes, selfReference);
         started = true;
+    }
+
+    [JSInvokable]
+    public async Task RecordActivity()
+    {
+        var state = await Authentication.GetAuthenticationStateAsync();
+        await StaffSessions.TouchAsync(state.User);
     }
 
     public async ValueTask DisposeAsync()
@@ -30,5 +42,6 @@
         if (!started) return;
         try { await JS.InvokeVoidAsync("romsSession.stop"); }
         catch (JSDisconnectedException) { }
+        selfReference?.Dispose();
     }
 }

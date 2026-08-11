@@ -10,6 +10,7 @@
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject StaffSessionService StaffSessions
 
 <PageTitle>Log in</PageTitle>
 
@@ -92,10 +93,11 @@
     public async Task LoginUser()
     {
         SignInResult result;
+        ApplicationUser? user;
         {
             if (!editContext.Validate())
                 return;
-            var user = await UserManager.FindByNameAsync(Input.Username);
+            user = await UserManager.FindByNameAsync(Input.Username);
             result = user is null || !user.IsActive
                 ? SignInResult.Failed
                 : await SignInManager.PasswordSignInAsync(user, Input.Password, isPersistent: false, lockoutOnFailure: true);
@@ -103,6 +105,16 @@
 
         if (result.Succeeded)
         {
+            var session = await StaffSessions.TryStartAsync(user!);
+            if (!session.Started)
+            {
+                await SignInManager.SignOutAsync();
+                errorMessage = "This staff account is already signed in on another device. Log out there first, or wait 15 minutes without activity for that session to expire.";
+                return;
+            }
+
+            await SignInManager.SignInWithClaimsAsync(user!, isPersistent: false,
+                new[] { new System.Security.Claims.Claim(StaffSessionService.SessionClaimType, session.SessionId!) });
             Logger.LogInformation("User logged in.");
             RedirectManager.RedirectTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "attendance" : ReturnUrl);
         }

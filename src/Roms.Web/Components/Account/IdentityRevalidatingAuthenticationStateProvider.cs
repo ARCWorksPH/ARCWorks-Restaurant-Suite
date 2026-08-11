@@ -7,15 +7,15 @@ using Roms.Web.Data;
 
 namespace Roms.Web.Components.Account;
 
-// This is a server-side AuthenticationStateProvider that revalidates the security stamp for the connected user
-// every 30 minutes an interactive circuit is connected.
+// This is a server-side AuthenticationStateProvider that revalidates both the
+// Identity security stamp and the server-backed single-device staff session.
 internal sealed class IdentityRevalidatingAuthenticationStateProvider(
         ILoggerFactory loggerFactory,
         IServiceScopeFactory scopeFactory,
         IOptions<IdentityOptions> options)
     : RevalidatingServerAuthenticationStateProvider(loggerFactory)
 {
-    protected override TimeSpan RevalidationInterval => TimeSpan.FromMinutes(30);
+    protected override TimeSpan RevalidationInterval => TimeSpan.FromMinutes(1);
 
     protected override async Task<bool> ValidateAuthenticationStateAsync(
         AuthenticationState authenticationState, CancellationToken cancellationToken)
@@ -23,7 +23,10 @@ internal sealed class IdentityRevalidatingAuthenticationStateProvider(
         // Get the user manager from a new scope to ensure it fetches fresh data
         await using var scope = scopeFactory.CreateAsyncScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        return await ValidateSecurityStampAsync(userManager, authenticationState.User);
+        if (!await ValidateSecurityStampAsync(userManager, authenticationState.User)) return false;
+
+        var sessions = scope.ServiceProvider.GetRequiredService<StaffSessionService>();
+        return await sessions.IsCurrentAsync(authenticationState.User, cancellationToken);
     }
 
     private async Task<bool> ValidateSecurityStampAsync(UserManager<ApplicationUser> userManager, ClaimsPrincipal principal)

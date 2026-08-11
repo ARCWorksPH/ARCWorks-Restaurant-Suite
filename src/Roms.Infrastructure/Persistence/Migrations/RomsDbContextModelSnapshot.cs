@@ -792,6 +792,10 @@ namespace Roms.Infrastructure.Persistence.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("ActiveSessionId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("longtext");
@@ -840,6 +844,9 @@ namespace Roms.Infrastructure.Persistence.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("longtext");
 
+                    b.Property<DateTime?>("SessionLastActivityUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
 
@@ -851,6 +858,8 @@ namespace Roms.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
+
+                    b.HasIndex("ActiveSessionId");
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()

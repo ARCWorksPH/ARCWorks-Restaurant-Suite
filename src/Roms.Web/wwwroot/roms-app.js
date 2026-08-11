@@ -1,6 +1,7 @@
 (() => {
     let installPrompt, idleTimer, warningTimer, countdownTimer;
     let listeners = [];
+    let activityReference, lastActivitySentAt = 0;
 
     window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); installPrompt = event; });
     const showInstallRequirement = message => {
@@ -138,9 +139,17 @@
     };
 
     window.romsSession = {
-        start: (formId, idleMinutes) => {
+        start: (formId, idleMinutes, dotNetReference) => {
             window.romsSession.stop();
-            const onActivity = () => reset(formId, idleMinutes);
+            activityReference = dotNetReference;
+            const onActivity = () => {
+                reset(formId, idleMinutes);
+                const now = Date.now();
+                if (activityReference && now - lastActivitySentAt >= 60_000) {
+                    lastActivitySentAt = now;
+                    activityReference.invokeMethodAsync("RecordActivity").catch(() => {});
+                }
+            };
             ["pointerdown", "keydown", "touchstart"].forEach(name => {
                 document.addEventListener(name, onActivity, { passive: true });
                 listeners.push([name, onActivity]);
@@ -156,6 +165,8 @@
                 else document.removeEventListener(name, handler);
             });
             listeners = [];
+            activityReference = null;
+            lastActivitySentAt = 0;
             hideWarning();
         }
     };

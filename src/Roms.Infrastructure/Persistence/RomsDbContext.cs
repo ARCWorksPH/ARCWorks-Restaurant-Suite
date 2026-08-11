@@ -29,6 +29,12 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<ApplicationUser>(e =>
+        {
+            e.Property(x => x.ActiveSessionId).HasMaxLength(64);
+            e.HasIndex(x => x.ActiveSessionId);
+        });
+
         builder.Entity<RestaurantTable>(e =>
         {
             e.HasIndex(x => x.Number).IsUnique();

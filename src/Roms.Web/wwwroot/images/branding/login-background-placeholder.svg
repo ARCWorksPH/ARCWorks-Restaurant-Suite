@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Neutral landing page background">
+  <defs>
+    <radialGradient id="cyan" cx="78%" cy="76%" r="55%"><stop stop-color="#0e7490" stop-opacity=".28"/><stop offset="1" stop-color="#07111e" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gold" cx="44%" cy="10%" r="42%"><stop stop-color="#d6a94e" stop-opacity=".22"/><stop offset="1" stop-color="#07111e" stop-opacity="0"/></radialGradient>
+    <linearGradient id="base" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#05080e"/><stop offset=".56" stop-color="#0c1421"/><stop offset="1" stop-color="#05070d"/></linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="45"/></filter>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#base)"/>
+  <rect width="1920" height="1080" fill="url(#gold)"/>
+  <rect width="1920" height="1080" fill="url(#cyan)"/>
+  <g fill="#f6d47d" opacity=".22" filter="url(#blur)">
+    <circle cx="260" cy="190" r="22"/><circle cx="490" cy="350" r="16"/><circle cx="1410" cy="135" r="17"/><circle cx="1690" cy="710" r="25"/><circle cx="1460" cy="920" r="17"/>
+  </g>
+  <g stroke="#d6a94e" stroke-opacity=".16" fill="none">
+    <path d="M0 900C360 730 500 1150 960 890S1510 720 1920 920" stroke-width="2"/>
+    <path d="M0 940C360 770 500 1190 960 930S1510 760 1920 960" stroke-width="1"/>
+  </g>
+</svg>

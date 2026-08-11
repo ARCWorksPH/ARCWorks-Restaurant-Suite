@@ -1153,3 +1153,90 @@ acceptance remain required before the UI redesign gate opens.
   focused order workflow integration 5/5. The full solution test command was
   stopped at the 120-second limit while waiting on the broader environment;
   no failure result was recorded.
+
+## 2026-08-09 - Direct UI implementation pass
+
+Status: source implementation complete for local visual acceptance; public
+deployment and visual sign-off intentionally remain pending.
+
+- Completed the Neo-Glass/Soft-Bento visual pass directly in the canonical
+  project. No Gemini session or external design handoff is required for this
+  implementation.
+- Expanded desktop content, strengthened status-coded table cards, restored the
+  intended three-pane order-editor grid, improved menu-card hierarchy, and
+  applied a landscape-first three-column KDS layout with responsive fallbacks.
+- Restyled inventory as independent-item operational bento panels without
+  reintroducing recipe functionality.
+- Removed a conflicting Bootstrap flex utility from the order editor that was
+  preventing its grid geometry from being applied.
+- `dotnet build Roms.slnx --no-restore` passed with 0 warnings and 0 errors;
+  `git diff --check` passed. The complete test command exceeded its two-minute
+  verification window and is recorded as pending rather than passed.
+- Detailed scope and acceptance instructions are in
+  `docs/UI_IMPLEMENTATION_STATUS_2026-08-09.md`.
+
+### Menu image integration follow-up
+
+- Added the 12 supplied menu images to the web static assets and mapped them by
+  normalized database item name.
+- Image cards use contain/center rendering so source images with different
+  dimensions are not stretched or cropped.
+- Rebuilt only the app image; local `/health` returned HTTP 200.
+# 2026-08-11 — Ideal Glass visual rebuild plan established
+
+- Accepted `docs/NOTES/ARCWorks_ROMS_Ideal_Glass_Design_Spec3.md` as the
+  authoritative visual target, replacing prior broad glass-theme instructions.
+- Recorded `docs/NOTES/IDEAL_GLASS_IMPLEMENTATION_PLAN_2026-08-11.md` before
+  the next UI change. The plan separates reusable visual-system work from
+  screen work: Tables, Kitchen Display, Waiter Order Editor, Manager/Inventory,
+  then supporting responsive screens.
+- Confirmed the prior smoked-glass pass is only a foundation. It is not a claim
+  of ideal-mockup parity, functional acceptance, or beta readiness.
+- Preserved rejected inventory scope: the visual inventory reference must not
+  reintroduce recipes, automatic stock deduction, supplier management, or
+  unit-cost functionality.
+- Completed the shared-token portion of the plan in `roms.css`: neutral
+  background, reusable glass foundation, status-colored fills/borders/glows,
+  and common status-pill treatment. Rebuilt the Docker `app` image; the
+  container became healthy and loopback `/health` returned HTTP 200. This does
+  not yet claim screen-level visual parity with the approved mockups.
+
+## 2026-08-11 - Single active staff session and inactivity protection
+
+Status: deployed to the local container; human multi-browser acceptance is
+still required.
+
+- Added a database-backed session claim for every successful staff login,
+  including password, two-factor, and recovery-code completion routes. A user
+  cannot start a second session while their existing session has recent server
+  activity.
+- Added 15-minute inactivity expiration. Browser activity updates the server
+  record and server-side authentication revalidation checks that the active
+  claim still belongs to the user.
+- Explicit logout and clock-out/logout release the active claim. Cookie
+  expiration is bounded at 20 minutes and does not slide.
+- Applied migration `20260811190000_AddSingleActiveStaffSession` to MariaDB;
+  the healthy app container startup log records the migration, both columns,
+  and the `IX_AspNetUsers_ActiveSessionId` index as applied.
+- No landing page, navigation, role workflow, or visual changes were made as
+  part of this security step. The detailed policy and manual browser acceptance
+  checklist are in `docs/NOTES/SINGLE_ACTIVE_SESSION_POLICY_2026-08-11.md`.
+
+## 2026-08-11 - Landing page Design 2 collaborator preparation
+
+Status: backend/configuration preparation complete; visual implementation is
+deliberately delegated to a separately reviewed landing-page pull request.
+
+- Added typed, startup-validated `LandingPageBranding` configuration for a
+  restaurant name, descriptor, local logo path, local decorative background,
+  and support message. The configuration carries presentation values only; it
+  does not control tenancy, authorization, or authentication.
+- Added neutral local placeholder SVGs and an asset-boundary README under
+  `src/Roms.Web/wwwroot/images/branding/`. External images/scripts are not
+  permitted for this public sign-in surface.
+- Created `docs/UI/LANDING_PAGE_GROK_HANDOFF_2026-08-11.md`, defining the
+  Design 2 scope, exact permitted files, session/security invariants, asset
+  rules, responsive/accessibility requirements, rollback-safe PR process, and
+  required verification evidence.
+- No login layout, authenticated navigation, workflow behavior, or visual
+  operational tab was changed in this preparation step.

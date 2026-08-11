@@ -13,6 +13,7 @@ using Roms.Web.Realtime;
 using Roms.Web;
 using Roms.Web.Ai;
 using Roms.Application.Commands;
+using Roms.Web.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
@@ -32,6 +33,19 @@ builder.Services.AddDataProtection()
     .SetApplicationName("ROMS");
 
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+builder.Services.AddOptions<LandingPageBrandingOptions>()
+    .Bind(builder.Configuration.GetSection(LandingPageBrandingOptions.SectionName))
+    .Validate(options => !string.IsNullOrWhiteSpace(options.RestaurantName) && options.RestaurantName.Length <= 120,
+        "LandingPageBranding:RestaurantName must contain at most 120 characters.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.RestaurantDescriptor) && options.RestaurantDescriptor.Length <= 120,
+        "LandingPageBranding:RestaurantDescriptor must contain at most 120 characters.")
+    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.RestaurantLogoPath),
+        "LandingPageBranding:RestaurantLogoPath must be a local /images/ asset path.")
+    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.BackgroundImagePath),
+        "LandingPageBranding:BackgroundImagePath must be a local /images/ asset path.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.SupportMessage) && options.SupportMessage.Length <= 240,
+        "LandingPageBranding:SupportMessage must contain at most 240 characters.")
+    .ValidateOnStart();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     // cloudflared runs on this server and forwards the visitor's HTTPS scheme.
@@ -40,6 +54,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.AddScoped<StaffSessionService>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 builder.Services.AddAuthentication(options =>
     {
@@ -49,7 +64,9 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.ExpireTimeSpan = TimeSpan.FromHours(12);
+    // The server-side StaffSessionService separately validates actual activity.
+    // The cookie remains short-lived as a second boundary for shared devices.
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(20);
     options.SlidingExpiration = false;
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
