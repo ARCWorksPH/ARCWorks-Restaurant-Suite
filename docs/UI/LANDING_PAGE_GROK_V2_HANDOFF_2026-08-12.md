@@ -1,9 +1,13 @@
 # ARCWorks Restaurant Suite — Chef Doy's Landing Page V2 Handoff
 
-**Prepared:** 2026-08-12  
-**Repository:** `ARCWorksPH/ARCWorks-Restaurant-Suite`  
-**Handoff branch:** `ui/landing-page-design-2-handoff-v2`  
-**Required submission branch:** create a new branch from this handoff branch  
+**Prepared:** 2026-08-12
+
+**Repository:** `ARCWorksPH/ARCWorks-Restaurant-Suite`
+
+**Handoff branch:** `ui/landing-page-design-2-handoff-v2`
+
+**Required submission branch:** create a new branch from this handoff branch
+
 **Required PR base:** `ui/landing-page-design-2-handoff-v2` — **never `main`**
 
 ## Objective
@@ -208,4 +212,3 @@ Stop and report instead of guessing if:
 - a requested visual effect requires changing authentication behavior;
 - build/test failures appear outside the permitted implementation surface;
 - the PR base is `main` or any branch other than the named handoff branch.
-
