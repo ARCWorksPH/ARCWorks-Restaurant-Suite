@@ -13,7 +13,11 @@ public sealed class LandingPageBrandingOptions
     public string RestaurantName { get; init; } = "Your Restaurant";
     public string RestaurantDescriptor { get; init; } = "Restaurant";
     public string RestaurantLogoPath { get; init; } = "/images/branding/restaurant-logo-placeholder.svg";
+    public string ProductLogoPath { get; init; } = "/images/branding/arcworks-logo.svg";
     public string BackgroundImagePath { get; init; } = "/images/branding/login-background-placeholder.svg";
+    public string BackgroundWebpPath { get; init; } = "/images/branding/login-background-placeholder.svg";
+    public string MobileBackgroundImagePath { get; init; } = "/images/branding/login-background-placeholder.svg";
+    public string MobileBackgroundWebpPath { get; init; } = "/images/branding/login-background-placeholder.svg";
     public string SupportMessage { get; init; } = "Need access? Contact your restaurant administrator.";
 
     public static bool IsSafeLocalAssetPath(string? value) =>

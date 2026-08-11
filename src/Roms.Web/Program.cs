@@ -41,8 +41,16 @@ builder.Services.AddOptions<LandingPageBrandingOptions>()
         "LandingPageBranding:RestaurantDescriptor must contain at most 120 characters.")
     .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.RestaurantLogoPath),
         "LandingPageBranding:RestaurantLogoPath must be a local /images/ asset path.")
+    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.ProductLogoPath),
+        "LandingPageBranding:ProductLogoPath must be a local /images/ asset path.")
     .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.BackgroundImagePath),
         "LandingPageBranding:BackgroundImagePath must be a local /images/ asset path.")
+    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.BackgroundWebpPath),
+        "LandingPageBranding:BackgroundWebpPath must be a local /images/ asset path.")
+    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.MobileBackgroundImagePath),
+        "LandingPageBranding:MobileBackgroundImagePath must be a local /images/ asset path.")
+    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.MobileBackgroundWebpPath),
+        "LandingPageBranding:MobileBackgroundWebpPath must be a local /images/ asset path.")
     .Validate(options => !string.IsNullOrWhiteSpace(options.SupportMessage) && options.SupportMessage.Length <= 240,
         "LandingPageBranding:SupportMessage must contain at most 240 characters.")
     .ValidateOnStart();
