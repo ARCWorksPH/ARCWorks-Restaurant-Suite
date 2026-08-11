@@ -1,4 +1,5 @@
 @page "/Account/Login"
+@layout LandingLayout
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
@@ -42,9 +43,11 @@
 
     <main class="landing-main">
         <div class="landing-identity">
-            @if (!string.IsNullOrWhiteSpace(SafeLogoPath))
+            @if (HasCustomRestaurantLogo)
             {
-                <img class="landing-logo" src="@SafeLogoPath" alt="@Branding.RestaurantName logo" width="420" height="140" />
+                <div class="landing-logo-frame">
+                    <img class="landing-logo" src="@SafeLogoPath" alt="@Branding.RestaurantName logo" width="1220" height="864" />
+                </div>
             }
             else
             {
@@ -130,10 +133,13 @@
 
     private LandingPageBrandingOptions Branding => LandingBranding.Value;
 
-    private string SafeLogoPath =>
-        LandingPageBrandingOptions.IsSafeLocalAssetPath(Branding.RestaurantLogoPath)
-            ? Branding.RestaurantLogoPath
-            : "/images/branding/restaurant-logo-placeholder.svg";
+    private bool HasCustomRestaurantLogo =>
+        LandingPageBrandingOptions.IsSafeLocalAssetPath(Branding.RestaurantLogoPath) &&
+        !string.Equals(Branding.RestaurantLogoPath, "/images/branding/restaurant-logo-placeholder.svg", StringComparison.Ordinal);
+
+    private string SafeLogoPath => HasCustomRestaurantLogo
+        ? Branding.RestaurantLogoPath
+        : "/images/branding/restaurant-logo-placeholder.svg";
 
     private string SafeBackgroundPath =>
         LandingPageBrandingOptions.IsSafeLocalAssetPath(Branding.BackgroundImagePath)

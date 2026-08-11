@@ -22,6 +22,15 @@ Security concerns should be reported privately through the repository security
 contact rather than posted publicly. Pull requests should remain focused and
 include tests or a clear explanation of why tests are not applicable.
 
+### Active isolated UI design handoff
+
+The second Chef Doy's landing-page design round is intentionally isolated from
+the protected main branch. Read
+[`docs/UI/LANDING_PAGE_GROK_V2_HANDOFF_2026-08-12.md`](docs/UI/LANDING_PAGE_GROK_V2_HANDOFF_2026-08-12.md)
+before making any visual changes. Submissions must target
+`ui/landing-page-design-2-handoff-v2`, include desktop/mobile evidence, and must
+not be merged until independent source, runtime, and visual review is complete.
+
 ## Implemented
 
 - Role-protected Admin, Waiter, and Kitchen experiences.
