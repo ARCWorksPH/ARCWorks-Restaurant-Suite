@@ -1,16 +1,16 @@
 # Landing-page branding assets
 
-This directory is reserved for local, reviewed assets used by the public
-landing/login page.
+Runtime assets for the public landing / staff login page.
 
-Expected paths:
+| File | Purpose | Origin |
+|---|---|---|
+| `chef-doys-wordmark.png` | Dominant Chef Doy's gold script identity (transparent) | Derivative of supplied source |
+| `arcworks-mark.png` | Secondary ARCWorks product endorsement (transparent) | Derivative of supplied source |
+| `landing-bg-desktop.png` / `.webp` | Desktop atmosphere background | Derivative composition |
+| `landing-bg-mobile.png` | Portrait mobile atmosphere background | Derivative crop |
+| `chef-doys-gourmet-restaurant.png` | Earlier full-composition source retained | Original handoff asset |
+| `restaurant-logo-placeholder.svg` | Safe fallback | Placeholder |
+| `login-background-placeholder.svg` | Safe fallback | Placeholder |
 
-- `restaurant-logo-placeholder.svg` — a safe fallback until the restaurant
-  supplies its approved logo.
-- `login-background-placeholder.svg` — a neutral fallback background.
-- A restaurant-specific logo/background may replace those defaults only after
-  review and with the matching paths set in `LandingPageBranding` configuration.
-
-Do not put credentials, QR enrollment codes, customer photographs, staff
-photos, or unlicensed stock images here. The landing page must not fetch visual
-assets from external URLs.
+Do not put credentials, QR codes, customer/staff photos, or unlicensed stock here.
+The landing page must not fetch visual assets from external URLs.
