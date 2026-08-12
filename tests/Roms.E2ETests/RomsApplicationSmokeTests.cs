@@ -139,8 +139,8 @@ public sealed class RomsApplicationSmokeTests : PageTest
             Assert.That(sidebarBox!.Value.Width, Is.InRange(248, 252));
             await Expect(sidebar.Locator(".nav-text").First).ToBeVisibleAsync();
 
-            await Page.GetByRole(AriaRole.Button, new() { Name = "Minimize kitchen navigation panel" }).ClickAsync();
-            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Expand kitchen navigation panel" })).ToBeVisibleAsync();
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Minimize navigation panel" }).ClickAsync();
+            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Expand navigation panel" })).ToBeVisibleAsync();
             var collapsedSidebarBox = await WaitForBoundingBoxAsync(sidebar, Page);
             Assert.That(collapsedSidebarBox, Is.Not.Null);
             Assert.That(collapsedSidebarBox!.Value.Width, Is.InRange(70, 74));
