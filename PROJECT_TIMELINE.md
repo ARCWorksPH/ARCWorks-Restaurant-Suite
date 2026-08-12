@@ -194,6 +194,19 @@ anchors are especially useful when reviewing the project on GitHub:
 | `f8c3a1e` | Prepare Resto-VM portable instance |
 | `0d0db2b` | Place AI integration behind the future-version hold |
 
+## 2026-08-12 - Landing page accepted and promoted
+
+The project owner accepted the premium Chef Doy's Gourmet Restaurant staff
+login in desktop, landscape, portrait/mobile, and zoomed views. Pull request
+#11 passed CI and secret scanning, then merged into protected `main` as
+`daedd2c`. The approved image was promoted to the production-facing ROMS app;
+local and public endpoints returned HTTP 200, the public visual assets matched
+the accepted files by SHA-256, and the app returned healthy without recreating
+MariaDB or the Cloudflare tunnel.
+
+The Landing Page section is complete. The next surgical UI work area is the
+Waiter section, beginning with Tables Overview and the order-entry workflow.
+
 ## Open gates before UI completion
 
 - Complete and accept the deterministic waiter, kitchen, management,

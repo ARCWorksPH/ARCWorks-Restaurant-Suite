@@ -46,6 +46,30 @@ The editable clean and sharpened masters are retained under
 - The complete .NET test command exceeded the local verification window and is
   recorded as pending rather than reported as passed.
 
+## Live promotion evidence
+
+The accepted page was promoted to the production-facing ROMS app on
+2026-08-12 after pull request #11 passed both CI verification runs and the
+GitGuardian security check. The protected `main` merge commit is `daedd2c`.
+
+- Versioned runtime image: `roms:landing-accepted-daedd2c`
+- Running app image ID:
+  `sha256:8771075857e870bc8e5606b5c3da3f3c1219d388045ba4224884fb4435c691cd`
+- Local endpoint `http://127.0.0.1:7070/Account/Login`: HTTP 200 and references
+  the accepted composition.
+- Public endpoint `https://roms.arkworksph.online/Account/Login`: HTTP 200 and
+  references the accepted composition.
+- The public Chef Doy's wordmark, desktop background, and mobile background
+  matched the accepted assets byte-for-byte by SHA-256.
+- The app health check passed after an app-only recreation.
+- MariaDB and Cloudflare tunnel container identities were unchanged.
+- No application errors were found in the post-promotion log window.
+
+Rollback was preserved as Docker image
+`roms:rollback-pre-landing-20260812` and as a timestamped landing-file snapshot
+outside the live repository. No database migration or data mutation was part
+of the promotion.
+
 ## Acceptance boundary
 
 This acceptance covers the landing-page presentation and its existing login
