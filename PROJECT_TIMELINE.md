@@ -254,3 +254,15 @@ finishing the core restaurant system.
 - Gate 0 evidence is in
   `docs/UI/evidence/checkpoints/2026-08-12-waiter-before-personal-dashboard/`.
 - Backend work remains blocked until the project owner reviews this checkpoint.
+
+# 2026-08-12 - External Audit #6 requested
+
+- Restored the already-completed External Audit #5 to the authoritative `main`
+  audit timeline through PR #14, preserving the original independent report.
+- Closed the obsolete stacked Audit #5 PR #6 with a traceable reference to its
+  replacement rather than leaving two competing audit pull requests open.
+- Prepared an independent-review handoff for Audit #6 against PR #13 and the
+  Gate 0 Waiter checkpoint.
+- Audit #6 remains pending: the handoff is not an audit verdict, and Gate 1
+  implementation remains blocked until the independent report is received and
+  assessed by the project owner.
