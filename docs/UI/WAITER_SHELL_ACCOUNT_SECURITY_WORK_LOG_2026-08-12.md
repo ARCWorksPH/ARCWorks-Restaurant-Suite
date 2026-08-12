@@ -78,3 +78,16 @@ employee's name with an opaque archive key.
 - Rollback after a future deployment requires application-image rollback plus
   the normal database backup/restore process; do not manually delete archived
   Identity rows.
+
+## Preview catalog readiness follow-up
+
+- Removed the blue interactive-control outline from only Blazor's
+  programmatically focused page heading. Semantic navigation focus remains;
+  controls retain visible keyboard focus.
+- Populated the isolated preview with 12 tables, 4 categories, and 12 menu
+  items using the guarded, idempotent `scripts/Seed-PreviewCatalog.ps1`.
+- Added the 12 supplied menu photographs to the preview order catalog with
+  contained, centered rendering so mixed source dimensions are neither
+  distorted nor cropped.
+- Full evidence and the preview-only boundary are recorded in
+  `docs/UI/PREVIEW_CATALOG_POPULATION_2026-08-12.md`.

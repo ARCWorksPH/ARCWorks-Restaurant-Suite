@@ -229,3 +229,13 @@ finishing the core restaurant system.
 - Reduced Waiter navigation to Dashboard and Tables & Orders and added an
   explicit landscape sidebar control.
 - Tables & Orders visual/function inspection remains the next phase.
+
+# 2026-08-12 - Tables and menu preview populated
+
+- Corrected the navigation-heading focus presentation without weakening
+  keyboard focus visibility for interactive controls.
+- Populated only the isolated waiter-shell preview with 12 tables and 12 menu
+  items across four categories, including prices and preparation times.
+- Added matching contained menu photographs to create realistic visual load
+  before the Tables & Orders UI inspection.
+- The live database and production-facing application remain unchanged.
