@@ -44,6 +44,10 @@ employee's name with an opaque archive key.
 - `dotnet build Roms.slnx --no-restore`: passed with 0 warnings and 0 errors.
 - Domain tests: 16/16 passed.
 - Command Gateway tests: 11/11 passed.
+- GitHub's real-application verification reported all 46/46 Integration tests
+  passed. Its two browser failures were traced to stale assertions for the
+  intentionally retired `My attendance` heading; those assertions now target
+  the consolidated `My dashboard` heading.
 - Integration tests reported 29/29 passed before the existing runner process
   failed to exit; the focused OrderWorkflow suite was rerun and passed 6/6,
   including the new archived-waiter display-name regression test.
