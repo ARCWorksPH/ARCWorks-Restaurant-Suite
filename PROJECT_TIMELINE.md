@@ -239,3 +239,18 @@ finishing the core restaurant system.
 - Added matching contained menu photographs to create realistic visual load
   before the Tables & Orders UI inspection.
 - The live database and production-facing application remain unchanged.
+
+# 2026-08-12 - Gate 0 Waiter visual checkpoint
+
+- Froze the accepted landing page and the current pre-personal-dashboard
+  Waiter shell as formal desktop, landscape, portrait, and phone-landscape
+  screenshots.
+- Captured authenticated Waiter evidence through a disposable clone of the
+  isolated preview so neither the accepted preview database nor the live
+  instance needed a password reset or evidence-only account.
+- Recorded the exact source commit, preview image, data counts, viewport
+  dimensions, limitations, security boundaries, and SHA-256 hashes.
+- Made no feature-code, schema, live database, tunnel, or production changes.
+- Gate 0 evidence is in
+  `docs/UI/evidence/checkpoints/2026-08-12-waiter-before-personal-dashboard/`.
+- Backend work remains blocked until the project owner reviews this checkpoint.
