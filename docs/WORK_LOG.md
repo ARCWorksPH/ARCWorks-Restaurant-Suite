@@ -1280,3 +1280,16 @@ the next screen phase.
   tunnel retained their existing container identities.
 - Closed the Landing Page UI section. Waiter Tables Overview and order entry
   are the next focused UI section.
+# 2026-08-12 - Waiter shell and staff account lifecycle
+
+- Released inactive staff usernames for reuse while retaining immutable
+  Identity, attendance, schedule, order, and audit history.
+- Added mandatory first-login password replacement and a persistent Dashboard
+  Change Password option.
+- Consolidated attendance and session actions into Dashboard, removed the
+  redundant Install ARCWorks and My Attendance navigation items, and limited
+  Waiter navigation to Dashboard plus Tables & Orders.
+- Added the landscape Minimize / Expand navigation control for all roles.
+- Kept Tables & Orders itself out of scope pending the next supervised phase.
+- Full evidence and rollback boundary:
+  `docs/UI/WAITER_SHELL_ACCOUNT_SECURITY_WORK_LOG_2026-08-12.md`.

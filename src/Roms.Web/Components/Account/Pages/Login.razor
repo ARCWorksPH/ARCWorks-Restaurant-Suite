@@ -180,10 +180,17 @@
                 return;
             }
 
-            await SignInManager.SignInWithClaimsAsync(user!, isPersistent: false,
-                new[] { new System.Security.Claims.Claim(StaffSessionService.SessionClaimType, session.SessionId!) });
+            // TryStartAsync has attached the new server session to the user.
+            // Refresh through the principal factory so the cookie receives exactly
+            // one session claim plus the first-login password-change claim.
+            await SignInManager.RefreshSignInAsync(user!);
             Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "attendance" : ReturnUrl);
+            if (user!.MustChangePassword)
+            {
+                RedirectManager.RedirectTo("Account/Manage/ChangePassword", new() { ["forced"] = "true" });
+            }
+
+            RedirectManager.RedirectTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "" : ReturnUrl);
         }
         else if (result.RequiresTwoFactor)
         {

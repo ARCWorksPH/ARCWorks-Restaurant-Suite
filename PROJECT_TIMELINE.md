@@ -220,3 +220,12 @@ Waiter section, beginning with Tables Overview and the order-entry workflow.
 
 The AI hold can be revisited later, but it is not on the critical path for
 finishing the core restaurant system.
+# 2026-08-12 - Waiter shell and account-security gate
+
+- Completed the pre-Tables waiter shell: Dashboard now owns attendance,
+  schedule, password, clock-out, and logout actions.
+- Added first-login password replacement and safe reuse of login names from
+  inactive staff without deleting historical records.
+- Reduced Waiter navigation to Dashboard and Tables & Orders and added an
+  explicit landscape sidebar control.
+- Tables & Orders visual/function inspection remains the next phase.

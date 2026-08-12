@@ -30,6 +30,38 @@ public static class DbInitializer
 
         var options = scope.ServiceProvider.GetRequiredService<IOptions<SeedOptions>>().Value;
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        // Earlier soft-deletion retained the original login name, which prevented a
+        // restaurant from reusing a departed employee's username. Repair those rows
+        // at startup without deleting their immutable Identity IDs or history.
+        var inactiveUsers = await userManager.Users
+            .Where(x => !x.IsActive && (x.ArchivedUserName == null || !x.UserName!.StartsWith("__archived__")))
+            .ToListAsync();
+        foreach (var inactiveUser in inactiveUsers)
+        {
+            var oldUserName = inactiveUser.ArchivedUserName ?? inactiveUser.UserName ?? "staff";
+            inactiveUser.ArchivedUserName = oldUserName;
+            inactiveUser.UserName = ApplicationUser.BuildArchivedUserName(inactiveUser.Id, oldUserName);
+            inactiveUser.NormalizedUserName = userManager.NormalizeName(inactiveUser.UserName);
+            inactiveUser.ActiveSessionId = null;
+            inactiveUser.SessionLastActivityUtc = null;
+            var archiveResult = await userManager.UpdateAsync(inactiveUser);
+            if (!archiveResult.Succeeded)
+                throw new InvalidOperationException(string.Join("; ", archiveResult.Errors.Select(x => x.Description)));
+
+            db.AuditEntries.Add(new AuditEntry
+            {
+                ActorId = "system",
+                Action = "ArchiveInactiveUserName",
+                EntityType = nameof(ApplicationUser),
+                EntityId = inactiveUser.Id,
+                OldValuesJson = System.Text.Json.JsonSerializer.Serialize(new { IsActive = false, UserName = oldUserName }),
+                NewValuesJson = System.Text.Json.JsonSerializer.Serialize(new { IsActive = false, ArchivedUserName = oldUserName }),
+                OccurredUtc = DateTime.UtcNow
+            });
+        }
+        if (inactiveUsers.Count > 0) await db.SaveChangesAsync();
+
         var admin = await userManager.FindByNameAsync(options.AdminUsername);
         if (admin is null && string.IsNullOrWhiteSpace(options.AdminPassword))
         {

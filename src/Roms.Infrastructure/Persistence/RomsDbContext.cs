@@ -31,6 +31,7 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
 
         builder.Entity<ApplicationUser>(e =>
         {
+            e.Property(x => x.ArchivedUserName).HasMaxLength(256);
             e.Property(x => x.ActiveSessionId).HasMaxLength(64);
             e.HasIndex(x => x.ActiveSessionId);
         });

@@ -88,11 +88,18 @@
     }
 
     // This is a soft removal: the Identity row stays in place so order, attendance,
-    // and audit history retain their original actor. Login already rejects inactive users.
+    // and audit history retain their original actor. The former username is retained,
+    // while the active login name is released for a future employee.
     private async Task Toggle(ApplicationUser user)
     {
         if (!await JS.InvokeAsync<bool>("confirm", $"Remove access for {user.DisplayName}? The account and history will be retained.")) return;
+        var oldUserName = user.UserName ?? "staff";
+        user.ArchivedUserName = oldUserName;
+        user.UserName = ApplicationUser.BuildArchivedUserName(user.Id, oldUserName);
+        user.NormalizedUserName = UserManager.NormalizeName(user.UserName);
         user.IsActive = false;
+        user.ActiveSessionId = null;
+        user.SessionLastActivityUtc = null;
         var result = await UserManager.UpdateAsync(user);
         if (result.Succeeded && !user.IsActive)
         {
@@ -104,8 +111,8 @@
                 Action = "RemoveUserAccess",
                 EntityType = nameof(ApplicationUser),
                 EntityId = user.Id,
-                OldValuesJson = "{\"IsActive\":true}",
-                NewValuesJson = "{\"IsActive\":false}",
+                OldValuesJson = System.Text.Json.JsonSerializer.Serialize(new { IsActive = true, UserName = oldUserName }),
+                NewValuesJson = System.Text.Json.JsonSerializer.Serialize(new { IsActive = false, ArchivedUserName = oldUserName }),
                 OccurredUtc = DateTime.UtcNow
             });
             await db.SaveChangesAsync();
@@ -126,7 +133,8 @@
             {
                 UserName = username.Trim(),
                 DisplayName = displayName.Trim(),
-                EmailConfirmed = true
+                EmailConfirmed = true,
+                MustChangePassword = true
             };
             var result = await UserManager.CreateAsync(user, password);
             if (!result.Succeeded)
@@ -137,7 +145,7 @@
                 throw new InvalidOperationException(string.Join("; ", result.Errors.Select(x => x.Description)));
 
             username = displayName = password = "";
-            message = "User created.";
+            message = "User created. They must replace the temporary password at first login.";
             failed = false;
             await Load();
         }
@@ -147,4 +155,5 @@
             failed = true;
         }
     }
+
 }

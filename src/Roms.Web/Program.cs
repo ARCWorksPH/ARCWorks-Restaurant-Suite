@@ -101,6 +101,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddEntityFrameworkStores<RomsDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
+builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, StaffClaimsPrincipalFactory>();
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("WaiterOrAdmin", p => p.RequireRole(RomsRoles.Waiter, RomsRoles.Admin))
@@ -160,6 +161,29 @@ else
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+app.Use(async (context, next) =>
+{
+    var mustChangePassword = context.User.HasClaim(
+        StaffClaimsPrincipalFactory.MustChangePasswordClaimType, bool.TrueString);
+    var permittedPath = context.Request.Path.StartsWithSegments("/Account/Manage/ChangePassword") ||
+                        context.Request.Path.StartsWithSegments("/Account/Logout") ||
+                        context.Request.Path.StartsWithSegments("/_framework") ||
+                        context.Request.Path.StartsWithSegments("/_blazor") ||
+                        context.Request.Path.StartsWithSegments("/css") ||
+                        context.Request.Path.StartsWithSegments("/js") ||
+                        context.Request.Path.StartsWithSegments("/lib") ||
+                        context.Request.Path.StartsWithSegments("/images") ||
+                        Path.HasExtension(context.Request.Path.Value);
+    if (context.User.Identity?.IsAuthenticated == true && mustChangePassword && !permittedPath)
+    {
+        context.Response.Redirect("/Account/Manage/ChangePassword?forced=true");
+        return;
+    }
+
+    await next();
+});
 app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();

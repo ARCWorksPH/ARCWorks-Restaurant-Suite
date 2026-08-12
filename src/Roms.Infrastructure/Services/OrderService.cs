@@ -375,11 +375,21 @@ public sealed class OrderService(
         if (ids.Count == 0) return new(StringComparer.OrdinalIgnoreCase);
         // Connector/NET cannot type-map a parameterized string collection in this query on MariaDB.
         // A restaurant has a small staff roster, so fetch the two required columns and filter in memory.
-        var users = await db.Users.AsNoTracking().Where(x => x.UserName != null)
-            .Select(x => new { x.UserName, x.DisplayName }).ToListAsync(ct);
-        return users.Where(x => ids.Contains(x.UserName!)).ToDictionary(
-            x => x.UserName!, x => string.IsNullOrWhiteSpace(x.DisplayName) ? x.UserName! : x.DisplayName,
-            StringComparer.OrdinalIgnoreCase);
+        var users = await db.Users.AsNoTracking()
+            .Where(x => x.UserName != null || x.ArchivedUserName != null)
+            .Select(x => new { x.UserName, x.ArchivedUserName, x.DisplayName }).ToListAsync(ct);
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var user in users)
+        {
+            var historicalName = user.ArchivedUserName;
+            var loginName = user.UserName;
+            var displayName = string.IsNullOrWhiteSpace(user.DisplayName)
+                ? historicalName ?? loginName ?? "staff"
+                : user.DisplayName;
+            if (loginName is not null && ids.Contains(loginName)) result[loginName] = displayName;
+            if (historicalName is not null && ids.Contains(historicalName)) result[historicalName] = displayName;
+        }
+        return result;
     }
 
     private static string WaiterName(string waiterId, IReadOnlyDictionary<string, string> waiterNames) =>
