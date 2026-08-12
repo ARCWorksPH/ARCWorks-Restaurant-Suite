@@ -24,6 +24,17 @@ and the current [roadmap](docs/ROADMAP_2026-08-06.md).
 
 ## Chronological milestones
 
+### 2026-08-12 — Premium staff-login landing page accepted
+
+- Accepted the Chef Doy's Gourmet Restaurant landing page after desktop,
+  landscape, portrait/mobile, and zoomed visual inspection.
+- Finalized the layered restaurant-first composition, responsive glass login
+  card, enhanced atmospheric background, and production 3200 x 1406 Chef
+  Doy's wordmark without changing authentication or authorization behavior.
+- Preserved the accepted page as the rollback baseline before beginning the
+  Waiter/Tables interface phase. Detailed evidence and boundaries are in
+  [`docs/UI/LANDING_PAGE_ACCEPTANCE_2026-08-12.md`](docs/UI/LANDING_PAGE_ACCEPTANCE_2026-08-12.md).
+
 ### 2026-07-26 — Baseline and beta safety boundary
 
 - Established the layered .NET/Blazor/MariaDB application baseline and the

@@ -1240,3 +1240,27 @@ deliberately delegated to a separately reviewed landing-page pull request.
   required verification evidence.
 - No login layout, authenticated navigation, workflow behavior, or visual
   operational tab was changed in this preparation step.
+
+## 2026-08-12 - Premium landing page formally accepted
+
+Status: visually accepted by the project owner in desktop, landscape,
+portrait/mobile, and zoomed views; ready to serve as the rollback baseline for
+the next screen phase.
+
+- Completed the layered Chef Doy's staff-login composition with a
+  restaurant-first identity, secondary ARCWorks endorsement, responsive glass
+  login card, enhanced gold/cyan background, and deliberate breakpoint reflow.
+- Disabled the procedural grain after full-resolution inspection showed that
+  it read as background pixelation rather than premium texture.
+- Recovered the 8192 x 5492 source raster embedded inside the supplied SVG
+  wrapper, cropped it to its alpha content with a glow margin, resized it to
+  3200 x 1406, and applied restrained edge sharpening without generatively
+  redrawing the approved Chef Doy's lettering.
+- The final wordmark SHA-256 is
+  `18BE00E4721B405C2D241D4FBCB3AB8C294AF2AC31D0FAB81E912E15914C439E`.
+- Docker Release publish, isolated container health, desktop and 393 x 852
+  browser rendering, browser-console inspection, and `git diff --check`
+  passed. The complete .NET test command exceeded its local verification
+  window and remains pending rather than being claimed as passed.
+- Formal acceptance and scope boundaries are recorded in
+  `docs/UI/LANDING_PAGE_ACCEPTANCE_2026-08-12.md`.
