@@ -100,8 +100,11 @@ bound to Windows loopback only.
 
 ## Feature and acceptance state
 
-`Ai:Enabled` / `AI_ENABLED` defaults to `false`. When disabled, the Assistant
-navigation and page are unavailable. Enabling it is not production approval.
+`Ai:Hold` / `AI_HOLD` defaults to `true`, and `Ai:Enabled` / `AI_ENABLED`
+defaults to `false`. While the hold is active, the Assistant navigation and
+page are unavailable and the application has no gateway connection. Enabling
+the flag alone is not production approval; follow `docs/AI_HOLD.md` for the
+future-version release gate.
 Required remaining evidence includes actual container-model interpretation,
 browser rendering, timeout/fallback behavior, prompt-injection and multilingual
 ambiguity acceptance, concurrent use, rollback, and external review.

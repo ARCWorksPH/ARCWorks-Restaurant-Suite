@@ -1,23 +1,24 @@
 @page "/assistant"
 @attribute [Authorize]
 @using Roms.Application.Ai
-@inject IAiAssistantService AssistantService
+@using Roms.Web.Ai
 @inject AuthenticationStateProvider Authentication
 @inject IConfiguration Configuration
-
-<PageTitle>ROMS Assistant</PageTitle>
-
-<h1>ROMS Assistant</h1>
-<p class="lead">Ask a read-only question about approved restaurant information.</p>
+@inject IServiceProvider Services
 
 @if (!IsEnabled)
 {
-    <div class="alert alert-warning" role="status">
-        The local AI assistant is disabled. ROMS ordering and inventory continue to operate normally.
-    </div>
+    <PageTitle>Not Found</PageTitle>
+    <h3>Not Found</h3>
+    <p>Sorry, the content you are looking for does not exist.</p>
 }
 else
 {
+    <PageTitle>@ProductBrand.Name Assistant</PageTitle>
+
+    <h1>@ProductBrand.Name Assistant</h1>
+    <p class="lead">Ask a read-only question about approved restaurant information.</p>
+
     <section class="panel" aria-labelledby="assistant-question-heading">
         <h2 id="assistant-question-heading">Question</h2>
         <label class="form-label" for="assistant-question">Ask about menu prices, inventory balances, order status, or approved summaries.</label>
@@ -29,7 +30,7 @@ else
                   @bind="question"></textarea>
         <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
             <button class="btn btn-primary touch-button" disabled="@(busy || string.IsNullOrWhiteSpace(question))" @onclick="Ask">
-                @(busy ? "Checking..." : "Ask ROMS")
+                @(busy ? "Checking..." : "Ask ARCWorks")
             </button>
             <small>@question.Length / 500 characters</small>
         </div>
@@ -50,10 +51,10 @@ else
     <section class="panel mt-4" aria-labelledby="assistant-boundaries-heading">
         <h2 id="assistant-boundaries-heading">Current boundaries</h2>
         <ul class="mb-0">
-            <li>Responses come from deterministic ROMS queries.</li>
+            <li>Responses come from deterministic @ProductBrand.Name queries.</li>
             <li>The assistant cannot change orders, payments, menu data, or inventory.</li>
             <li>Recipes, yields, forecasts, staff evaluation, and unrestricted SQL are unsupported.</li>
-            <li>Permissions are inherited from your signed-in ROMS account.</li>
+            <li>Permissions are inherited from your signed-in @ProductBrand.Name account.</li>
         </ul>
     </section>
 }
@@ -64,7 +65,7 @@ else
     private bool busy;
     private AiAssistantResponse? answer;
 
-    private bool IsEnabled => Configuration.GetValue<bool>("Ai:Enabled");
+    private bool IsEnabled => AiFeatureGate.IsEnabled(Configuration);
 
     private string AnswerClass => answer?.Status switch
     {
@@ -88,7 +89,8 @@ else
         answer = null;
         try
         {
-            answer = await AssistantService.AskAsync(question, actor);
+            var assistantService = Services.GetRequiredService<IAiAssistantService>();
+            answer = await assistantService.AskAsync(question, actor);
         }
         catch (OperationCanceledException)
         {

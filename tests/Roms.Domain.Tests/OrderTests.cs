@@ -26,6 +26,23 @@ public sealed class OrderTests
     }
 
     [Fact]
+    public void Matching_item_notes_merge_quantity_but_different_notes_stay_separate()
+    {
+        var menuItem = new MenuItem { Name = "Burger", Price = 185m };
+        var order = NewOrder();
+
+        order.AddItem(menuItem, 4, null, Now);
+        order.AddItem(menuItem, 1, "No onions", Now);
+        order.AddItem(menuItem, 2, null, Now);
+        order.AddItem(menuItem, 1, "No onions", Now);
+
+        Assert.Equal(2, order.Items.Count);
+        Assert.Equal(6, order.Items.Single(x => x.Notes == "").Quantity);
+        Assert.Equal(2, order.Items.Single(x => x.Notes == "No onions").Quantity);
+        Assert.Equal(8 * 185m, order.Total);
+    }
+
+    [Fact]
     public void Happy_path_enforces_each_status_transition()
     {
         var order = WithItem();
@@ -43,6 +60,62 @@ public sealed class OrderTests
     {
         var order = WithItem(); order.Submit(Now);
         Assert.Throws<DomainException>(() => order.TransitionTo(OrderStatus.Ready, "kitchen", null, Now));
+    }
+
+    [Fact]
+    public void Kitchen_return_requires_reason_and_waiter_resubmission_keeps_history()
+    {
+        var order = WithItem();
+        order.Submit(Now);
+        Assert.Throws<DomainException>(() => order.TransitionTo(OrderStatus.ReturnedToWaiter, "kitchen", " ", Now.AddMinutes(1)));
+
+        order.TransitionTo(OrderStatus.ReturnedToWaiter, "kitchen", "Missing side", Now.AddMinutes(1));
+        Assert.Throws<DomainException>(() => order.Submit(Now.AddMinutes(2)));
+        order.Submit(Now.AddMinutes(2), "Added side and corrected note");
+
+        Assert.Equal(OrderStatus.New, order.Status);
+        Assert.Equal(1, order.ResubmissionCount);
+        Assert.Contains(order.StatusHistory, x => x.ToStatus == OrderStatus.ReturnedToWaiter && x.Reason == "Missing side");
+        Assert.Contains(order.StatusHistory, x => x.FromStatus == OrderStatus.ReturnedToWaiter && x.ToStatus == OrderStatus.New && x.Reason == "Added side and corrected note");
+    }
+
+    [Fact]
+    public void Preparation_target_is_snapshotted_from_item_minutes_and_quantity()
+    {
+        var order = NewOrder();
+        order.AddItem(new MenuItem { Name = "Burger", Price = 100m, PreparationMinutes = 5 }, 2, null, Now);
+        order.AddItem(new MenuItem { Name = "Chicken", Price = 100m, PreparationMinutes = 10 }, 1, null, Now);
+        order.Submit(Now);
+        order.TransitionTo(OrderStatus.Preparing, "kitchen", null, Now.AddMinutes(1));
+        order.SetPreparationTarget(20, Now.AddMinutes(1));
+
+        Assert.Equal(20, order.PreparationTargetMinutes);
+        Assert.Equal(Now.AddMinutes(21), order.PreparationTargetDueUtc);
+    }
+
+    [Fact]
+    public void Workflow_timers_start_and_extensions_are_bounded_and_auditable()
+    {
+        var order = WithItem();
+        order.StartOrderEntryTimer(15, Now);
+        Assert.Equal(Now.AddMinutes(15), order.OrderEntryDueUtc);
+        order.Submit(Now.AddMinutes(1));
+        order.StartKitchenAcceptanceTimer(5, Now.AddMinutes(1));
+        order.ExtendTimer(WorkflowTimerKind.KitchenAcceptance, 10, "Peak-hour queue", Now.AddMinutes(2));
+        Assert.Equal(Now.AddMinutes(16), order.KitchenAcceptanceDueUtc);
+        Assert.Throws<DomainException>(() => order.ExtendTimer(WorkflowTimerKind.KitchenAcceptance, 0, "bad", Now));
+        Assert.Throws<DomainException>(() => order.ExtendTimer(WorkflowTimerKind.KitchenAcceptance, 1, " ", Now));
+    }
+
+    [Fact]
+    public void Workflow_settings_reject_unsafe_values()
+    {
+        var settings = new WorkflowSettings();
+        Assert.Throws<DomainException>(() => settings.Update(0, 5, "manager", Now));
+        Assert.Throws<DomainException>(() => settings.Update(15, 121, "manager", Now));
+        settings.Update(20, 7, "manager", Now);
+        Assert.Equal(20, settings.OrderEntryMinutes);
+        Assert.Equal(7, settings.KitchenAcceptanceMinutes);
     }
 
     [Fact]

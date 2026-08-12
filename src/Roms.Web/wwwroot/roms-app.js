@@ -1,6 +1,7 @@
 (() => {
     let installPrompt, idleTimer, warningTimer, countdownTimer;
     let listeners = [];
+    let activityReference, lastActivitySentAt = 0;
 
     window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); installPrompt = event; });
     const showInstallRequirement = message => {
@@ -19,7 +20,7 @@
                     button.disabled = true;
                     button.textContent = "HTTPS required to install";
                 }
-                showInstallRequirement("This public address uses HTTP. Browsers only install ROMS from a secure HTTPS address or from localhost.");
+                showInstallRequirement("This public address uses HTTP. Browsers only install ARCWorks Restaurant Suite from a secure HTTPS address or from localhost.");
             }
         },
         prompt: async () => {
@@ -30,7 +31,7 @@
                 await installPrompt.userChoice;
                 installPrompt = undefined;
             } else {
-                showInstallRequirement("The browser has not made installation available yet. Use Chrome or Edge, interact with ROMS for a moment, then try again or use the browser menu.");
+                showInstallRequirement("The browser has not made installation available yet. Use Chrome or Edge, interact with ARCWorks Restaurant Suite for a moment, then try again or use the browser menu.");
             }
         }
     };
@@ -138,9 +139,17 @@
     };
 
     window.romsSession = {
-        start: (formId, idleMinutes) => {
+        start: (formId, idleMinutes, dotNetReference) => {
             window.romsSession.stop();
-            const onActivity = () => reset(formId, idleMinutes);
+            activityReference = dotNetReference;
+            const onActivity = () => {
+                reset(formId, idleMinutes);
+                const now = Date.now();
+                if (activityReference && now - lastActivitySentAt >= 60_000) {
+                    lastActivitySentAt = now;
+                    activityReference.invokeMethodAsync("RecordActivity").catch(() => {});
+                }
+            };
             ["pointerdown", "keydown", "touchstart"].forEach(name => {
                 document.addEventListener(name, onActivity, { passive: true });
                 listeners.push([name, onActivity]);
@@ -156,6 +165,8 @@
                 else document.removeEventListener(name, handler);
             });
             listeners = [];
+            activityReference = null;
+            lastActivitySentAt = 0;
             hideWarning();
         }
     };

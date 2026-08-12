@@ -7,6 +7,7 @@ public static class RomsRoles
     public const string Admin = "Admin";
     public const string Waiter = "Waiter";
     public const string Kitchen = "Kitchen";
+    public const string Manager = "Manager";
 }
 
 public interface IClock { DateTime UtcNow { get; } }
@@ -20,11 +21,20 @@ public sealed record MenuItemChoice(Guid Id, string Name, string Category, decim
 public sealed record OrderItemView(Guid Id, string Name, decimal UnitPrice, int Quantity, string Notes, bool IsRemoved);
 public sealed record OrderView(Guid Id, Guid TableId, string TableNumber, string WaiterId, string WaiterName, OrderStatus Status,
     DateTime CreatedUtc, DateTime? SubmittedUtc, DateTime? CompletedUtc, DateTime? PaymentConfirmedUtc,
-    int Revision, long Version, decimal Total, string? CancellationReason,
+    int Revision, long Version, decimal Total, string? CancellationReason, string? LastReturnReason, int ResubmissionCount,
+    int? PreparationTargetMinutes, DateTime? PreparationTargetDueUtc,
+    int? OrderEntryTargetMinutes, DateTime? OrderEntryStartedUtc, DateTime? OrderEntryDueUtc,
+    int? KitchenAcceptanceTargetMinutes, DateTime? KitchenAcceptanceStartedUtc, DateTime? KitchenAcceptanceDueUtc,
     IReadOnlyList<OrderItemView> Items);
+public sealed record WorkflowSettingsView(int OrderEntryMinutes, int KitchenAcceptanceMinutes, DateTime UpdatedUtc, string UpdatedBy);
+public sealed record ManagerLiveOrderView(Guid OrderId, string TableNumber, string WaiterId, OrderStatus Status,
+    DateTime? OrderEntryDueUtc, DateTime? KitchenAcceptanceDueUtc, DateTime? PreparationTargetDueUtc,
+    int ExtensionCount);
 public sealed record DashboardReport(decimal CompletedOrderValue, int OrderCount, decimal AverageOrderValue,
     IReadOnlyList<BestSeller> BestSellers);
 public sealed record BestSeller(string Name, int Quantity, decimal Value);
+public sealed record AuditRecordView(long Id, string ActorId, string Action, string EntityType, string EntityId,
+    string? OldValuesJson, string? NewValuesJson, string? Reason, DateTime OccurredUtc);
 public sealed record InventoryBalance(Guid Id, string Name, string Unit, decimal CurrentStock, decimal MinimumStock, bool IsLow);
 public sealed record StockMovementView(
     long Id,
@@ -85,6 +95,8 @@ public sealed record MyAttendanceView(AttendanceRecordView? OpenRecord,
     IReadOnlyList<StaffScheduleView> Schedules, IReadOnlyList<AttendanceRecordView> Records);
 public sealed record AttendanceAdminView(IReadOnlyList<StaffScheduleView> Schedules,
     IReadOnlyList<AttendanceRecordView> Records, IReadOnlyList<AttendanceRecordView> Present);
+public sealed record ManagerPresenceView(string UserId, string Username, string DisplayName, DateTime ClockInUtc);
+public sealed record ManagerOperationalView(IReadOnlyList<ManagerPresenceView> Present);
 
 public interface IOrderService
 {
@@ -100,10 +112,20 @@ public interface IOrderService
         CancellationToken cancellationToken = default);
     Task AmendRemoveItemAsync(Guid orderId, Guid itemId, string reason, string actorId,
         CancellationToken cancellationToken = default);
-    Task<Guid> SubmitAsync(Guid orderId, string idempotencyKey, string actorId, CancellationToken cancellationToken = default);
+    Task<Guid> SubmitAsync(Guid orderId, string idempotencyKey, string actorId, string? resubmissionNote = null, CancellationToken cancellationToken = default);
     Task TransitionAsync(Guid orderId, OrderStatus next, string actorId, string? reason = null,
         CancellationToken cancellationToken = default);
     Task ConfirmPaymentAsync(Guid orderId, string adminId, CancellationToken cancellationToken = default);
+    Task RequestTimerExtensionAsync(Guid orderId, WorkflowTimerKind kind, int additionalMinutes, string reason, string actorId,
+        CancellationToken cancellationToken = default);
+}
+
+public interface IWorkflowService
+{
+    Task<WorkflowSettingsView> GetSettingsAsync(CancellationToken cancellationToken = default);
+    Task UpdateSettingsAsync(int orderEntryMinutes, int kitchenAcceptanceMinutes, string actorId,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ManagerLiveOrderView>> GetLiveOrdersAsync(string actorId, CancellationToken cancellationToken = default);
 }
 
 public interface ICatalogService
@@ -118,6 +140,12 @@ public interface ICatalogService
 public interface IReportService
 {
     Task<DashboardReport> GetDashboardAsync(DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default);
+}
+
+public interface IAuditService
+{
+    Task<IReadOnlyList<AuditRecordView>> GetRecentAsync(string adminId, DateTime fromUtc, DateTime toUtc,
+        int take = 200, CancellationToken cancellationToken = default);
 }
 
 public interface IInventoryService
@@ -148,7 +176,8 @@ public interface IAttendanceService
     Task ClockInAsync(string username, CancellationToken cancellationToken = default);
     Task ClockOutAsync(string username, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StaffMemberView>> GetStaffAsync(CancellationToken cancellationToken = default);
-    Task<AttendanceAdminView> GetAdminViewAsync(DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default);
+    Task<AttendanceAdminView> GetAdminViewAsync(string adminId, DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default);
+    Task<ManagerOperationalView> GetManagerViewAsync(string actorId, CancellationToken cancellationToken = default);
     Task SaveScheduleAsync(Guid? scheduleId, string userId, DateTime startUtc, DateTime endUtc, string? notes, string adminId, CancellationToken cancellationToken = default);
     Task DeleteScheduleAsync(Guid scheduleId, string adminId, CancellationToken cancellationToken = default);
     Task CorrectAsync(Guid attendanceId, DateTime clockInUtc, DateTime? clockOutUtc, string reason, string adminId, CancellationToken cancellationToken = default);

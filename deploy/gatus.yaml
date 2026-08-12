@@ -2,7 +2,7 @@ storage:
   type: sqlite
   path: /data/gatus.db
 endpoints:
-  - name: ROMS application
+  - name: ARCWorks Restaurant Suite application
     group: local-primary
     url: http://app:8080/health
     interval: 30s

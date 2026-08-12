@@ -1,4 +1,4 @@
-name: arcworks-resto
+name: ${COMPOSE_PROJECT_NAME:-arcworks-resto}
 services:
   db:
     image: mariadb@sha256:a794d9eb009e20de605858a11f32f63b4075cbd197c650436f0e3b457e4caed7
@@ -15,6 +15,9 @@ services:
       MARIADB_USER: ${DB_USER:-roms}
       MARIADB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
+    labels:
+      com.arcworks.instance: ${INSTANCE_ID:-arcworks-resto}
+      com.arcworks.service: db
     volumes:
       - mariadb-data:/var/lib/mysql
     healthcheck:
@@ -38,17 +41,22 @@ services:
       Seed__AdminUsername: ${ADMIN_USERNAME:-admin}
       # Required only for first bootstrap; remove from .env after the admin exists.
       Seed__AdminPassword: ${ADMIN_PASSWORD:-}
-      Seed__AdminDisplayName: ${ADMIN_DISPLAY_NAME:-ROMS Administrator}
+      Seed__AdminDisplayName: ${ADMIN_DISPLAY_NAME:-ARCWorks Restaurant Suite Administrator}
       Ai__Enabled: ${AI_ENABLED:-false}
-      Ai__CommandGatewayBaseUrl: http://command-gateway:8080/
+      # AI is held for a future version; this blocks accidental reactivation.
+      Ai__Hold: ${AI_HOLD:-true}
       Ai__MaxConcurrentRequests: ${AI_MAX_CONCURRENT_REQUESTS:-2}
       Ai__RequestsPerMinute: ${AI_REQUESTS_PER_MINUTE:-6}
-      AllowedHosts: ${ROMS_ALLOWED_HOSTS:-roms.arkworksph.online;app;localhost;127.0.0.1}
+      AllowedHosts: ${ROMS_ALLOWED_HOSTS:-localhost;app;127.0.0.1}
+      Instance__Id: ${INSTANCE_ID:-arcworks-resto}
     volumes:
       - data-protection-keys:/app/keys
     # Cloudflare Tunnel publishes the application from this loopback-only port.
-    ports: ["127.0.0.1:7070:8080"]
-    networks: [backend, edge, command]
+    ports: ["127.0.0.1:${ROMS_HOST_PORT:-7070}:8080"]
+    networks: [backend, edge]
+    labels:
+      com.arcworks.instance: ${INSTANCE_ID:-arcworks-resto}
+      com.arcworks.service: app
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=128m
@@ -79,6 +87,9 @@ services:
       - ./deploy/gatus.yaml:/config/config.yaml:ro
       - monitor-data:/data
     networks: [backend, edge]
+    labels:
+      com.arcworks.instance: ${INSTANCE_ID:-arcworks-resto}
+      com.arcworks.service: monitor
 
   cloudflared:
     profiles: ["edge-tunnel"]
@@ -87,6 +98,9 @@ services:
     command: ["tunnel", "--no-autoupdate", "run", "--token-file", "/run/secrets/cloudflare_tunnel_token"]
     secrets: [cloudflare_tunnel_token]
     networks: [edge, portfolio]
+    labels:
+      com.arcworks.instance: ${INSTANCE_ID:-arcworks-resto}
+      com.arcworks.service: cloudflared
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=32m
@@ -147,6 +161,9 @@ services:
     # The gateway can reach the model but has no backend network, database
     # credentials, host port, project mount, or production execution path.
     networks: [command, inference]
+    labels:
+      com.arcworks.instance: ${INSTANCE_ID:-arcworks-resto}
+      com.arcworks.service: command-gateway
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
@@ -159,22 +176,28 @@ services:
 
 volumes:
   mariadb-data:
+    name: ${MARIADB_VOLUME_NAME:-arcworks-resto_mariadb-data}
   caddy-data:
+    name: ${CADDY_DATA_VOLUME_NAME:-arcworks-resto_caddy-data}
   caddy-config:
+    name: ${CADDY_CONFIG_VOLUME_NAME:-arcworks-resto_caddy-config}
   monitor-data:
+    name: ${MONITOR_VOLUME_NAME:-arcworks-resto_monitor-data}
   data-protection-keys:
+    name: ${DATA_PROTECTION_VOLUME_NAME:-arcworks-resto_data-protection-keys}
   ollama-models:
-    external: true
-    name: ollama
+    name: ${OLLAMA_VOLUME_NAME:-arcworks-resto_ollama}
 secrets:
   cloudflare_tunnel_token:
-    file: ./.secrets/cloudflare-tunnel-token
+    file: ${CLOUDFLARE_TUNNEL_TOKEN_FILE:-./.secrets/cloudflare-tunnel-token}
 networks:
   backend: { internal: true }
   edge:
   command: { internal: true }
   inference: { internal: true }
   benchmark:
+  # The portfolio stack is maintained separately, but the shared tunnel needs
+  # explicit DNS access to its two web services.
   portfolio:
-    external: true
     name: arcworks-portfolio-net
+    external: true

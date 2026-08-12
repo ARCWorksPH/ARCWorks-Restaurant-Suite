@@ -6,73 +6,511 @@
 @inject OrderEventBus Events
 @implements IDisposable
 
-<PageTitle>Order</PageTitle>
-@if (!string.IsNullOrEmpty(error)) { <div class="alert alert-danger">@error</div> }
-@if (order is null) { <p>Loading order…</p> }
+<PageTitle>Order Editor - Table @(order?.TableNumber ?? "")</PageTitle>
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger mb-3">@error</div>
+}
+
+@if (order is null)
+{
+    <div class="loading-state p-4 text-center">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Loading order details…</p>
+    </div>
+}
 else
 {
-    <div class="page-heading"><div><h1>Table @order.TableNumber</h1><span class="status-pill status-@order.Status.ToString().ToLowerInvariant()">@order.Status</span> <small>Waiter: @order.WaiterName · Revision @order.Revision</small></div><button class="btn btn-outline-secondary touch-button" @onclick="Back">Back</button></div>
-    <div class="order-layout">
-        <section>
-            <h2>Current order</h2>
-            @if (order.Items.Count == 0) { <div class="empty-state">No items yet.</div> }
-            @foreach (var item in order.Items.Where(x => !x.IsRemoved))
-            {
-                <div class="order-line"><div><strong>@item.Quantity × @item.Name</strong>@if (!string.IsNullOrWhiteSpace(item.Notes)) { <small>@item.Notes</small> }</div><span>₱@((item.UnitPrice * item.Quantity).ToString("N2"))</span>@if (order.Status == OrderStatus.Draft || order.Status == OrderStatus.New || (order.Status == OrderStatus.Preparing && isAdmin)) { <button class="btn btn-sm btn-outline-danger" disabled="@busy" @onclick="() => Remove(item.Id)">Remove</button> }</div>
-            }
-            <div class="order-total"><span>Total</span><strong>₱@order.Total.ToString("N2")</strong></div>
-            @if (order.Status == OrderStatus.Draft) { <button class="btn btn-success btn-lg touch-button w-100" disabled="@(busy || order.Items.Count == 0)" @onclick="Submit">Send to kitchen</button> }
-            else if (order.Status == OrderStatus.Ready) { <button class="btn btn-success btn-lg touch-button w-100" disabled="@busy" @onclick="Complete">Mark served</button> }
-            else if (order.Status == OrderStatus.Completed && order.PaymentConfirmedUtc is null) { <div class="alert alert-warning"><strong>Pending payment.</strong> The table will be released after Admin confirms payment.</div> }
-            else if (order.Status == OrderStatus.Completed) { <div class="alert alert-success">Payment confirmed and order completed.</div> }
-            else if (order.Status == OrderStatus.Cancelled)
-            {
-                <div class="alert alert-secondary">
-                    <strong>Order cancelled.</strong>
-                    @order.CancellationReason
-                </div>
-            }
-            else { <div class="alert alert-info">Kitchen status: <strong>@order.Status</strong></div> }
-            @if (order.Status is not (OrderStatus.Completed or OrderStatus.Cancelled) && (isAdmin || order.Status is OrderStatus.Draft or OrderStatus.New))
-            {
-                <div class="cancel-panel">
-                    <input class="form-control" placeholder="Cancellation reason (required)"
-                           value="@cancellationReason"
-                           @oninput="eventArgs => cancellationReason = eventArgs.Value?.ToString() ?? string.Empty" />
-                    <button class="btn btn-outline-danger touch-button" disabled="@busy" @onclick="Cancel">Cancel order</button>
-                </div>
-            }
-        </section>
-        @if (order.Status is OrderStatus.Draft or OrderStatus.New or OrderStatus.Preparing)
-        {
-            <section><h2>@(order.Status == OrderStatus.Draft ? "Add menu items" : "Amend order")</h2>
-                @if (order.Status != OrderStatus.Draft)
+    <div class="page-heading glass-card mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h1>Table @order.TableNumber</h1>
+            <p>
+                Status: <span class="status-badge status-pill status-@order.Status.ToString().ToLowerInvariant()">@order.Status</span>
+                <span class="ms-2 text-muted">Waiter: @order.WaiterName · Revision @order.Revision</span>
+            </p>
+        </div>
+        <button class="btn btn-outline-secondary touch-button" @onclick="Back">Back to Tables</button>
+    </div>
+
+    <div class="order-layout-three-pane d-flex gap-3">
+        <!-- Left Pane: Categories -->
+        <aside class="category-sidebar glass-card p-3">
+            <h3 class="mb-3 text-uppercase font-weight-bold" style="font-size: 0.8rem;">Categories</h3>
+            <ul class="nav flex-column gap-2">
+                @foreach (var cat in categories)
                 {
-                    <div class="alert alert-warning">
-                        Kitchen will be notified.
-                        <input class="form-control mt-2" placeholder="Amendment reason (required)" @bind="amendmentReason" />
+                    <li>
+                        <button class="category-btn w-100 text-start px-3 py-2 rounded @(selectedCategory == cat ? "active" : "")" @onclick="() => SetCategory(cat)">
+                            @cat
+                        </button>
+                    </li>
+                }
+            </ul>
+        </aside>
+
+        <!-- Center Pane: Menu Catalog -->
+        <section class="menu-catalog flex-fill glass-card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h2>@selectedCategory Catalog</h2>
+                <div class="search-box">
+                    <input class="form-control" placeholder="Search items..." @bind="searchQuery" @bind:event="oninput" />
+                </div>
+            </div>
+
+            @if (order.Status is OrderStatus.Draft or OrderStatus.ReturnedToWaiter or OrderStatus.New or OrderStatus.Preparing)
+            {
+                <div class="item-inputs-box d-flex gap-3 mb-3 p-3 rounded bg-surface-soft border border-secondary">
+                    <div class="flex-fill">
+                        <label class="form-label small text-muted">Special Instructions for next item</label>
+                        <input class="form-control" placeholder="Special instructions" @bind="notes" />
+                    </div>
+                    <div style="width: 100px;">
+                        <label class="form-label small text-muted">Quantity</label>
+                        <input class="form-control" type="number" min="1" max="99" @bind="quantity" />
+                    </div>
+                </div>
+
+                @if (order.Status is not (OrderStatus.Draft or OrderStatus.ReturnedToWaiter))
+                {
+                    <div class="alert alert-warning mb-3">
+                        <label class="form-label small text-dark font-weight-bold">Amendment Reason (Required for Kitchen)</label>
+                        <input class="form-control" placeholder="Amendment reason (required)" @bind="amendmentReason" />
                     </div>
                 }
-                <div class="input-row"><input class="form-control" placeholder="Special instructions" @bind="notes" /><input class="form-control quantity" type="number" min="1" max="99" @bind="quantity" /></div>
-                @foreach (var group in menu.GroupBy(x => x.Category)) { <h3>@group.Key</h3><div class="menu-grid">@foreach (var item in group) { <button class="menu-card" disabled="@busy" @onclick="() => Add(item.Id)"><strong>@item.Name</strong><span>₱@item.Price.ToString("N2")</span><small>@item.Description</small></button> }</div> }
+            }
+
+            <div class="menu-grid">
+                @foreach (var item in FilteredMenu)
+                {
+                    <div class="menu-card glass-card d-flex flex-column h-100" @onclick="() => Add(item.Id)" style="cursor: pointer;">
+                        <div class="menu-card-image-box">
+                            <svg class="fallback-svg" viewBox="0 0 24 24" width="32" height="32" fill="var(--roms-text-muted)">
+                                <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm8-3h-3v5.07c0 1.66 1.34 3.01 3 3.01s3-1.35 3-3.01V2h-3v4z"/>
+                            </svg>
+                        </div>
+                        <div class="menu-card-details p-2 d-flex flex-column flex-fill">
+                            <strong>@item.Name</strong>
+                            <p class="text-muted small mb-2 flex-fill">@item.Description</p>
+                            <div class="d-flex justify-content-between align-items-center mt-auto">
+                                <span class="price-tag font-weight-bold text-primary">₱@item.Price.ToString("N2")</span>
+                                @if (order.Status is OrderStatus.Draft or OrderStatus.ReturnedToWaiter or OrderStatus.New or OrderStatus.Preparing)
+                                {
+                                    <button class="btn btn-sm btn-primary" disabled="@(busy || (order.Status is not (OrderStatus.Draft or OrderStatus.ReturnedToWaiter) && string.IsNullOrWhiteSpace(amendmentReason)))">Add</button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- Right Pane: Summary -->
+        <aside class="order-summary-pane glass-card p-3 d-flex flex-column">
+            <div class="summary-header border-bottom pb-2">
+                <h3>Order Summary</h3>
+
+                @if (order.Status == OrderStatus.Draft && order.OrderEntryDueUtc is not null)
+                {
+                    <div class="timer-panel mt-3 p-2 rounded @(IsTimerExpired() ? "bg-danger-soft border border-danger" : "bg-surface-soft border border-secondary")">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small text-muted">@(IsTimerExpired() ? "Lateness:" : "Draft Entry Timer:")</span>
+                            <strong class="font-monospace @(IsTimerExpired() ? "text-danger" : "text-primary")">@GetTimerText()</strong>
+                        </div>
+                        @if (IsTimerExpired())
+                        {
+                            <div class="expired-banner text-danger small font-weight-bold mt-1">⚠️ LATE / EXPIRED</div>
+                        }
+                        <button class="btn btn-sm btn-outline-warning mt-2 w-100" @onclick="ShowExtensionDialog">Request Extension</button>
+                    </div>
+                }
+            </div>
+
+            <section class="read-only-order-summary mt-3 p-3 rounded bg-surface-soft border border-secondary" aria-label="Read-only customer order summary">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>Customer summary</strong>
+                    <span class="small text-muted">Live</span>
+                </div>
+                @if (order.Items.Count == 0)
+                {
+                    <div class="small text-muted">No items added yet.</div>
+                }
+                else
+                {
+                    <ul class="list-unstyled mb-2">
+                        @foreach (var line in order.Items.Where(x => !x.IsRemoved))
+                        {
+                            <li class="d-flex justify-content-between gap-2 small">
+                                <span>@line.Quantity × @line.Name@(string.IsNullOrWhiteSpace(line.Notes) ? "" : $" ({line.Notes})")</span>
+                                <span>₱@((line.UnitPrice * line.Quantity).ToString("N2"))</span>
+                            </li>
+                        }
+                    </ul>
+                    <div class="d-flex justify-content-between border-top pt-2">
+                        <strong>Total</strong>
+                        <strong>₱@order.Total.ToString("N2")</strong>
+                    </div>
+                }
             </section>
-        }
+
+            <div class="summary-items-list flex-fill overflow-auto my-3" style="max-height: 400px;">
+                @if (order.Items.Count == 0)
+                {
+                    <div class="empty-state text-center py-5 text-muted">No items selected yet. Select items from catalog.</div>
+                }
+                else
+                {
+                    @foreach (var item in order.Items.Where(x => !x.IsRemoved))
+                    {
+                        <div class="summary-item-row p-2 mb-2 rounded bg-surface-soft border border-secondary">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>@item.Quantity × @item.Name</strong>
+                                    @if (!string.IsNullOrWhiteSpace(item.Notes))
+                                    {
+                                        <div class="item-notes text-warning small">📝 @item.Notes</div>
+                                    }
+                                </div>
+                                <span class="font-monospace small">₱@((item.UnitPrice * item.Quantity).ToString("N2"))</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <div class="quantity-controls d-flex align-items-center gap-2">
+                                    <button class="btn btn-xs btn-outline-secondary" disabled="@busy" @onclick="() => Decrement(item)">-</button>
+                                    <span class="px-2 font-weight-bold">@item.Quantity</span>
+                                    <button class="btn btn-xs btn-outline-secondary" disabled="@busy" @onclick="() => Increment(item)">+</button>
+                                </div>
+                                @if (order.Status == OrderStatus.Draft || order.Status == OrderStatus.New || (order.Status == OrderStatus.Preparing && isAdmin))
+                                {
+                                    <button class="btn btn-xs btn-outline-danger" disabled="@(busy || (order.Status is not (OrderStatus.Draft or OrderStatus.ReturnedToWaiter) && string.IsNullOrWhiteSpace(amendmentReason)))" @onclick="() => Remove(item.Id)">Remove</button>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="summary-footer mt-auto pt-3 border-top">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <strong>Total amount:</strong>
+                    <h3 class="m-0 font-weight-bold text-primary">₱@order.Total.ToString("N2")</h3>
+                </div>
+
+                @if (order.Status == OrderStatus.ReturnedToWaiter)
+                {
+                    <div class="alert alert-warning mb-3">
+                        <div class="small mb-1 font-weight-bold">Kitchen return reason:</div>
+                        <div class="p-2 bg-surface rounded text-dark mb-2">@order.LastReturnReason</div>
+                        <textarea class="form-control" placeholder="Resubmission note (required)" @bind="resubmissionNote" @bind:event="oninput"></textarea>
+                    </div>
+                }
+
+                @if (order.Status is OrderStatus.Draft or OrderStatus.ReturnedToWaiter)
+                {
+                    <button class="btn btn-success btn-lg touch-button w-100"
+                            disabled="@(busy || order.Items.Count == 0 || (order.Status == OrderStatus.ReturnedToWaiter && string.IsNullOrWhiteSpace(resubmissionNote)))"
+                            @onclick="Submit">
+                        @(order.Status == OrderStatus.ReturnedToWaiter ? "Resubmit to kitchen" : "Send to kitchen")
+                    </button>
+                }
+                else if (order.Status == OrderStatus.Ready)
+                {
+                    <button class="btn btn-success btn-lg touch-button w-100" disabled="@busy" @onclick="Complete">Mark served</button>
+                }
+                else if (order.Status == OrderStatus.Completed && order.PaymentConfirmedUtc is null)
+                {
+                    <div class="alert alert-warning m-0">
+                        <strong>Pending payment.</strong> Waiting for Manager or Admin confirmation.
+                    </div>
+                }
+                else if (order.Status == OrderStatus.Completed)
+                {
+                    <div class="alert alert-success m-0">
+                        Payment confirmed and order completed.
+                    </div>
+                }
+                else if (order.Status == OrderStatus.Cancelled)
+                {
+                    <div class="alert alert-secondary m-0">
+                        <strong>Order cancelled.</strong> @order.CancellationReason
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info m-0">
+                        Kitchen status: <strong>@order.Status</strong>
+                    </div>
+                }
+
+                @if (order.Status is not (OrderStatus.Completed or OrderStatus.Cancelled) && (isAdmin || order.Status is OrderStatus.Draft or OrderStatus.New))
+                {
+                    <div class="cancel-panel mt-3 pt-3 border-top">
+                        <div class="d-flex gap-2">
+                            <input class="form-control" placeholder="Cancellation reason (required)"
+                                   value="@cancellationReason"
+                                   @oninput="eventArgs => cancellationReason = eventArgs.Value?.ToString() ?? string.Empty" />
+                            <button class="btn btn-outline-danger touch-button" disabled="@(busy || string.IsNullOrWhiteSpace(cancellationReason))" @onclick="Cancel">Cancel order</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </aside>
+    </div>
+}
+
+@if (showExtensionDialog)
+{
+    <div class="modal-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99;" @onclick="HideExtensionDialog"></div>
+    <div class="modal-dialog-box glass-card p-4" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:100; min-width:350px; border:1px solid var(--roms-border); box-shadow: 0 0 30px rgba(0,0,0,0.75);">
+        <h4 class="mb-3">Request Timer Extension</h4>
+        <div class="mb-3">
+            <label class="form-label small text-muted">Minutes</label>
+            <input class="form-control" type="number" min="1" max="120" @bind="extensionMinutes" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label small text-muted">Reason (Required)</label>
+            <textarea class="form-control" placeholder="Provide reason for this extension request..." @bind="extensionReason" @bind:event="oninput"></textarea>
+        </div>
+        <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-secondary flex-fill" @onclick="HideExtensionDialog">Cancel</button>
+            <button class="btn btn-warning flex-fill" disabled="@(string.IsNullOrWhiteSpace(extensionReason))" @onclick="SubmitExtension">Submit Request</button>
+        </div>
     </div>
 }
 
 @code {
     [Parameter] public Guid OrderId { get; set; }
-    private OrderView? order; private IReadOnlyList<MenuItemChoice> menu = []; private string notes = "", amendmentReason = "", cancellationReason = ""; private int quantity = 1; private bool busy, isAdmin; private string? error; private string actor = "unknown"; private string submissionKey = Guid.NewGuid().ToString("N");
-    protected override async Task OnInitializedAsync() { var state = await Authentication.GetAuthenticationStateAsync(); actor = state.User.Identity?.Name ?? "unknown"; isAdmin = state.User.IsInRole(RomsRoles.Admin); Events.Changed += OnChanged; }
+    private OrderView? order;
+    private IReadOnlyList<MenuItemChoice> menu = [];
+    private string notes = "";
+    private string amendmentReason = "";
+    private string cancellationReason = "";
+    private string resubmissionNote = "";
+    private int quantity = 1;
+    private bool busy;
+    private bool isAdmin;
+    private string? error;
+    private string actor = "unknown";
+    private string submissionKey = Guid.NewGuid().ToString("N");
+
+    private string selectedCategory = "Mains";
+    private string searchQuery = "";
+
+    private System.Threading.Timer? orderTimer;
+    private DateTime currentTime = DateTime.UtcNow;
+
+    private bool showExtensionDialog;
+    private int extensionMinutes = 15;
+    private string extensionReason = "";
+
+    private IEnumerable<string> categories => menu.Select(x => x.Category).Distinct().ToList();
+
+    private IEnumerable<MenuItemChoice> FilteredMenu => menu
+        .Where(x => string.Equals(x.Category, selectedCategory, StringComparison.OrdinalIgnoreCase))
+        .Where(x => string.IsNullOrWhiteSpace(searchQuery) ||
+                    x.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    x.Description.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Authentication.GetAuthenticationStateAsync();
+        actor = state.User.Identity?.Name ?? "unknown";
+        isAdmin = state.User.IsInRole(RomsRoles.Admin);
+        Events.Changed += OnChanged;
+
+        orderTimer = new System.Threading.Timer(_ =>
+        {
+            currentTime = DateTime.UtcNow;
+            InvokeAsync(StateHasChanged);
+        }, null, 1000, 1000);
+    }
+
     protected override async Task OnParametersSetAsync() => await Load();
-    private async Task Load() { try { order = await Orders.GetOrderAsync(OrderId, actor); menu = await Orders.GetMenuAsync(); if (order is null) error = "Order not found."; } catch (Exception ex) { order = null; error = ex.Message; } }
-    private async Task Add(Guid menuId) => await Run(async () => { if (order!.Status == OrderStatus.Draft) await Orders.AddItemAsync(OrderId, menuId, quantity, notes, actor); else await Orders.AmendAddItemAsync(OrderId, menuId, quantity, notes, amendmentReason, actor); notes = amendmentReason = ""; quantity = 1; });
-    private async Task Remove(Guid itemId) => await Run(async () => { if (order!.Status == OrderStatus.Draft) await Orders.RemoveDraftItemAsync(OrderId, itemId, actor); else await Orders.AmendRemoveItemAsync(OrderId, itemId, amendmentReason, actor); amendmentReason = ""; });
-    private async Task Submit() => await Run(async () => { await Orders.SubmitAsync(OrderId, submissionKey, actor); submissionKey = Guid.NewGuid().ToString("N"); });
+
+    private async Task Load()
+    {
+        try
+        {
+            order = await Orders.GetOrderAsync(OrderId, actor);
+            menu = await Orders.GetMenuAsync();
+            if (order is null)
+            {
+                error = "Order not found.";
+            }
+            else
+            {
+                var cats = menu.Select(x => x.Category).Distinct().ToList();
+                if (cats.Count > 0 && !cats.Contains(selectedCategory))
+                {
+                    selectedCategory = cats.First();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            order = null;
+            error = ex.Message;
+        }
+    }
+
+    private void SetCategory(string cat)
+    {
+        selectedCategory = cat;
+        searchQuery = "";
+    }
+
+    private async Task Add(Guid menuId) => await Run(async () =>
+    {
+        if (order!.Status is OrderStatus.Draft or OrderStatus.ReturnedToWaiter)
+            await Orders.AddItemAsync(OrderId, menuId, quantity, notes, actor);
+        else
+            await Orders.AmendAddItemAsync(OrderId, menuId, quantity, notes, amendmentReason, actor);
+        notes = amendmentReason = "";
+        quantity = 1;
+    });
+
+    private async Task Remove(Guid itemId) => await Run(async () =>
+    {
+        if (order!.Status is OrderStatus.Draft or OrderStatus.ReturnedToWaiter)
+            await Orders.RemoveDraftItemAsync(OrderId, itemId, actor);
+        else
+            await Orders.AmendRemoveItemAsync(OrderId, itemId, amendmentReason, actor);
+        amendmentReason = "";
+    });
+
+    private Guid? FindMenuItemIdByName(string name) =>
+        menu.FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase))?.Id;
+
+    private async Task Increment(OrderItemView item)
+    {
+        var menuItemId = FindMenuItemIdByName(item.Name);
+        if (menuItemId is null) return;
+        await Run(async () =>
+        {
+            if (order!.Status is OrderStatus.Draft or OrderStatus.ReturnedToWaiter)
+            {
+                await Orders.AddItemAsync(OrderId, menuItemId.Value, 1, item.Notes, actor);
+            }
+            else
+            {
+                await Orders.AmendAddItemAsync(OrderId, menuItemId.Value, 1, item.Notes, amendmentReason.Length > 0 ? amendmentReason : "Increment quantity", actor);
+                amendmentReason = "";
+            }
+        });
+    }
+
+    private async Task Decrement(OrderItemView item)
+    {
+        var menuItemId = FindMenuItemIdByName(item.Name);
+        if (menuItemId is null) return;
+        await Run(async () =>
+        {
+            if (order!.Status is OrderStatus.Draft or OrderStatus.ReturnedToWaiter)
+            {
+                await Orders.RemoveDraftItemAsync(OrderId, item.Id, actor);
+                if (item.Quantity > 1)
+                {
+                    await Orders.AddItemAsync(OrderId, menuItemId.Value, item.Quantity - 1, item.Notes, actor);
+                }
+            }
+            else
+            {
+                await Orders.AmendRemoveItemAsync(OrderId, item.Id, amendmentReason.Length > 0 ? amendmentReason : "Decrement quantity", actor);
+                if (item.Quantity > 1)
+                {
+                    await Orders.AmendAddItemAsync(OrderId, menuItemId.Value, item.Quantity - 1, item.Notes, amendmentReason.Length > 0 ? amendmentReason : "Decrement quantity", actor);
+                }
+                amendmentReason = "";
+            }
+        });
+    }
+
+    private async Task Submit() => await Run(async () =>
+    {
+        await Orders.SubmitAsync(OrderId, submissionKey, actor, order!.Status == OrderStatus.ReturnedToWaiter ? resubmissionNote : null);
+        submissionKey = Guid.NewGuid().ToString("N");
+        resubmissionNote = "";
+    });
+
     private async Task Complete() => await Run(() => Orders.TransitionAsync(OrderId, OrderStatus.Completed, actor));
-    private async Task Cancel() => await Run(async () => { await Orders.TransitionAsync(OrderId, OrderStatus.Cancelled, actor, cancellationReason); cancellationReason = ""; });
-    private void OnChanged(OrderEvent message) { if(message.OrderId==OrderId) _=InvokeAsync(async()=>{await Load();StateHasChanged();}); }
+
+    private async Task Cancel() => await Run(async () =>
+    {
+        await Orders.TransitionAsync(OrderId, OrderStatus.Cancelled, actor, cancellationReason);
+        cancellationReason = "";
+    });
+
+    private void ShowExtensionDialog()
+    {
+        showExtensionDialog = true;
+        extensionMinutes = 15;
+        extensionReason = "";
+    }
+
+    private void HideExtensionDialog() => showExtensionDialog = false;
+
+    private async Task SubmitExtension()
+    {
+        if (string.IsNullOrWhiteSpace(extensionReason))
+        {
+            error = "Extension reason is required.";
+            return;
+        }
+        await Run(async () =>
+        {
+            await Orders.RequestTimerExtensionAsync(OrderId, WorkflowTimerKind.OrderEntry, extensionMinutes, extensionReason, actor);
+            showExtensionDialog = false;
+        });
+    }
+
+    private bool IsTimerExpired() =>
+        order?.OrderEntryDueUtc is not null && currentTime > order.OrderEntryDueUtc.Value;
+
+    private string GetTimerText()
+    {
+        if (order?.OrderEntryDueUtc is null) return "00:00";
+        var diff = order.OrderEntryDueUtc.Value - currentTime;
+        if (diff.TotalSeconds <= 0)
+        {
+            var elapsed = currentTime - order.OrderEntryDueUtc.Value;
+            return $"-{FormatTimeSpan(elapsed)}";
+        }
+        return FormatTimeSpan(diff);
+    }
+
+    private static string FormatTimeSpan(TimeSpan ts) =>
+        $"{(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}";
+
+    private void OnChanged(OrderEvent message)
+    {
+        if (message.OrderId == OrderId)
+            _ = InvokeAsync(async () => { await Load(); StateHasChanged(); });
+    }
+
     private void Back() => Navigation.NavigateTo("tables");
-    private async Task Run(Func<Task> action) { if (busy) return; busy = true; error = null; try { await action(); await Load(); } catch (Exception ex) { error = ex.Message; } finally { busy = false; } }
-    public void Dispose()=>Events.Changed-=OnChanged;
+
+    private async Task Run(Func<Task> action)
+    {
+        if (busy) return;
+        busy = true;
+        error = null;
+        try
+        {
+            await action();
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        Events.Changed -= OnChanged;
+        orderTimer?.Dispose();
+    }
 }

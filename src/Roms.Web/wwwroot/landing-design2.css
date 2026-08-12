@@ -1,0 +1,403 @@
+/* ARCWorks Restaurant Suite — isolated premium landing composition.
+   The page is layered deliberately: art, atmosphere, identity, real form. */
+
+.ld2 {
+    --gold: #dcb65d;
+    --gold-bright: #ffe6a4;
+    --cyan: #29d7ef;
+    --violet: #8b5cf6;
+    --ink: #05080e;
+    position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden auto;
+    display: grid;
+    place-items: center;
+    color: #f7f8fb;
+    background: var(--ink);
+    font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.ld2-bg,
+.ld2-atmosphere {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+}
+
+.ld2-bg { z-index: 0; background: var(--ink); }
+.ld2-atmosphere { z-index: 1; overflow: hidden; }
+.ld2-bg picture { display: block; width: 100%; height: 100%; }
+
+.ld2-bg-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+}
+
+.ld2-bg-wash {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 48% 42% at 50% 48%, rgba(1, 5, 12, .08), rgba(1, 5, 12, .62) 100%),
+        linear-gradient(180deg, rgba(1, 3, 8, .06), rgba(1, 4, 10, .3));
+}
+
+.ld2-glow {
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(95px);
+    mix-blend-mode: screen;
+}
+
+.ld2-glow-gold {
+    width: 48vw;
+    height: 28vh;
+    left: 27%;
+    top: -18%;
+    opacity: .38;
+    background: rgba(239, 188, 76, .52);
+}
+
+.ld2-glow-cyan {
+    width: 36vw;
+    height: 43vh;
+    right: -10%;
+    bottom: -12%;
+    opacity: .28;
+    background: rgba(26, 177, 216, .46);
+}
+
+.ld2-grain {
+    position: absolute;
+    inset: 0;
+    /* Disabled after full-resolution visual QA: the procedural noise read as
+       raster pixelation across the dark premium background. */
+    opacity: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.88' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.ld2-header {
+    position: fixed;
+    z-index: 6;
+    top: clamp(1.1rem, 3.5vh, 2.7rem);
+    right: clamp(1rem, 4vw, 4.5rem);
+}
+
+.ld2-arcworks {
+    display: block;
+    width: clamp(155px, 13vw, 230px);
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 5px 18px rgba(34, 211, 238, .24));
+}
+
+.ld2-main {
+    position: relative;
+    z-index: 4;
+    width: min(100%, 700px);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: .5rem;
+    padding: clamp(4.5rem, 8vh, 6.5rem) 1.25rem clamp(2rem, 5vh, 4rem);
+}
+
+.ld2-identity {
+    width: 100%;
+    text-align: center;
+}
+
+.ld2-wordmark {
+    display: block;
+    width: min(610px, 88vw);
+    max-height: 270px;
+    object-fit: contain;
+    margin: 0 auto -1.25rem;
+    filter:
+        drop-shadow(0 3px 2px rgba(0, 0, 0, .85))
+        drop-shadow(0 12px 25px rgba(219, 171, 72, .23));
+}
+
+.ld2-descriptor {
+    margin: 0 0 .9rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .35rem;
+}
+
+.ld2-descriptor-text {
+    color: var(--gold-bright);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(.72rem, 1.25vw, .93rem);
+    font-weight: 650;
+    letter-spacing: .34em;
+    text-indent: .34em;
+    text-transform: uppercase;
+    text-shadow: 0 2px 10px rgba(220, 182, 93, .38);
+}
+
+.ld2-descriptor-rule {
+    width: 164px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 224, 143, .86), transparent);
+    box-shadow: 0 0 9px rgba(220, 182, 93, .45);
+}
+
+.ld2-card {
+    position: relative;
+    isolation: isolate;
+    width: min(100%, 560px);
+    border-radius: 26px;
+    filter: drop-shadow(0 26px 45px rgba(0, 0, 0, .5));
+}
+
+.ld2-card-glass {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    border: 1px solid rgba(213, 227, 244, .48);
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, .12), transparent 30%),
+        linear-gradient(155deg, rgba(25, 31, 42, .72), rgba(7, 12, 20, .61));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .18),
+        inset 1px 0 0 rgba(255, 255, 255, .07),
+        inset 0 -1px 0 rgba(255, 255, 255, .03),
+        0 0 0 1px rgba(5, 8, 14, .55),
+        0 22px 65px rgba(0, 0, 0, .55),
+        18px 16px 65px rgba(11, 138, 173, .08);
+    backdrop-filter: blur(28px) saturate(1.32);
+    -webkit-backdrop-filter: blur(28px) saturate(1.32);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+    .ld2-card-glass { background: rgba(11, 17, 27, .94); }
+}
+
+.ld2-card-edge {
+    position: absolute;
+    inset: -1px;
+    z-index: 1;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(120deg, rgba(255, 255, 255, .38), transparent 19%, transparent 70%, rgba(45, 212, 191, .18));
+    padding: 1px;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+}
+
+.ld2-card-shine {
+    position: absolute;
+    z-index: 1;
+    pointer-events: none;
+    top: 1px;
+    right: 1px;
+    width: 48%;
+    height: 34%;
+    border-radius: 0 25px 0 80%;
+    background: linear-gradient(138deg, rgba(255, 255, 255, .15), rgba(255, 255, 255, .015) 58%, transparent 61%);
+    opacity: .62;
+}
+
+.ld2-card-body {
+    position: relative;
+    z-index: 2;
+    padding: clamp(1.35rem, 3vw, 2.05rem) clamp(1.25rem, 4vw, 2.35rem) clamp(1.2rem, 3vw, 1.7rem);
+}
+
+.ld2-title {
+    margin: 0 0 .25rem;
+    color: #fff;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(1.45rem, 2.25vw, 1.9rem);
+    font-weight: 500;
+    line-height: 1.1;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, .5);
+}
+
+/* FocusOnNavigate targets the page heading after navigation. Keep that
+   semantic focus for screen readers without drawing the global blue box. */
+.ld2-title:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.ld2-lead {
+    margin: 0 0 1rem;
+    color: #c2cad6;
+    font-size: .88rem;
+    line-height: 1.5;
+}
+
+.ld2-alert { margin: 0 0 .75rem; font-size: .84rem; }
+.ld2-validation { margin: 0; font-size: .82rem; }
+
+.ld2-form {
+    display: flex;
+    flex-direction: column;
+    gap: .78rem;
+}
+
+.ld2-field {
+    display: flex;
+    flex-direction: column;
+    gap: .32rem;
+}
+
+.ld2-label {
+    margin: 0;
+    color: #edf1f6;
+    font-size: .8rem;
+    font-weight: 650;
+}
+
+.ld2-input-wrap { position: relative; display: flex; align-items: center; }
+
+.ld2-input-icon {
+    position: absolute;
+    z-index: 1;
+    left: .9rem;
+    display: flex;
+    color: #c7d0dc;
+    pointer-events: none;
+}
+
+.ld2-input {
+    min-height: 48px !important;
+    padding: .7rem 2.8rem .7rem 2.65rem !important;
+    border: 1px solid rgba(188, 201, 217, .46) !important;
+    border-radius: 10px !important;
+    color: #f7f9fc !important;
+    background: rgba(3, 8, 15, .53) !important;
+    box-shadow: inset 0 1px 7px rgba(0, 0, 0, .28) !important;
+}
+
+.ld2-input::placeholder { color: #8e9aab !important; }
+
+.ld2-input:focus {
+    outline: none !important;
+    border-color: rgba(67, 211, 239, .9) !important;
+    box-shadow: 0 0 0 3px rgba(41, 215, 239, .17), inset 0 1px 7px rgba(0, 0, 0, .2) !important;
+}
+
+.ld2-input:-webkit-autofill,
+.ld2-input:-webkit-autofill:hover,
+.ld2-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #f7f9fc !important;
+    -webkit-box-shadow: 0 0 0 1000px rgba(7, 12, 20, .96) inset !important;
+    transition: background-color 9999s ease-in-out 0s;
+}
+
+.ld2-pw-toggle {
+    position: absolute;
+    right: .35rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 9px;
+    color: #aeb8c7;
+    background: transparent;
+    cursor: pointer;
+}
+
+.ld2-pw-toggle:hover { color: #fff; background: rgba(255, 255, 255, .07); }
+
+.ld2-submit {
+    min-height: 50px;
+    width: 100%;
+    margin-top: .12rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .6rem;
+    border: 1px solid rgba(255, 255, 255, .32);
+    border-radius: 10px;
+    color: #fff;
+    background: linear-gradient(104deg, #823de9 0%, #2b9eef 52%, #22d8cf 100%);
+    box-shadow: 0 8px 26px rgba(17, 157, 214, .27), inset 0 1px 0 rgba(255, 255, 255, .27);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.08rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 150ms ease, filter 150ms ease;
+}
+
+.ld2-submit:hover { transform: translateY(-1px); filter: brightness(1.08); }
+.ld2-submit:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
+.ld2-submit-arrow { font-family: Inter, sans-serif; font-size: 1.2rem; }
+
+.ld2-support {
+    margin: .25rem 0 0;
+    color: #b0bac8;
+    text-align: center;
+    font-size: .77rem;
+    line-height: 1.4;
+}
+
+@media (max-width: 700px) {
+    .ld2 { overflow-y: auto; }
+    .ld2-bg-img { object-position: center center; }
+    .ld2-header { top: .85rem; right: .8rem; }
+    .ld2-arcworks { width: clamp(135px, 38vw, 165px); }
+    .ld2-main { padding: 4.4rem .85rem 1.25rem; justify-content: center; gap: .3rem; }
+    .ld2-wordmark { width: min(420px, 96vw); margin-bottom: -.8rem; }
+    .ld2-descriptor { margin-bottom: .65rem; }
+    .ld2-card { width: min(100%, 500px); border-radius: 21px; }
+    .ld2-card-body { padding: 1.3rem 1.05rem 1.1rem; }
+    .ld2-card-shine { border-radius: 0 20px 0 75%; }
+}
+
+/* Short phones and phone landscape use a two-column composition so the real
+   form remains fully usable without shrinking its touch targets. */
+@media (max-height: 700px) and (orientation: landscape) {
+    .ld2 { place-items: stretch; overflow-y: auto; }
+    .ld2-header { top: .55rem; right: .7rem; }
+    .ld2-arcworks { width: 125px; }
+    .ld2-main {
+        width: min(100%, 980px);
+        min-height: 100dvh;
+        margin: auto;
+        display: grid;
+        grid-template-columns: minmax(250px, .8fr) minmax(400px, 1.2fr);
+        gap: 1rem;
+        padding: 2.8rem 1rem .8rem;
+    }
+    .ld2-wordmark { width: min(390px, 43vw); margin-bottom: -.65rem; }
+    .ld2-descriptor { margin-bottom: 0; }
+    .ld2-card { max-width: 520px; }
+    .ld2-card-body { padding: .9rem 1.15rem .8rem; }
+    .ld2-title { font-size: 1.35rem; }
+    .ld2-lead { margin-bottom: .6rem; font-size: .78rem; }
+    .ld2-form { gap: .5rem; }
+    .ld2-input { min-height: 44px !important; }
+    .ld2-submit { min-height: 44px; }
+    .ld2-support { margin-top: 0; }
+}
+
+@media (max-width: 650px) and (max-height: 700px) and (orientation: landscape) {
+    .ld2-main { grid-template-columns: 1fr; padding-top: 3rem; }
+    .ld2-identity { display: none; }
+    .ld2-card { margin: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ld2-submit { transition: none; }
+    .ld2-submit:hover { transform: none; }
+}

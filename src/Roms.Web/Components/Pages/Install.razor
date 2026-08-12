@@ -3,16 +3,16 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<PageTitle>Install ROMS</PageTitle>
-<div class="page-heading"><div><h1>Install ROMS</h1><p>Add ROMS to a phone, tablet, or Windows PC for an app-like beta experience.</p></div></div>
+<PageTitle>Install @ProductBrand.Name</PageTitle>
+<div class="page-heading"><div><h1>Install @ProductBrand.Name</h1><p>Add @ProductBrand.Name to a phone, tablet, or Windows PC for an app-like beta experience.</p></div></div>
 <div class="install-grid">
     <section class="panel install-card">
-        <h2>Open ROMS on the device</h2>
-        <div class="qr-code" aria-label="QR code for this ROMS address">@((MarkupString)qrSvg)</div>
+        <h2>Open @ProductBrand.Name on the device</h2>
+        <div class="qr-code" aria-label="QR code for this ARCWorks Restaurant Suite address">@((MarkupString)qrSvg)</div>
         <p class="install-address"><strong>@appUrl</strong></p>
-        <button id="install-roms-button" class="btn btn-primary btn-lg touch-button install-action" @onclick="InstallApp">Install ROMS</button>
+        <button id="install-roms-button" class="btn btn-primary btn-lg touch-button install-action" @onclick="InstallApp">Install ARCWorks</button>
         <div id="install-requirement-message" class="alert alert-warning mt-3" role="status" hidden></div>
-        <div class="alert alert-success installed-app-message" role="status">ROMS is already installed on this device.</div>
+        <div class="alert alert-success installed-app-message" role="status">@ProductBrand.Name is already installed on this device.</div>
         <p class="text-secondary mt-3">If the button does not open an installer, use the browser instructions alongside it.</p>
     </section>
     <section class="panel">
@@ -20,7 +20,7 @@
         <div class="install-steps">
             <div><strong>Android · Chrome</strong><span>Open the browser menu, then choose <em>Install app</em> or <em>Add to Home screen</em>.</span></div>
             <div><strong>iPhone/iPad · Safari</strong><span>Tap Share, choose <em>Add to Home Screen</em>, then tap Add.</span></div>
-            <div><strong>Windows · Edge or Chrome</strong><span>Open the browser menu and choose <em>Apps → Install ROMS</em> or <em>Install ROMS</em>.</span></div>
+            <div><strong>Windows · Edge or Chrome</strong><span>Open the browser menu and choose <em>Apps → Install ARCWorks</em> or <em>Install ARCWorks</em>.</span></div>
         </div>
         <div class="alert alert-info mt-4 mb-0"><strong>Internet required.</strong> This beta does not store orders offline. If the connection drops, wait for the Live indicator before continuing.</div>
     </section>

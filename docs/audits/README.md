@@ -23,6 +23,8 @@ Independent third-party audits of ROMS, ordered chronologically. Audits are advi
 
 - `docs/WORK_LOG.md`
 - `docs/SECURITY_HARDENING_2026-08-02.md`
+- `docs/ROADMAP_2026-08-06.md`
+- `docs/WORKFLOW_CONTRACT_2026-08-06.md`
 - `docs/ROADMAP_2026-08-02.md`
 - `docs/AI_ROLE_AND_SCOPE_POLICY.md`
 - `docs/AI_FUNCTIONS.md`

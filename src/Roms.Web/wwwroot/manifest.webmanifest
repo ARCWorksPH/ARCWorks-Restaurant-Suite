@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Restaurant Order Management System",
-  "short_name": "ROMS",
+  "name": "ARCWorks Restaurant Suite",
+  "short_name": "ARCWorks",
   "description": "Staff-side restaurant ordering, kitchen, attendance, and administration.",
   "start_url": "/",
   "scope": "/",

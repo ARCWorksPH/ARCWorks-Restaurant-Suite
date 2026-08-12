@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @inject IAttendanceService AttendanceService
 @inject AuthenticationStateProvider Authentication
+@inject IJSRuntime JS
 
 <PageTitle>My Attendance</PageTitle>
 <div class="page-heading"><div><h1>My attendance</h1><p>Confirm your attendance and review your work schedule.</p></div><button class="btn btn-outline-primary touch-button" @onclick="Load">Refresh</button></div>
@@ -39,7 +40,7 @@ else
     protected override async Task OnInitializedAsync(){var state=await Authentication.GetAuthenticationStateAsync();actor=state.User.Identity?.Name??"unknown";await Load();}
     private async Task Load(){try{var today=TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,Manila).Date;view=await AttendanceService.GetMineAsync(actor,ToUtc(today.AddDays(-7)),ToUtc(today.AddDays(15)));failed=false;}catch(Exception ex){message=ex.Message;failed=true;}}
     private Task ClockIn()=>Run(async()=>{await AttendanceService.ClockInAsync(actor);message="Clock-in recorded.";});
-    private Task ClockOut()=>Run(async()=>{await AttendanceService.ClockOutAsync(actor);message="Clock-out recorded.";});
+    private async Task ClockOut(){if(await JS.InvokeAsync<bool>("confirm", "Clock out of your current duty?")){await Run(async()=>{await AttendanceService.ClockOutAsync(actor);message="Clock-out recorded.";});}}
     private async Task Run(Func<Task> action){if(busy)return;busy=true;message=null;try{await action();failed=false;await Load();}catch(Exception ex){message=ex.Message;failed=true;}finally{busy=false;}}
     private static DateTime ToUtc(DateTime local)=>TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(local,DateTimeKind.Unspecified),Manila);
     private static DateTime Local(DateTime utc)=>TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc,DateTimeKind.Utc),Manila);

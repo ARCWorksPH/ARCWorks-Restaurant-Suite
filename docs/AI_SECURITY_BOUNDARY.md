@@ -67,11 +67,12 @@ caller's permissions.
 
 ## Feature control
 
-`AI_ENABLED` defaults to `false`. The Assistant link and page are hidden when
-disabled. Enabling the flag requires the private `ai-lab` services, but does
-not constitute production approval. Disable the flag or stop the AI services
-to remove the path without affecting ordering, inventory, MariaDB, tunnel, or
-monitoring.
+`AI_HOLD` defaults to `true` and is the current release gate. The Assistant
+link and page are hidden/not found, the application does not join the private
+`command` network, and no gateway HTTP client is registered. A stale
+`AI_ENABLED=true` value cannot bypass the hold. Follow `docs/AI_HOLD.md` for
+the reviewed future-version re-enable sequence; changing a flag is not
+production approval.
 
 The availability controls default to two concurrent model requests across the
 application and six requests per signed-in user per minute. Adjust them with

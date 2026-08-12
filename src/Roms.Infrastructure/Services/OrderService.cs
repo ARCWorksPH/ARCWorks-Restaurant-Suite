@@ -15,7 +15,7 @@ public sealed class OrderService(
     IOrderEventPublisher publisher,
     ILogger<OrderService> logger) : IOrderService
 {
-    private static readonly OrderStatus[] ActiveStatuses = [OrderStatus.Draft, OrderStatus.New, OrderStatus.Preparing, OrderStatus.Ready];
+    private static readonly OrderStatus[] ActiveStatuses = [OrderStatus.Draft, OrderStatus.New, OrderStatus.ReturnedToWaiter, OrderStatus.Preparing, OrderStatus.Ready];
 
     public async Task<IReadOnlyList<TableCard>> GetTablesAsync(CancellationToken ct = default)
     {
@@ -43,7 +43,7 @@ public sealed class OrderService(
     public async Task<OrderView?> GetOrderAsync(Guid orderId, string actorId, CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        var order = await db.Orders.AsNoTracking().Include(x => x.Table).Include(x => x.Items).SingleOrDefaultAsync(x => x.Id == orderId, ct);
+        var order = await db.Orders.AsNoTracking().Include(x => x.Table).Include(x => x.Items).Include(x => x.StatusHistory).SingleOrDefaultAsync(x => x.Id == orderId, ct);
         if (order is null) return null;
         await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
         var waiterNames = await GetWaiterNamesAsync(db, [order.WaiterId], ct);
@@ -79,10 +79,18 @@ public sealed class OrderService(
         if (active is not null)
         {
             await EnsureOwnerOrAdminAsync(db, active, waiterId, ct);
+            if (active.Status == OrderStatus.Draft && active.OrderEntryDueUtc is null)
+            {
+                var existingSettings = await GetOrCreateWorkflowSettingsAsync(db, ct);
+                active.StartOrderEntryTimer(existingSettings.OrderEntryMinutes, clock.UtcNow);
+                await db.SaveChangesAsync(ct);
+            }
             return active.Id;
         }
         if (!await db.RestaurantTables.AnyAsync(x => x.Id == tableId && x.IsActive, ct)) throw new DomainException("Table not found.");
         var order = new Order { TableId = tableId, WaiterId = waiterId, CreatedUtc = clock.UtcNow };
+        var settings = await GetOrCreateWorkflowSettingsAsync(db, ct);
+        order.StartOrderEntryTimer(settings.OrderEntryMinutes, clock.UtcNow);
         db.Orders.Add(order);
         db.AuditEntries.Add(Audit(waiterId, "CreateDraft", order.Id, null));
         await db.SaveChangesAsync(ct);
@@ -160,7 +168,7 @@ public sealed class OrderService(
         await Publish(order, "OrderAmended", ct);
     }
 
-    public async Task<Guid> SubmitAsync(Guid orderId, string idempotencyKey, string actorId, CancellationToken ct = default)
+    public async Task<Guid> SubmitAsync(Guid orderId, string idempotencyKey, string actorId, string? resubmissionNote = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Length > 100) throw new DomainException("A valid submission key is required.");
         await using var db = await factory.CreateDbContextAsync(ct);
@@ -168,9 +176,12 @@ public sealed class OrderService(
         var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == orderId, ct);
         await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
         if (existing is not null) return existing.ResourceId;
-        order.Submit(clock.UtcNow);
+        order.Submit(clock.UtcNow, resubmissionNote);
+        var settings = await GetOrCreateWorkflowSettingsAsync(db, ct);
+        order.StartKitchenAcceptanceTimer(settings.KitchenAcceptanceMinutes, clock.UtcNow);
         db.IdempotencyRecords.Add(new IdempotencyRecord { Key = idempotencyKey, Operation = "SubmitOrder", ResourceId = order.Id, CreatedUtc = clock.UtcNow });
-        db.AuditEntries.Add(Audit(actorId, "SubmitOrder", order.Id, null));
+        db.AuditEntries.Add(Audit(actorId, order.ResubmissionCount > 0 ? "ResubmitOrder" : "SubmitOrder", order.Id,
+            string.IsNullOrWhiteSpace(resubmissionNote) ? null : JsonSerializer.Serialize(new { resubmissionNote, order.ResubmissionCount })));
         await db.SaveChangesAsync(ct);
         await Publish(order, "OrderSubmitted", ct);
         return order.Id;
@@ -201,9 +212,25 @@ public sealed class OrderService(
                 }
                 else if (next == OrderStatus.Completed)
                     await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
-                else
+                else if (next is OrderStatus.Preparing or OrderStatus.ReturnedToWaiter or OrderStatus.Ready)
                     await EnsureKitchenOrAdminAsync(db, actorId, ct);
+                else
+                    await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
                 order.TransitionTo(next, actorId, reason, clock.UtcNow);
+
+                if (next == OrderStatus.Preparing)
+                {
+                    var itemIds = order.Items.Where(x => !x.IsRemoved).Select(x => x.MenuItemId).Distinct().ToHashSet();
+                    var menuItems = await db.MenuItems.AsNoTracking().ToListAsync(ct);
+                    var preparationMinutes = menuItems
+                        .Where(x => itemIds.Contains(x.Id))
+                        .ToDictionary(x => x.Id, x => x.PreparationMinutes);
+                    if (preparationMinutes.Count != itemIds.Count)
+                        throw new DomainException("One or more ordered menu items no longer has a preparation target.");
+                    var target = order.Items.Where(x => !x.IsRemoved)
+                        .Sum(x => checked(x.Quantity * preparationMinutes[x.MenuItemId]));
+                    order.SetPreparationTarget(target, clock.UtcNow);
+                }
 
                 db.AuditEntries.Add(Audit(actorId, next == OrderStatus.Cancelled ? "CancelOrder" : "ChangeOrderStatus", order.Id,
                     JsonSerializer.Serialize(new
@@ -227,12 +254,41 @@ public sealed class OrderService(
         await Publish(changedOrder!, "OrderStatusChanged", ct);
     }
 
+    public async Task RequestTimerExtensionAsync(Guid orderId, WorkflowTimerKind kind, int additionalMinutes, string reason, string actorId, CancellationToken ct = default)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        var order = await db.Orders.Include(x => x.Items).SingleAsync(x => x.Id == orderId, ct);
+        if (kind == WorkflowTimerKind.OrderEntry) await EnsureOwnerOrAdminAsync(db, order, actorId, ct);
+        else await EnsureKitchenOrAdminAsync(db, actorId, ct);
+        order.ExtendTimer(kind, additionalMinutes, reason, clock.UtcNow);
+        var count = await db.OrderTimerExtensions.CountAsync(x => x.OrderId == orderId && x.Kind == kind, ct) + 1;
+        db.OrderTimerExtensions.Add(new OrderTimerExtension
+        {
+            OrderId = orderId, Kind = kind, AdditionalMinutes = additionalMinutes,
+            ExtensionCount = count, Reason = reason.Trim(), ActorId = actorId, RequestedUtc = clock.UtcNow
+        });
+        db.AuditEntries.Add(Audit(actorId, "RequestTimerExtension", orderId,
+            JsonSerializer.Serialize(new { kind, additionalMinutes, reason, extensionCount = count })));
+        await db.SaveChangesAsync(ct);
+        await Publish(order, "OrderTimerExtended", ct);
+    }
+
+    private async Task<WorkflowSettings> GetOrCreateWorkflowSettingsAsync(RomsDbContext db, CancellationToken ct)
+    {
+        var settings = await db.WorkflowSettings.FirstOrDefaultAsync(ct);
+        if (settings is not null) return settings;
+        settings = new WorkflowSettings();
+        db.WorkflowSettings.Add(settings);
+        await db.SaveChangesAsync(ct);
+        return settings;
+    }
+
     public async Task ConfirmPaymentAsync(Guid orderId, string adminId, CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         var order = await db.Orders.Include(x => x.Items).SingleOrDefaultAsync(x => x.Id == orderId, ct)
             ?? throw new DomainException("Order not found.");
-        await EnsureAdminAsync(db, adminId, ct);
+        await EnsureManagerOrAdminAsync(db, adminId, ct);
         order.ConfirmPayment(adminId, clock.UtcNow);
         db.AuditEntries.Add(Audit(adminId, "ConfirmPayment", order.Id,
             JsonSerializer.Serialize(new { order.PaymentConfirmedUtc, order.Total })));
@@ -266,7 +322,7 @@ public sealed class OrderService(
         OrderStatus.Completed when order.PaymentConfirmedUtc is null => TableStatus.PendingPayment,
         OrderStatus.Preparing => TableStatus.Preparing,
         OrderStatus.Ready => TableStatus.ReadyToServe,
-        OrderStatus.Draft or OrderStatus.New => TableStatus.Occupied,
+        OrderStatus.Draft or OrderStatus.New or OrderStatus.ReturnedToWaiter => TableStatus.Occupied,
         _ => TableStatus.Available
     };
 
@@ -287,6 +343,13 @@ public sealed class OrderService(
     {
         if (await IsInRoleAsync(db, actorId, RomsRoles.Admin, ct)) return;
         throw new DomainException("Only an administrator can perform this protected action.");
+    }
+
+    private static async Task EnsureManagerOrAdminAsync(RomsDbContext db, string actorId, CancellationToken ct)
+    {
+        if (await IsInRoleAsync(db, actorId, RomsRoles.Manager, ct) ||
+            await IsInRoleAsync(db, actorId, RomsRoles.Admin, ct)) return;
+        throw new DomainException("Only a manager or administrator can perform this protected action.");
     }
 
     private static Task<bool> IsInRoleAsync(RomsDbContext db, string actorId, string role, CancellationToken ct) =>
@@ -325,7 +388,10 @@ public sealed class OrderService(
     private static OrderView Map(Order x, IReadOnlyDictionary<string, string> waiterNames) => new(
         x.Id, x.TableId, x.Table?.Number ?? "?", x.WaiterId, WaiterName(x.WaiterId, waiterNames), x.Status,
         x.CreatedUtc, x.SubmittedUtc, x.CompletedUtc, x.PaymentConfirmedUtc, x.Revision, x.Version, x.Total,
-        x.CancellationReason,
+        x.CancellationReason, x.StatusHistory.OrderByDescending(h => h.OccurredUtc).FirstOrDefault(h => h.ToStatus == OrderStatus.ReturnedToWaiter)?.Reason,
+        x.ResubmissionCount, x.PreparationTargetMinutes, x.PreparationTargetDueUtc,
+        x.OrderEntryTargetMinutes, x.OrderEntryStartedUtc, x.OrderEntryDueUtc,
+        x.KitchenAcceptanceTargetMinutes, x.KitchenAcceptanceStartedUtc, x.KitchenAcceptanceDueUtc,
         x.Items.OrderBy(i => i.MenuItemName).Select(i => new OrderItemView(
             i.Id,
             i.MenuItemName,

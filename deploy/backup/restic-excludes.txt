@@ -1,0 +1,35 @@
+# Build and dependency output
+**/bin/**
+**/obj/**
+**/node_modules/**
+**/.dotnet/**
+**/.dotnet-home/**
+**/.nuget-packages/**
+**/TestResults/**
+**/playwright-report/**
+
+# Disposable runtime and caches
+**/.artifacts/**
+**/tmp/**
+**/cache/**
+**/logs/**
+**/__pycache__/**
+**/*.pyc
+
+# Existing backup trees and Docker virtual-disk storage
+**/backups/**
+**/Docker/**
+
+# Live databases are captured with native logical dumps
+**/data/postgres/**
+
+# Codex credentials and replaceable runtime state
+**/.sandbox-secrets/**
+**/auth.json*
+**/.sandbox/**
+**/.sandbox-bin/**
+**/browser/**
+**/computer-use/**
+**/node_repl/**
+**/process_manager/**
+**/thread-writer-locks/**

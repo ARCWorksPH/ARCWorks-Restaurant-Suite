@@ -7,20 +7,84 @@
 @implements IDisposable
 
 <PageTitle>Tables</PageTitle>
-<div class="page-heading"><div><h1>Tables</h1><p>Select a table to open its order.</p></div><button class="btn btn-outline-primary touch-button" @onclick="Load">Refresh</button></div>
-@if (!string.IsNullOrEmpty(error)) { <div class="alert alert-danger">@error</div> }
-@if (tables is null) { <p>Loading tables…</p> }
-else if (tables.Count == 0) { <div class="empty-state">No active tables. Ask an administrator to configure them.</div> }
+
+<div class="page-heading">
+    <div>
+        <h1>Tables Overview</h1>
+        <p>Select an active table card below to open its corresponding order editor panel.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger mb-4">@error</div>
+}
+
+<div class="tables-filter-bar d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
+    <div class="filter-tabs d-flex gap-2">
+        <button class="filter-tab @(selectedFilter == "All" ? "active" : "")" @onclick='() => SetFilter("All")'>All</button>
+        <button class="filter-tab @(selectedFilter == "Available" ? "active" : "")" @onclick='() => SetFilter("Available")'>Available</button>
+        <button class="filter-tab @(selectedFilter == "Occupied" ? "active" : "")" @onclick='() => SetFilter("Occupied")'>Occupied</button>
+        <button class="filter-tab disabled" disabled>Reserved</button>
+    </div>
+    <button class="btn btn-outline-primary touch-button" @onclick="Load">Refresh</button>
+</div>
+
+@if (tables is null)
+{
+    <div class="loading-state p-4 text-center">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Loading table layout...</p>
+    </div>
+}
+else if (!FilteredTables.Any())
+{
+    <div class="empty-state p-4 text-center">No tables match the current filter.</div>
+}
 else
 {
     <div class="table-grid">
-        @foreach (var table in tables)
+        @foreach (var table in FilteredTables)
         {
-            <button class="table-card status-@table.Status.ToString().ToLowerInvariant()" disabled="@IsLocked(table)" @onclick="() => Open(table)">
-                <strong>Table @table.Number</strong><span>@Label(table.Status)</span>
-                @if (table.ActiveOrderId is not null) { <small>Waiter: @table.WaiterName</small> }
-                @if (IsLocked(table)) { <small>Locked</small> }
-                @if (table.Total > 0) { <small>₱@table.Total.ToString("N2")</small> }
+            var statusClass = table.Status.ToString().ToLowerInvariant();
+            <button class="table-card glass-card status-@statusClass" disabled="@IsLocked(table)" @onclick="() => Open(table)" aria-label="Table @table.Number @Label(table.Status)">
+                <div class="card-glow"></div>
+                <div class="card-header-accent status-bg-@statusClass"></div>
+                <div class="card-content w-100">
+                    <div class="d-flex justify-content-between align-items-start mb-2 w-100">
+                        <strong>Table @table.Number</strong>
+                        <span class="status-badge status-@statusClass">@Label(table.Status)</span>
+                    </div>
+                    <div class="card-body-metrics mt-3">
+                        @if (table.ActiveOrderId is not null)
+                        {
+                            <div class="metric-row">
+                                <span class="metric-label">Waiter:</span>
+                                <span class="metric-value">@table.WaiterName</span>
+                            </div>
+                            @if (table.Total > 0)
+                            {
+                                <div class="metric-row">
+                                    <span class="metric-label">Total:</span>
+                                    <span class="metric-value font-highlight">₱@table.Total.ToString("N2")</span>
+                                </div>
+                            }
+                        }
+                    </div>
+
+                    @if (IsLocked(table))
+                    {
+                        <div class="lock-indicator mt-3 text-muted">
+                            <span class="lock-icon">🔒</span> Locked by another waiter
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="card-action-bar mt-3 text-primary text-end w-100">
+                            <small class="action-text">@(table.ActiveOrderId is null ? "Open Draft" : "View Order") →</small>
+                        </div>
+                    }
+                </div>
             </button>
         }
     </div>
@@ -28,19 +92,66 @@ else
 
 @code {
     private IReadOnlyList<TableCard>? tables;
-    private string? error; private string actor = "unknown"; private bool isAdmin;
-    protected override async Task OnInitializedAsync() { var state = await Authentication.GetAuthenticationStateAsync(); actor = state.User.Identity?.Name ?? "unknown"; isAdmin = state.User.IsInRole(RomsRoles.Admin); Events.Changed += OnChanged; await Load(); }
-    private async Task Load() { try { tables = await Orders.GetTablesAsync(); error = null; } catch (Exception ex) { error = ex.Message; } }
+    private string? error;
+    private string actor = "unknown";
+    private bool isAdmin;
+    private string selectedFilter = "All";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Authentication.GetAuthenticationStateAsync();
+        actor = state.User.Identity?.Name ?? "unknown";
+        isAdmin = state.User.IsInRole(RomsRoles.Admin);
+        Events.Changed += OnChanged;
+        await Load();
+    }
+
+    private void SetFilter(string filter) => selectedFilter = filter;
+
+    private IEnumerable<TableCard> FilteredTables => tables?.Where(t => selectedFilter == "All" ||
+        (selectedFilter == "Available" && t.Status == TableStatus.Available) ||
+        (selectedFilter == "Occupied" && t.Status != TableStatus.Available)) ?? [];
+
+    private async Task Load()
+    {
+        try
+        {
+            tables = await Orders.GetTablesAsync();
+            error = null;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+
     private async Task Open(TableCard table)
     {
-        try {
+        try
+        {
             var id = table.ActiveOrderId;
             if (id is null) id = await Orders.GetOrCreateDraftAsync(table.Id, actor);
             Navigation.NavigateTo($"orders/{id}");
-        } catch (Exception ex) { error = ex.Message; }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
     }
+
     private void OnChanged(OrderEvent message) => _ = InvokeAsync(async () => { await Load(); StateHasChanged(); });
-    private bool IsLocked(TableCard table) => table.ActiveOrderId is not null && !isAdmin && !string.Equals(table.WaiterId, actor, StringComparison.OrdinalIgnoreCase);
-    private static string Label(TableStatus value) => value switch { TableStatus.PendingPayment => "Pending payment", TableStatus.ReadyToServe => "Ready to serve", TableStatus.Preparing => "Preparing", TableStatus.Occupied => "Occupied", _ => "Available" };
+
+    private bool IsLocked(TableCard table) =>
+        table.ActiveOrderId is not null && !isAdmin && !string.Equals(table.WaiterId, actor, StringComparison.OrdinalIgnoreCase);
+
+    private static string Label(TableStatus value) => value switch
+    {
+        TableStatus.PendingPayment => "Pending Payment",
+        TableStatus.ReadyToServe => "Ready to Serve",
+        TableStatus.Preparing => "Preparing",
+        TableStatus.Occupied => "Occupied",
+        _ => "Available"
+    };
+
     public void Dispose() => Events.Changed -= OnChanged;
 }

@@ -25,7 +25,7 @@ public sealed class AdversarialInputTests(MariaDbFixture fixture)
         await Assert.ThrowsAsync<DomainException>(() =>
             attendance.GetMineAsync("waiter", FixedClock.Value, FixedClock.Value.AddMinutes(-1)));
         await Assert.ThrowsAsync<DomainException>(() =>
-            attendance.GetAdminViewAsync(FixedClock.Value, FixedClock.Value));
+            attendance.GetAdminViewAsync("admin", FixedClock.Value, FixedClock.Value));
         await Assert.ThrowsAsync<DomainException>(() =>
             inventory.ReportLossAsync(scenario.InventoryItemId, (InventoryLossType)999, 1m,
                 "Invalid enum", scenario.KitchenId, "invalid-enum"));

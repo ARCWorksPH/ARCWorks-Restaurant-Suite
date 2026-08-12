@@ -12,7 +12,7 @@ public sealed class SeedOptions
 {
     public string AdminUsername { get; set; } = "admin";
     public string AdminPassword { get; set; } = "";
-    public string AdminDisplayName { get; set; } = "ROMS Administrator";
+    public string AdminDisplayName { get; set; } = ProductBrand.Name + " Administrator";
     public bool DemoData { get; set; }
 }
 
@@ -25,7 +25,7 @@ public static class DbInitializer
         await db.Database.MigrateAsync();
 
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        foreach (var role in new[] { RomsRoles.Admin, RomsRoles.Waiter, RomsRoles.Kitchen })
+        foreach (var role in new[] { RomsRoles.Admin, RomsRoles.Waiter, RomsRoles.Kitchen, RomsRoles.Manager })
             if (!await roleManager.RoleExistsAsync(role)) await roleManager.CreateAsync(new IdentityRole(role));
 
         var options = scope.ServiceProvider.GetRequiredService<IOptions<SeedOptions>>().Value;

@@ -1,52 +1,65 @@
 @implements IDisposable
+@using Roms.Web.Ai
 @inject NavigationManager NavigationManager
 @inject IConfiguration Configuration
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">ROMS</a>
-        <button class="navbar-toggler" type="button" aria-label="Toggle navigation menu"
-                aria-controls="roms-navigation"
-                aria-expanded="@(isNavExpanded ? "true" : "false")"
-                @onclick="ToggleNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+@if (!IsHorizontal)
+{
+    <div class="top-row ps-3 navbar navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="">@ProductBrand.Name</a>
+            <button class="navbar-toggler" type="button" aria-label="Toggle navigation menu"
+                    aria-controls="roms-navigation"
+                    aria-expanded="@(isNavExpanded ? "true" : "false")"
+                    @onclick="ToggleNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
     </div>
-</div>
+}
 
-<div id="roms-navigation" class="nav-scrollable @(isNavExpanded ? "show" : "")" @onclick="CollapseNav">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3"><NavLink class="nav-link" href="" Match="NavLinkMatch.All" title="Dashboard"><span class="nav-icon">⌂</span> <span class="nav-text">Dashboard</span></NavLink></div>
-        <AuthorizeView><div class="nav-item px-3"><NavLink class="nav-link" href="attendance" title="My Attendance"><span class="nav-icon">◷</span> <span class="nav-text">My Attendance</span></NavLink></div></AuthorizeView>
-        <div class="nav-item px-3 install-nav-item"><NavLink class="nav-link" href="install" title="Install ROMS"><span class="nav-icon">⬇</span> <span class="nav-text">Install ROMS</span></NavLink></div>
-        <AuthorizeView Policy="WaiterOrAdmin"><div class="nav-item px-3"><NavLink class="nav-link" href="tables" title="Tables & Orders"><span class="nav-icon">▦</span> <span class="nav-text">Tables & Orders</span></NavLink></div></AuthorizeView>
+<div id="roms-navigation" class="nav-scrollable @(isNavExpanded ? "show" : "") @(IsHorizontal ? "nav-horizontal" : "nav-vertical")" @onclick="CollapseNav">
+    <nav class="nav @(IsHorizontal ? "flex-row align-items-center" : "flex-column")">
+        <div class="nav-item px-2"><NavLink class="nav-link" href="" Match="NavLinkMatch.All" title="Dashboard"><span class="nav-icon">⌂</span> <span class="nav-text">Dashboard</span></NavLink></div>
+        <AuthorizeView><div class="nav-item px-2"><NavLink class="nav-link" href="attendance" title="My Attendance"><span class="nav-icon">◷</span> <span class="nav-text">My Attendance</span></NavLink></div></AuthorizeView>
+        <div class="nav-item px-2 install-nav-item"><NavLink class="nav-link" href="install" title="Install ARCWorks Restaurant Suite"><span class="nav-icon">⬇</span> <span class="nav-text">Install ARCWorks</span></NavLink></div>
+        <AuthorizeView Policy="WaiterOrAdmin"><div class="nav-item px-2"><NavLink class="nav-link" href="tables" title="Tables & Orders"><span class="nav-icon">▦</span> <span class="nav-text">Tables & Orders</span></NavLink></div></AuthorizeView>
         <AuthorizeView Policy="KitchenOrAdmin">
-            <div class="nav-item px-3"><NavLink class="nav-link" href="kitchen" title="Kitchen Display"><span class="nav-icon">▤</span> <span class="nav-text">Kitchen Display</span></NavLink></div>
-            <div class="nav-item px-3"><NavLink class="nav-link" href="inventory" title="Inventory"><span class="nav-icon">▥</span> <span class="nav-text">Inventory</span></NavLink></div>
+            <div class="nav-item px-2"><NavLink class="nav-link" href="kitchen" title="Kitchen Display"><span class="nav-icon">▤</span> <span class="nav-text">Kitchen Display</span></NavLink></div>
+            <div class="nav-item px-2"><NavLink class="nav-link" href="inventory" title="Inventory"><span class="nav-icon">▥</span> <span class="nav-text">Inventory</span></NavLink></div>
+        </AuthorizeView>
+        <AuthorizeView Policy="ManagerOrAdmin">
+            <div class="nav-item px-2"><NavLink class="nav-link" href="manager" title="Manager Dashboard"><span class="nav-icon">◫</span> <span class="nav-text">Manager</span></NavLink></div>
         </AuthorizeView>
         <AuthorizeView Roles="Admin">
-            <div class="nav-item px-3"><NavLink class="nav-link" href="admin/catalog" title="Menu & Tables"><span class="nav-icon">☰</span> <span class="nav-text">Menu & Tables</span></NavLink></div>
-            <div class="nav-item px-3"><NavLink class="nav-link" href="admin/users" title="Users"><span class="nav-icon">♙</span> <span class="nav-text">Users</span></NavLink></div>
-            <div class="nav-item px-3"><NavLink class="nav-link" href="admin/attendance" title="Staff Schedule"><span class="nav-icon">◴</span> <span class="nav-text">Staff Schedule</span></NavLink></div>
-            <div class="nav-item px-3"><NavLink class="nav-link" href="admin/payments" title="Pending Payments"><span class="nav-icon">₱</span> <span class="nav-text">Pending Payments</span></NavLink></div>
-            <div class="nav-item px-3"><NavLink class="nav-link" href="reports" title="Reports"><span class="nav-icon">◫</span> <span class="nav-text">Reports</span></NavLink></div>
+            <div class="nav-item px-2"><NavLink class="nav-link" href="admin/catalog" title="Menu & Tables"><span class="nav-icon">☰</span> <span class="nav-text">Menu & Tables</span></NavLink></div>
+            <div class="nav-item px-2"><NavLink class="nav-link" href="admin/users" title="Users"><span class="nav-icon">♙</span> <span class="nav-text">Users</span></NavLink></div>
+            <div class="nav-item px-2"><NavLink class="nav-link" href="admin/attendance" title="Staff Schedule"><span class="nav-icon">◴</span> <span class="nav-text">Staff Schedule</span></NavLink></div>
+            <div class="nav-item px-2"><NavLink class="nav-link" href="reports" title="Reports"><span class="nav-icon">◫</span> <span class="nav-text">Reports</span></NavLink></div>
+        </AuthorizeView>
+        <AuthorizeView Roles="Admin,Manager">
+            <div class="nav-item px-2"><NavLink class="nav-link" href="admin/payments" title="Pending Payments"><span class="nav-icon">₱</span> <span class="nav-text">Pending Payments</span></NavLink></div>
         </AuthorizeView>
         <AuthorizeView>
             <Authorized>
-                @if (Configuration.GetValue<bool>("Ai:Enabled"))
+                @if (AiFeatureGate.IsEnabled(Configuration))
                 {
-                    <div class="nav-item px-3"><NavLink class="nav-link" href="assistant" title="ROMS Assistant"><span class="nav-icon">◇</span> <span class="nav-text">Assistant</span></NavLink></div>
+                    <div class="nav-item px-2"><NavLink class="nav-link" href="assistant" title="ARCWorks Restaurant Suite Assistant"><span class="nav-icon">◇</span> <span class="nav-text">Assistant</span></NavLink></div>
                 }
-                <div class="nav-item px-3 nav-user-item"><span class="nav-user-label">● @context.User.Identity?.Name (@GetRole(context.User))</span></div>
-                <div class="nav-item px-3"><form action="Account/ClockOutAndLogout" method="post"><AntiforgeryToken /><button type="submit" class="nav-link nav-clockout" title="Clock Out + Log Out"><span class="nav-icon">⇥</span> <span class="nav-text">Clock Out + Log Out</span></button></form></div>
-                <div class="nav-item px-3"><form action="Account/Logout" method="post"><AntiforgeryToken /><input type="hidden" name="ReturnUrl" value="Account/Login" /><button type="submit" class="nav-link nav-session-logout" title="Log Out Only"><span class="nav-icon">🚪</span> <span class="nav-text">Log Out Only</span></button></form></div>
+                @if (!IsHorizontal)
+                {
+                    <div class="nav-item px-2 nav-user-item"><span class="nav-user-label">● @context.User.Identity?.Name (@GetRole(context.User))</span></div>
+                }
+                <div class="nav-item px-2"><form action="Account/ClockOutAndLogout" method="post" onsubmit="return confirm('Clock out and log out now?');"><AntiforgeryToken /><button type="submit" class="nav-link nav-clockout btn-link-form" title="Clock Out + Log Out"><span class="nav-icon">⇥</span> <span class="nav-text">Clock Out + Log Out</span></button></form></div>
+                <div class="nav-item px-2"><form action="Account/Logout" method="post" onsubmit="return confirm('Log out now?');"><AntiforgeryToken /><input type="hidden" name="ReturnUrl" value="Account/Login" /><button type="submit" class="nav-link nav-session-logout btn-link-form" title="Log Out Only"><span class="nav-icon">🚪</span> <span class="nav-text">Log Out Only</span></button></form></div>
             </Authorized>
-            <NotAuthorized><div class="nav-item px-3"><NavLink class="nav-link" href="Account/Login"><span class="nav-icon">●</span> <span class="nav-text">Staff Login</span></NavLink></div></NotAuthorized>
+            <NotAuthorized><div class="nav-item px-2"><NavLink class="nav-link" href="Account/Login"><span class="nav-icon">●</span> <span class="nav-text">Staff Login</span></NavLink></div></NotAuthorized>
         </AuthorizeView>
     </nav>
 </div>
 
 @code {
+    [Parameter] public bool IsHorizontal { get; set; }
     private bool isNavExpanded;
 
     protected override void OnInitialized()
@@ -68,6 +81,7 @@
         if (user.IsInRole(RomsRoles.Admin)) return "Admin";
         if (user.IsInRole(RomsRoles.Waiter)) return "Waiter";
         if (user.IsInRole(RomsRoles.Kitchen)) return "Kitchen";
+        if (user.IsInRole(RomsRoles.Manager)) return "Manager";
         return "Staff";
     }
 

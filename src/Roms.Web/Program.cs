@@ -13,6 +13,7 @@ using Roms.Web.Realtime;
 using Roms.Web;
 using Roms.Web.Ai;
 using Roms.Application.Commands;
+using Roms.Web.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
@@ -28,9 +29,31 @@ if (!Path.IsPathRooted(dataProtectionKeysPath))
 Directory.CreateDirectory(dataProtectionKeysPath);
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
+    // Keep the legacy application name so existing cookies and key rings remain valid.
     .SetApplicationName("ROMS");
 
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+builder.Services.AddOptions<LandingPageBrandingOptions>()
+    .Bind(builder.Configuration.GetSection(LandingPageBrandingOptions.SectionName))
+    .Validate(options => !string.IsNullOrWhiteSpace(options.RestaurantName) && options.RestaurantName.Length <= 120,
+        "LandingPageBranding:RestaurantName must contain at most 120 characters.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.RestaurantDescriptor) && options.RestaurantDescriptor.Length <= 120,
+        "LandingPageBranding:RestaurantDescriptor must contain at most 120 characters.")
+    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.RestaurantLogoPath),
+        "LandingPageBranding:RestaurantLogoPath must be a local /images/ asset path.")
+    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.ProductLogoPath),
+        "LandingPageBranding:ProductLogoPath must be a local /images/ asset path.")
+    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.BackgroundImagePath),
+        "LandingPageBranding:BackgroundImagePath must be a local /images/ asset path.")
+    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.BackgroundWebpPath),
+        "LandingPageBranding:BackgroundWebpPath must be a local /images/ asset path.")
+    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.MobileBackgroundImagePath),
+        "LandingPageBranding:MobileBackgroundImagePath must be a local /images/ asset path.")
+    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.MobileBackgroundWebpPath),
+        "LandingPageBranding:MobileBackgroundWebpPath must be a local /images/ asset path.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.SupportMessage) && options.SupportMessage.Length <= 240,
+        "LandingPageBranding:SupportMessage must contain at most 240 characters.")
+    .ValidateOnStart();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     // cloudflared runs on this server and forwards the visitor's HTTPS scheme.
@@ -39,6 +62,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.AddScoped<StaffSessionService>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 builder.Services.AddAuthentication(options =>
     {
@@ -48,7 +72,9 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.ExpireTimeSpan = TimeSpan.FromHours(12);
+    // The server-side StaffSessionService separately validates actual activity.
+    // The cookie remains short-lived as a second boundary for shared devices.
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(20);
     options.SlidingExpiration = false;
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
@@ -78,19 +104,33 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("WaiterOrAdmin", p => p.RequireRole(RomsRoles.Waiter, RomsRoles.Admin))
-    .AddPolicy("KitchenOrAdmin", p => p.RequireRole(RomsRoles.Kitchen, RomsRoles.Admin));
+    .AddPolicy("KitchenOrAdmin", p => p.RequireRole(RomsRoles.Kitchen, RomsRoles.Admin))
+    .AddPolicy("ManagerOrAdmin", p => p.RequireRole(RomsRoles.Manager, RomsRoles.Admin))
+    .AddPolicy("KitchenManagerOrAdmin", p => p.RequireRole(RomsRoles.Kitchen, RomsRoles.Manager, RomsRoles.Admin));
 
 builder.Services.AddSignalR(o => o.MaximumReceiveMessageSize = 32 * 1024);
 builder.Services.AddSingleton<OrderEventBus>();
 builder.Services.AddScoped<IOrderEventPublisher, SignalROrderEventPublisher>();
 builder.Services.AddHealthChecks();
 builder.Services.Configure<SeedOptions>(builder.Configuration.GetSection("Seed"));
-builder.Services.AddHttpClient<ICommandGatewayClient, CommandGatewayClient>(client =>
+// AI is a future-version feature. While the hold is active the web process
+// does not register an HTTP client and cannot establish an app-to-gateway
+// connection, even if a stale Ai:Enabled environment variable is present.
+if (AiFeatureGate.IsEnabled(builder.Configuration))
 {
-    client.BaseAddress = new Uri(builder.Configuration["Ai:CommandGatewayBaseUrl"]
-        ?? "http://command-gateway:8080/");
-    client.Timeout = TimeSpan.FromSeconds(50);
-});
+    var commandGatewayBaseUrl = builder.Configuration["Ai:CommandGatewayBaseUrl"];
+    if (string.IsNullOrWhiteSpace(commandGatewayBaseUrl))
+    {
+        throw new InvalidOperationException(
+            "Ai:CommandGatewayBaseUrl is required only when the AI hold is released.");
+    }
+
+    builder.Services.AddHttpClient<ICommandGatewayClient, CommandGatewayClient>(client =>
+    {
+        client.BaseAddress = new Uri(commandGatewayBaseUrl, UriKind.Absolute);
+        client.Timeout = TimeSpan.FromSeconds(50);
+    });
+}
 
 var app = builder.Build();
 

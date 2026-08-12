@@ -7,26 +7,41 @@
     <Authorized><SessionTimeout /></Authorized>
 </AuthorizeView>
 
-<div class="page @(isKitchenPage ? "kds-mode" : "")">
-    <div class="sidebar">
-        <NavMenu />
+<div class="page @(isKitchenPage ? "kds-mode" : "standard-mode") @(isKitchenSidebarCollapsed ? "kitchen-sidebar-collapsed" : "")">
+    <!-- Sidebar / Mobile Navigation -->
+    <div class="sidebar @(isKitchenPage ? (isKitchenSidebarCollapsed ? "kitchen-sidebar-collapsed" : "") : "mobile-sidebar-only")">
+        <NavMenu IsHorizontal="false" />
     </div>
 
     <main>
         <div class="top-row px-4">
-            <div class="d-flex align-items-center gap-3">
-                <strong class="roms-brand-title">ROMS</strong>
-                <span id="roms-connection-indicator"
-                      class="connection-indicator status-@connectionState.ToLowerInvariant()"
-                      role="status"
-                      aria-live="polite">● @GetConnectionLabel(connectionState)</span>
-            </div>
-            <div class="d-flex align-items-center gap-3">
-                <AuthorizeView>
-                    <Authorized>
-                        <span class="user-badge">● @context.User.Identity?.Name (@GetRole(context.User))</span>
-                    </Authorized>
-                </AuthorizeView>
+            <div class="d-flex align-items-center justify-content-between w-100">
+                <div class="d-flex align-items-center gap-4">
+                    <strong class="roms-brand-title">@ProductBrand.Name</strong>
+                    @if (!isKitchenPage)
+                    {
+                    }
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    @if (isKitchenPage)
+                    {
+                        <button type="button"
+                                class="btn btn-outline-primary kitchen-sidebar-toggle"
+                                @onclick="ToggleKitchenSidebar"
+                                aria-label="@(isKitchenSidebarCollapsed ? "Expand kitchen navigation panel" : "Minimize kitchen navigation panel")">
+                            @(isKitchenSidebarCollapsed ? "☰ Expand panel" : "☰ Minimize panel")
+                        </button>
+                    }
+                    <span id="roms-connection-indicator"
+                          class="connection-indicator status-@connectionState.ToLowerInvariant()"
+                          role="status"
+                          aria-live="polite">● @GetConnectionLabel(connectionState)</span>
+                    <AuthorizeView>
+                        <Authorized>
+                            <span class="user-badge">● @context.User.Identity?.Name (@GetRole(context.User))</span>
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
             </div>
         </div>
 
@@ -44,6 +59,7 @@
 
 @code {
     private bool isKitchenPage;
+    private bool isKitchenSidebarCollapsed;
     private string connectionState = "Connected";
     private DotNetObjectReference<MainLayout>? dotNetRef;
 
@@ -79,7 +95,13 @@
     {
         var relative = Navigation.ToBaseRelativePath(uri).Trim('/');
         isKitchenPage = string.Equals(relative, "kitchen", StringComparison.OrdinalIgnoreCase);
+        if (!isKitchenPage)
+        {
+            isKitchenSidebarCollapsed = false;
+        }
     }
+
+    private void ToggleKitchenSidebar() => isKitchenSidebarCollapsed = !isKitchenSidebarCollapsed;
 
     [JSInvokable]
     public void UpdateConnectionState(string state)
@@ -96,6 +118,7 @@
         if (user.IsInRole(RomsRoles.Admin)) return "Admin";
         if (user.IsInRole(RomsRoles.Waiter)) return "Waiter";
         if (user.IsInRole(RomsRoles.Kitchen)) return "Kitchen";
+        if (user.IsInRole(RomsRoles.Manager)) return "Manager";
         return "Staff";
     }
 

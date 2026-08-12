@@ -1,11 +1,32 @@
 namespace Roms.Domain;
 
-public enum UserRole { Admin, Waiter, Kitchen }
-public enum OrderStatus { Draft, New, Preparing, Ready, Completed, Cancelled }
+public enum UserRole { Admin, Waiter, Kitchen, Manager }
+public enum OrderStatus { Draft, New, ReturnedToWaiter, Preparing, Ready, Completed, Cancelled }
 public enum TableStatus { Available, Occupied, Preparing, ReadyToServe, PendingPayment }
 public enum StockMovementType { Receipt, Consumption, Adjustment, Reversal, Waste, Spoilage }
 public enum InventoryLossType { Waste, Spoilage }
 public enum InventoryLossStatus { Pending, Approved, Rejected }
+public enum WorkflowTimerKind { OrderEntry, KitchenAcceptance, Preparation }
+
+public sealed class WorkflowSettings
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public int OrderEntryMinutes { get; private set; } = 15;
+    public int KitchenAcceptanceMinutes { get; private set; } = 5;
+    public DateTime UpdatedUtc { get; private set; } = DateTime.UtcNow;
+    public string UpdatedBy { get; private set; } = "system";
+
+    public void Update(int orderEntryMinutes, int kitchenAcceptanceMinutes, string actorId, DateTime utcNow)
+    {
+        if (orderEntryMinutes is < 1 or > 240) throw new DomainException("Order-entry time must be between 1 and 240 minutes.");
+        if (kitchenAcceptanceMinutes is < 1 or > 120) throw new DomainException("Kitchen acceptance time must be between 1 and 120 minutes.");
+        if (string.IsNullOrWhiteSpace(actorId)) throw new DomainException("A manager or administrator is required.");
+        OrderEntryMinutes = orderEntryMinutes;
+        KitchenAcceptanceMinutes = kitchenAcceptanceMinutes;
+        UpdatedBy = actorId.Trim();
+        UpdatedUtc = utcNow;
+    }
+}
 
 public sealed class StaffSchedule
 {
@@ -90,6 +111,7 @@ public sealed class MenuItem
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
     public decimal Price { get; set; }
+    public int PreparationMinutes { get; set; } = 5;
     public bool IsActive { get; set; } = true;
     public bool IsAvailable { get; set; } = true;
 }
@@ -108,6 +130,15 @@ public sealed class Order
     public DateTime? PaymentConfirmedUtc { get; private set; }
     public string? PaymentConfirmedBy { get; private set; }
     public string? CancellationReason { get; private set; }
+    public int ResubmissionCount { get; private set; }
+    public int? PreparationTargetMinutes { get; private set; }
+    public DateTime? PreparationTargetDueUtc { get; private set; }
+    public int? OrderEntryTargetMinutes { get; private set; }
+    public DateTime? OrderEntryStartedUtc { get; private set; }
+    public DateTime? OrderEntryDueUtc { get; private set; }
+    public int? KitchenAcceptanceTargetMinutes { get; private set; }
+    public DateTime? KitchenAcceptanceStartedUtc { get; private set; }
+    public DateTime? KitchenAcceptanceDueUtc { get; private set; }
     public int Revision { get; private set; } = 1;
     public long Version { get; private set; }
     public List<OrderItem> Items { get; set; } = [];
@@ -148,6 +179,22 @@ public sealed class Order
         if (quantity < 1 || quantity > 99) throw new DomainException("Quantity must be between 1 and 99.");
         if ((notes?.Trim().Length ?? 0) > 500) throw new DomainException("Special instructions cannot exceed 500 characters.");
 
+        var normalizedNotes = notes?.Trim() ?? "";
+        var existing = Items.SingleOrDefault(x =>
+            !x.IsRemoved &&
+            x.MenuItemId == menuItem.Id &&
+            string.Equals(x.Notes, normalizedNotes, StringComparison.Ordinal));
+
+        if (existing is not null)
+        {
+            if (existing.Quantity + quantity > 99)
+                throw new DomainException("The quantity for one item line cannot exceed 99.");
+
+            existing.Quantity += quantity;
+            Touch(utcNow);
+            return;
+        }
+
         Items.Add(new OrderItem
         {
             OrderId = Id,
@@ -155,7 +202,7 @@ public sealed class Order
             MenuItemName = menuItem.Name,
             UnitPrice = menuItem.Price,
             Quantity = quantity,
-            Notes = notes?.Trim() ?? ""
+            Notes = normalizedNotes
         });
         Touch(utcNow);
     }
@@ -176,13 +223,69 @@ public sealed class Order
         Touch(utcNow);
     }
 
-    public void Submit(DateTime utcNow)
+    public void Submit(DateTime utcNow, string? resubmissionNote = null)
     {
-        if (Status != OrderStatus.Draft) throw new DomainException("Only a draft can be submitted.");
+        if (Status is not (OrderStatus.Draft or OrderStatus.ReturnedToWaiter))
+            throw new DomainException("Only a draft or returned order can be submitted.");
         if (Items.Count == 0) throw new DomainException("Add at least one item before submitting.");
+        if (Status == OrderStatus.ReturnedToWaiter && string.IsNullOrWhiteSpace(resubmissionNote))
+            throw new DomainException("A resubmission note is required for a returned order.");
+        var previous = Status;
+        if (previous == OrderStatus.ReturnedToWaiter) ResubmissionCount++;
         Status = OrderStatus.New;
         SubmittedUtc = utcNow;
-        AddHistory(OrderStatus.Draft, OrderStatus.New, WaiterId, null, utcNow);
+        AddHistory(previous, OrderStatus.New, WaiterId, resubmissionNote, utcNow);
+    }
+
+    public void StartOrderEntryTimer(int minutes, DateTime utcNow)
+    {
+        if (Status != OrderStatus.Draft) throw new DomainException("The order-entry timer can only start for a draft.");
+        if (minutes is < 1 or > 240) throw new DomainException("Order-entry time must be between 1 and 240 minutes.");
+        OrderEntryTargetMinutes = minutes;
+        OrderEntryStartedUtc ??= utcNow;
+        OrderEntryDueUtc = OrderEntryStartedUtc.Value.AddMinutes(minutes);
+        Touch(utcNow);
+    }
+
+    public void StartKitchenAcceptanceTimer(int minutes, DateTime utcNow)
+    {
+        if (Status != OrderStatus.New) throw new DomainException("The kitchen acceptance timer can only start for a submitted order.");
+        if (minutes is < 1 or > 120) throw new DomainException("Kitchen acceptance time must be between 1 and 120 minutes.");
+        KitchenAcceptanceTargetMinutes = minutes;
+        KitchenAcceptanceStartedUtc = utcNow;
+        KitchenAcceptanceDueUtc = utcNow.AddMinutes(minutes);
+        Touch(utcNow);
+    }
+
+    public void ExtendTimer(WorkflowTimerKind kind, int additionalMinutes, string reason, DateTime utcNow)
+    {
+        if (additionalMinutes is < 1 or > 120) throw new DomainException("An extension must be between 1 and 120 minutes.");
+        if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("An extension reason is required.");
+        if (reason.Trim().Length > 500) throw new DomainException("An extension reason cannot exceed 500 characters.");
+        DateTime? due = kind switch
+        {
+            WorkflowTimerKind.OrderEntry => OrderEntryDueUtc,
+            WorkflowTimerKind.KitchenAcceptance => KitchenAcceptanceDueUtc,
+            WorkflowTimerKind.Preparation => PreparationTargetDueUtc,
+            _ => null
+        };
+        if (due is null) throw new DomainException("This timer has not started.");
+        switch (kind)
+        {
+            case WorkflowTimerKind.OrderEntry: OrderEntryDueUtc = due.Value.AddMinutes(additionalMinutes); break;
+            case WorkflowTimerKind.KitchenAcceptance: KitchenAcceptanceDueUtc = due.Value.AddMinutes(additionalMinutes); break;
+            case WorkflowTimerKind.Preparation: PreparationTargetDueUtc = due.Value.AddMinutes(additionalMinutes); break;
+        }
+        Touch(utcNow);
+    }
+
+    public void SetPreparationTarget(int targetMinutes, DateTime utcNow)
+    {
+        if (Status != OrderStatus.Preparing) throw new DomainException("Preparation target can only be set when preparation begins.");
+        if (targetMinutes < 1 || targetMinutes > 24 * 60) throw new DomainException("Preparation target must be between 1 and 1440 minutes.");
+        PreparationTargetMinutes = targetMinutes;
+        PreparationTargetDueUtc = utcNow.AddMinutes(targetMinutes);
+        Touch(utcNow);
     }
 
     public void TransitionTo(
@@ -210,6 +313,14 @@ public sealed class Order
             OrderStatus.Ready => OrderStatus.Completed,
             _ => (OrderStatus?)null
         };
+        if (next == OrderStatus.ReturnedToWaiter && Status == OrderStatus.New)
+        {
+            if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("A return reason is required.");
+            if (reason.Trim().Length > 500) throw new DomainException("A return reason cannot exceed 500 characters.");
+            Status = next;
+            AddHistory(OrderStatus.New, next, actorId, reason, utcNow);
+            return;
+        }
         if (expected != next) throw new DomainException($"Invalid transition from {Status} to {next}.");
         var from = Status;
         Status = next;
@@ -272,6 +383,19 @@ public sealed class OrderStatusHistory
     public string ActorId { get; set; } = "";
     public string? Reason { get; set; }
     public DateTime OccurredUtc { get; set; }
+}
+
+public sealed class OrderTimerExtension
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid OrderId { get; set; }
+    public Order? Order { get; set; }
+    public WorkflowTimerKind Kind { get; set; }
+    public int AdditionalMinutes { get; set; }
+    public int ExtensionCount { get; set; }
+    public string Reason { get; set; } = "";
+    public string ActorId { get; set; } = "";
+    public DateTime RequestedUtc { get; set; }
 }
 
 public sealed class AuditEntry

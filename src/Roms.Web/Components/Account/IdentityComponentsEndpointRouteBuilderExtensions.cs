@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using Roms.Web.Components.Account.Pages;
 using Roms.Web.Components.Account.Pages.Manage;
+using Roms.Web.Components.Account;
 using Roms.Web.Data;
 using Roms.Application;
 using Roms.Domain;
@@ -45,9 +46,11 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
 
         accountGroup.MapPost("/Logout", async (
             ClaimsPrincipal user,
+            [FromServices] StaffSessionService staffSessions,
             [FromServices] SignInManager<ApplicationUser> signInManager,
             [FromForm] string returnUrl) =>
         {
+            await staffSessions.EndAsync(user);
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect($"~/{returnUrl}");
         });
@@ -55,6 +58,7 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
         accountGroup.MapPost("/ClockOutAndLogout", async (
             ClaimsPrincipal user,
             [FromServices] IAttendanceService attendanceService,
+            [FromServices] StaffSessionService staffSessions,
             [FromServices] SignInManager<ApplicationUser> signInManager) =>
         {
             var username = user.Identity?.Name;
@@ -70,6 +74,7 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
                 }
             }
 
+            await staffSessions.EndAsync(user);
             await signInManager.SignOutAsync();
             return TypedResults.LocalRedirect("~/Account/Login?clockedOut=true");
         });

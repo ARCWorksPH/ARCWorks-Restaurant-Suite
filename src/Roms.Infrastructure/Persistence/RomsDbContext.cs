@@ -22,10 +22,18 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
     public DbSet<InventoryLossRequest> InventoryLossRequests => Set<InventoryLossRequest>();
     public DbSet<StaffSchedule> StaffSchedules => Set<StaffSchedule>();
     public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
+    public DbSet<WorkflowSettings> WorkflowSettings => Set<WorkflowSettings>();
+    public DbSet<OrderTimerExtension> OrderTimerExtensions => Set<OrderTimerExtension>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        builder.Entity<ApplicationUser>(e =>
+        {
+            e.Property(x => x.ActiveSessionId).HasMaxLength(64);
+            e.HasIndex(x => x.ActiveSessionId);
+        });
 
         builder.Entity<RestaurantTable>(e =>
         {
@@ -38,12 +46,14 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
             e.Property(x => x.Name).HasMaxLength(120);
             e.Property(x => x.Description).HasMaxLength(500);
             e.Property(x => x.Price).HasPrecision(12, 2);
+            e.Property(x => x.PreparationMinutes).HasDefaultValue(5);
             e.HasOne(x => x.Category).WithMany(x => x.Items).HasForeignKey(x => x.CategoryId);
         });
         builder.Entity<Order>(e =>
         {
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             e.Property(x => x.PaymentConfirmedBy).HasMaxLength(256);
+            e.Property(x => x.CancellationReason).HasMaxLength(500);
             // The production relational provider enforces optimistic concurrency.
             // EF's in-memory test provider doesn't preserve manually incremented tokens reliably.
             if (Database.IsRelational()) e.Property(x => x.Version).IsConcurrencyToken();
@@ -51,6 +61,19 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
             e.HasIndex(x => new { x.TableId, x.Status });
             e.HasMany(x => x.Items).WithOne(x => x.Order).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.StatusHistory).WithOne(x => x.Order).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany<OrderTimerExtension>().WithOne(x => x.Order).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
+        });
+        builder.Entity<WorkflowSettings>(e =>
+        {
+            e.Property(x => x.UpdatedBy).HasMaxLength(256);
+            e.HasIndex(x => x.Id).IsUnique();
+        });
+        builder.Entity<OrderTimerExtension>(e =>
+        {
+            e.Property(x => x.Kind).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.Reason).HasMaxLength(500);
+            e.Property(x => x.ActorId).HasMaxLength(256);
+            e.HasIndex(x => new { x.OrderId, x.Kind, x.RequestedUtc });
         });
         builder.Entity<OrderItem>(e =>
         {

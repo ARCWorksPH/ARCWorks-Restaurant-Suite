@@ -437,6 +437,11 @@ namespace Roms.Infrastructure.Persistence.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("varchar(120)");
 
+                    b.Property<int>("PreparationMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(5);
+
                     b.Property<decimal>("Price")
                         .HasPrecision(12, 2)
                         .HasColumnType("decimal(12,2)");
@@ -454,7 +459,8 @@ namespace Roms.Infrastructure.Persistence.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<string>("CancellationReason")
-                        .HasColumnType("longtext");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
 
                     b.Property<DateTime?>("CompletedUtc")
                         .HasColumnType("datetime(6)");
@@ -462,12 +468,39 @@ namespace Roms.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<DateTime?>("KitchenAcceptanceDueUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("KitchenAcceptanceStartedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("KitchenAcceptanceTargetMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("OrderEntryDueUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("OrderEntryStartedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("OrderEntryTargetMinutes")
+                        .HasColumnType("int");
+
                     b.Property<string>("PaymentConfirmedBy")
                         .HasMaxLength(256)
                         .HasColumnType("varchar(256)");
 
                     b.Property<DateTime?>("PaymentConfirmedUtc")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("PreparationTargetDueUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int?>("PreparationTargetMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ResubmissionCount")
+                        .HasColumnType("int");
 
                     b.Property<int>("Revision")
                         .HasColumnType("int");
@@ -573,6 +606,45 @@ namespace Roms.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrderId");
 
                     b.ToTable("OrderStatusHistory");
+                });
+
+            modelBuilder.Entity("Roms.Domain.OrderTimerExtension", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("ActorId")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<int>("AdditionalMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExtensionCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTime>("RequestedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId", "Kind", "RequestedUtc");
+
+                    b.ToTable("OrderTimerExtensions");
                 });
 
             modelBuilder.Entity("Roms.Domain.RestaurantTable", b =>
@@ -685,6 +757,33 @@ namespace Roms.Infrastructure.Persistence.Migrations
                     b.ToTable("StockMovements");
                 });
 
+            modelBuilder.Entity("Roms.Domain.WorkflowSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("KitchenAcceptanceMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrderEntryMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.ToTable("WorkflowSettings");
+                });
+
             modelBuilder.Entity("Roms.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -692,6 +791,10 @@ namespace Roms.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
+
+                    b.Property<string>("ActiveSessionId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -741,6 +844,9 @@ namespace Roms.Infrastructure.Persistence.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("longtext");
 
+                    b.Property<DateTime?>("SessionLastActivityUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
 
@@ -752,6 +858,8 @@ namespace Roms.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
+
+                    b.HasIndex("ActiveSessionId");
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
@@ -886,6 +994,17 @@ namespace Roms.Infrastructure.Persistence.Migrations
                 {
                     b.HasOne("Roms.Domain.Order", "Order")
                         .WithMany("StatusHistory")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("Roms.Domain.OrderTimerExtension", b =>
+                {
+                    b.HasOne("Roms.Domain.Order", "Order")
+                        .WithMany()
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

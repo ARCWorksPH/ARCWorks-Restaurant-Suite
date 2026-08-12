@@ -1,75 +1,163 @@
 @page "/kitchen"
 @attribute [Authorize(Policy = "KitchenOrAdmin")]
 @inject IOrderService Orders
+@inject ICatalogService Catalog
 @inject AuthenticationStateProvider Authentication
 @inject OrderEventBus Events
 @implements IDisposable
 
 <PageTitle>Kitchen Display</PageTitle>
-<div class="page-heading">
-    <div>
-        <h1>Kitchen Display</h1>
-        <p>Oldest incoming orders appear first.</p>
+
+<div class="kds-header d-flex justify-content-between align-items-center mb-4 p-3 glass-card">
+    <div class="d-flex align-items-center gap-4">
+        <h1 class="m-0 font-weight-bold" style="font-size: 1.5rem; letter-spacing: 0.05em;">Kitchen Display</h1>
+        <div class="kds-stat-pill bg-surface-soft px-3 py-1 rounded small">
+            ACTIVE ORDERS: <strong class="text-primary">@orders.Count</strong>
+        </div>
     </div>
     <div class="d-flex align-items-center gap-3">
-        <div class="kds-live-clock">🕒 @currentTime</div>
+        <div class="kds-live-clock font-monospace" style="font-size: 1.1rem; color: var(--roms-primary);">🕒 @currentTime</div>
         <button class="btn btn-outline-primary touch-button" @onclick="Load">Refresh</button>
     </div>
 </div>
 
-@if (!string.IsNullOrEmpty(error)) { <div class="alert alert-danger">@error</div> }
-@if (orders.Count == 0) { <div class="empty-state">No active kitchen orders.</div> }
-<div class="kds-grid">
-@foreach (var item in orders)
+@if (!string.IsNullOrEmpty(error))
 {
-    <article class="kds-ticket status-@item.Status.ToString().ToLowerInvariant()">
-        <header>
-            <div>
-                <strong>Table @item.TableNumber</strong>
-                <small>Waiter: @item.WaiterName</small>
-                <small>#@item.Id.ToString()[..8] · rev @item.Revision</small>
-            </div>
-            <span>@Elapsed(item.SubmittedUtc)</span>
-        </header>
-        <div class="status-pill status-@item.Status.ToString().ToLowerInvariant()">@item.Status</div>
-        <ul>
-            @foreach (var line in item.Items.Where(x => !x.IsRemoved))
-            {
-                <li>
-                    <strong>@line.Quantity × @line.Name</strong>
-                    @if (!string.IsNullOrWhiteSpace(line.Notes)) { <em>@line.Notes</em> }
-                </li>
-            }
-        </ul>
-        @if (item.Status == OrderStatus.New)
-        {
-            <button class="btn btn-warning btn-lg touch-button w-100" @onclick="() => Move(item.Id, OrderStatus.Preparing)">Start preparing</button>
-        }
-        else if (item.Status == OrderStatus.Preparing) { <button class="btn btn-success btn-lg touch-button w-100" @onclick="() => Move(item.Id, OrderStatus.Ready)">Ready</button> }
-        else { <div class="ready-callout">Waiting for waiter</div> }
-    </article>
+    <div class="alert alert-danger mb-4">@error</div>
 }
-</div>
+
+@if (orders.Count == 0)
+{
+    <div class="empty-state p-5 text-center glass-card">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="var(--roms-text-muted)" class="mb-3">
+            <path d="M18.06 23h1.66c.84 0 1.53-.64 1.63-1.46L23 5.05a.15.15 0 0 0-.15-.17h-5.26c-.18-1.96-1.82-3.5-3.82-3.5s-3.64 1.54-3.82 3.5H4.69c-.09 0-.16.08-.15.17l1.65 16.49c.1 1.02.96 1.8 1.98 1.8h9.89zm-4.29-21c1.1 0 2 1 2 2.18h-4c0-1.18.9-2.18 2-2.18z"/>
+        </svg>
+        <p class="text-muted">No active kitchen orders. Oldest incoming orders appear here first.</p>
+    </div>
+}
+else
+{
+    <div class="kds-grid">
+        @foreach (var item in orders)
+        {
+            var statusClass = item.Status.ToString().ToLowerInvariant();
+            <article class="kds-ticket glass-card status-@statusClass">
+                <header class="kds-ticket-header status-bg-@statusClass p-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong style="font-size: 1.4rem;">Table @item.TableNumber</strong>
+                        <div class="small text-muted-light mt-1">#@item.Id.ToString()[..8] · Waiter: @item.WaiterName</div>
+                    </div>
+                    <div class="text-end">
+                        <span class="status-badge status-@statusClass">@item.Status</span>
+                        <div class="small text-muted-light mt-1">rev @item.Revision</div>
+                    </div>
+                </header>
+
+                <div class="kds-ticket-body p-3 flex-fill">
+                    <!-- Timer Display -->
+                    <div class="kds-timer-box text-center my-3 p-2 rounded bg-surface-soft border border-secondary">
+                        <div class="small text-muted">@(item.Status == OrderStatus.New ? "Acceptance Deadline:" : "Preparation Time:")</div>
+                        <h2 class="font-monospace m-0 text-primary" style="font-size: 2rem;">@GetKdsTimerText(item)</h2>
+                        @if (item.PreparationTargetMinutes is not null && item.Status == OrderStatus.Preparing)
+                        {
+                            <div class="small text-muted mt-1">Target: @item.PreparationTargetMinutes min</div>
+                        }
+                    </div>
+
+                    <ul class="kds-item-list mt-3 list-unstyled">
+                        @foreach (var line in item.Items.Where(x => !x.IsRemoved))
+                        {
+                            <li class="mb-2 p-2 rounded bg-surface-soft border border-secondary">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong>@line.Quantity × @line.Name</strong>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(line.Notes))
+                                {
+                                    <div class="item-notes text-warning small mt-1">📝 <em>@line.Notes</em></div>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+
+                <footer class="kds-ticket-footer p-3 border-top mt-auto">
+                    @if (item.Status == OrderStatus.New)
+                    {
+                        <div class="return-panel mb-3">
+                            <textarea class="form-control mb-2" placeholder="Return reason (required)" @bind="returnReasons[item.Id]"></textarea>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-warning btn-lg touch-button flex-fill" @onclick="() => Move(item.Id, OrderStatus.Preparing)">Start preparing</button>
+                            <button class="btn btn-outline-danger btn-lg touch-button flex-fill" @onclick="() => Return(item.Id)">Return to waiter</button>
+                        </div>
+                    }
+                    else if (item.Status == OrderStatus.Preparing)
+                    {
+                        <button class="btn btn-success btn-lg touch-button w-100" @onclick="() => Move(item.Id, OrderStatus.Ready)">Ready</button>
+                    }
+                    else
+                    {
+                        <div class="ready-callout text-center p-2 rounded bg-success-soft border border-success text-success">
+                            Waiting for waiter to serve...
+                        </div>
+                    }
+                </footer>
+            </article>
+        }
+    </div>
+}
+
+@if (availabilityItems.Count > 0)
+{
+    <section class="panel mt-4 kitchen-availability-panel">
+        <div class="page-heading">
+            <div>
+                <h2>86 menu item</h2>
+                <p>Use this when the kitchen confirms an item cannot be served. Manager/Admin can restore it with code 68.</p>
+            </div>
+        </div>
+        <div class="admin-list">
+            @foreach (var menuItem in availabilityItems)
+            {
+                <div>
+                    <span><strong>@menuItem.Name</strong> · @(menuItem.IsAvailable ? "Available" : "86 unavailable")</span>
+                    <button class="btn btn-sm @(menuItem.IsAvailable ? "btn-outline-danger" : "btn-outline-secondary")"
+                            disabled="@(!menuItem.IsAvailable || busy)"
+                            @onclick="() => MarkUnavailable(menuItem)">
+                        @(menuItem.IsAvailable ? "86 item" : "86 applied")
+                    </button>
+                </div>
+            }
+        </div>
+    </section>
+}
 
 @code {
     private static readonly TimeZoneInfo ManilaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila");
 
     private IReadOnlyList<OrderView> orders = [];
+    private IReadOnlyList<MenuItem> availabilityItems = [];
     private string actor = "unknown";
     private string? error;
+    private bool busy;
+    private readonly Dictionary<Guid, string> returnReasons = [];
     private string currentTime = RestaurantTime();
     private System.Threading.Timer? clockTimer;
+    private DateTime currentUtcTime = DateTime.UtcNow;
 
     protected override async Task OnInitializedAsync()
     {
         var state = await Authentication.GetAuthenticationStateAsync();
         actor = state.User.Identity?.Name ?? "unknown";
         Events.Changed += OnChanged;
+
         clockTimer = new System.Threading.Timer(_ =>
         {
             currentTime = RestaurantTime();
+            currentUtcTime = DateTime.UtcNow;
             InvokeAsync(StateHasChanged);
         }, null, 1000, 1000);
+
         await Load();
     }
 
@@ -78,8 +166,46 @@
 
     private async Task Load()
     {
-        try { orders = await Orders.GetKitchenOrdersAsync(); error = null; }
-        catch (Exception ex) { error = ex.Message; }
+        try
+        {
+            orders = await Orders.GetKitchenOrdersAsync();
+            var categories = await Catalog.GetCategoriesAsync();
+            availabilityItems = categories.Where(x => x.IsActive)
+                .SelectMany(x => x.Items.Where(item => item.IsActive).OrderBy(item => item.Name))
+                .ToList();
+            foreach (var o in orders)
+            {
+                if (!returnReasons.ContainsKey(o.Id))
+                {
+                    returnReasons[o.Id] = string.Empty;
+                }
+            }
+            error = null;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task MarkUnavailable(MenuItem menuItem)
+    {
+        if (busy) return;
+        busy = true;
+        try
+        {
+            menuItem.IsAvailable = false;
+            await Catalog.SaveMenuItemAsync(menuItem, actor);
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
     }
 
     private async Task Move(Guid id, OrderStatus next)
@@ -89,17 +215,52 @@
             await Orders.TransitionAsync(id, next, actor);
             await Load();
         }
-        catch (Exception ex) { error = ex.Message; }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
     }
 
-    private void OnChanged(OrderEvent message) => _ = InvokeAsync(async () => { await Load(); StateHasChanged(); });
-
-    private static string Elapsed(DateTime? utc)
+    private async Task Return(Guid id)
     {
-        if (utc is null) return "Draft";
-        var mins = Math.Max(0, (int)(DateTime.UtcNow - utc.Value).TotalMinutes);
-        return mins < 1 ? "Just now" : $"{mins} min";
+        try
+        {
+            if (!returnReasons.TryGetValue(id, out var reason) || string.IsNullOrWhiteSpace(reason))
+                throw new InvalidOperationException("A return reason is required.");
+            await Orders.TransitionAsync(id, OrderStatus.ReturnedToWaiter, actor, reason);
+            returnReasons.Remove(id);
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
     }
+
+    private string GetKdsTimerText(OrderView item)
+    {
+        DateTime? dueUtc = item.Status switch
+        {
+            OrderStatus.New => item.KitchenAcceptanceDueUtc,
+            OrderStatus.Preparing => item.PreparationTargetDueUtc,
+            _ => null
+        };
+
+        if (dueUtc is null) return "00:00";
+        var diff = dueUtc.Value - currentUtcTime;
+        if (diff.TotalSeconds <= 0)
+        {
+            var elapsed = currentUtcTime - dueUtc.Value;
+            return $"-{FormatTimeSpan(elapsed)}";
+        }
+        return FormatTimeSpan(diff);
+    }
+
+    private static string FormatTimeSpan(TimeSpan ts) =>
+        $"{(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}";
+
+    private void OnChanged(OrderEvent message) =>
+        _ = InvokeAsync(async () => { await Load(); StateHasChanged(); });
 
     public void Dispose()
     {

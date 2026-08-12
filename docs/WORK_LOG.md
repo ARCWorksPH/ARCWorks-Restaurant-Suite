@@ -1,5 +1,179 @@
 # ROMS Work Log
 
+## 2026-08-06 — Timer and item-preparation rules approved
+
+- Approved one standard Manager-configured order-entry timer for all waiters,
+  starting when a table is selected and a draft begins.
+- Approved one standard Manager-configured kitchen acceptance timer for all
+  submitted orders.
+- Approved Admin-configured per-menu-item preparation minutes; an accepted
+  order's preparation target is the sum of minutes multiplied by quantities.
+- Approved the kitchen return-to-waiter/resubmission path and retained
+  rejection/resubmission history.
+- Updated the workflow contract, revised draft, and roadmap before code work.
+
+## 2026-08-06 — UI revision alignment review
+
+- Confirmed the supplied dark glass/component-sheet, tables, KDS, and order
+  editor concepts align with the intended product direction.
+- Rejected the inventory mockup's recipe configuration as incompatible with
+  the approved recipe removal; supplier, unit-cost, barcode, total-value, and
+  automatic-deduction fields remain unsupported unless separately approved.
+- Recorded the role-aware navigation, timer display, local-image, and visual
+  acceptance boundaries in `docs/UI_REVISION_ALIGNMENT_REVIEW_2026-08-06.md`.
+
+## 2026-08-06 — UI redesign implementation instructions
+
+- Added `docs/UI_REDESIGN_IMPLEMENTATION_INSTRUCTIONS_2026-08-06.md` as the
+  authoritative handoff for the future UI redesign.
+- Made workflow implementation, migration, backup, rollback, and acceptance
+  hard prerequisites for UI work.
+- Defined role-specific surfaces, component states, accessibility, responsive
+  behavior, browser gates, documentation, and Git/rollback procedure.
+- Explicitly prohibited recipe UI and unsupported inventory fields from being
+  reintroduced through the mockups.
+
+## 2026-08-06 — UI handoff clarification update
+
+- Added `docs/PROJECT_TIMELINE.md` as the authoritative concise decision
+  timeline and corrected all UI handoff references to the canonical
+  `D:\ARCWorks_Restaurant_Suite` root.
+- Clarified that the backend workflow/migration and synthetic checks are ready;
+  supervised four-role/browser acceptance is intentionally a post-UI gate.
+- Defined the Manager dashboard boundary as live/current operational data by
+  default, with explicit bounded windows required for any historical metric.
+- Required a uniform local placeholder for missing menu images so the card grid
+  remains stable.
+- Required the KDS to render the backend-snapshotted preparation target rather
+  than calculating it in the browser.
+
+## 2026-08-06 — UI feedback clarification update
+
+- Defined `/manager` (or `/manager/dashboard`) as a `ManagerOrAdmin` route and
+  kept direct-route authorization mandatory.
+- Clarified that Manager schedule and roster views are read-only; shift and
+  roster mutations remain Admin/Owner-only.
+- Clarified that `Reserved` is not a live table status and that `Locked` is a
+  display-only ownership indication, never a new persisted status.
+- Required late waiter drafts to show `EXPIRED`/`LATE` while retaining the
+  current domain's late submission behavior; no client-only hard block was
+  introduced.
+- Removed the inventory mockup's misleading automatic-deduction-paused banner
+  because automatic deduction is out of scope, not paused.
+
+## 2026-08-07 — UI redesign corrective handoff
+
+- Confirmed the public site is reachable, but it is still serving the existing
+  `roms:local` image; the current UI redesign worktree is not yet deployed.
+- Added `docs/UI_REDESIGN_FOLLOW_UP_FIX_INSTRUCTIONS_2026-08-07.md` covering
+  retired waste/spoilage and recipe UI, Manager read-only inventory access,
+  service-level authorization, bounded Manager data, fabricated table capacity,
+  late submission behavior, tests, rollback, and deployment verification.
+- No source or database changes were made by this review.
+
+## 2026-08-06 — Workflow foundation implementation started
+
+- Added the `Manager` role to the role catalog and administrator staff creation
+  options.
+- Added the `ReturnedToWaiter` order state, required return reason, required
+  resubmission note, resubmission count, and retained status history.
+- Added Admin-configured per-menu-item preparation minutes and preparation
+  target fields calculated from item quantities when kitchen preparation starts.
+- Added the first kitchen return-to-waiter UI path and waiter resubmission UI.
+- Added migration `20260806120000_AddWorkflowTimingFields`.
+- Release build passed with 0 warnings and 0 errors; Domain 13/13 and focused
+  OrderWorkflow integration tests 5/5 passed.
+- Standard waiter/kitchen timer configuration, extension requests, and the
+  Manager live dashboard remain the next implementation slice; no live
+  acceptance is claimed yet.
+
+## 2026-08-06 — Revised four-role workflow and deferred operational alerts
+
+- Added `docs/REVISED_WORKFLOW_DRAFT_2026-08-06.md` for review before changing
+  the frozen workflow contract.
+- Drafted distinct `Waiter`, `Kitchen`, `Manager`, and `Admin/Owner` roles.
+- Removed waste/spoilage approval from the active inventory direction after
+  the recipe functionality was retired.
+- Added the kitchen return-to-waiter/resubmission path, manager live-only
+  oversight, timer configuration boundaries, and immutable processed-record
+  rules to the draft.
+- Recorded operational alerts as a later roadmap phase with initial codes
+  `85`, `86`, `68`, `100`, and `200`; codes `50` and `95` are out of scope.
+- No application code or existing frozen contract was changed. Implementation
+  remains gated on product-owner approval of the revised draft.
+
+## 2026-08-06 — Deterministic workflow contract frozen
+
+- Froze the current role, order-state, inventory, schedule, reporting, route,
+  and acceptance boundaries in
+  `docs/WORKFLOW_CONTRACT_2026-08-06.md`.
+- Confirmed that the next step is contract-based waiter/kitchen/management
+  acceptance, not another feature expansion or UI redesign.
+- Recorded the required acceptance scenarios without claiming them as passed;
+  the next phase must produce the actual automated/browser evidence.
+
+## 2026-08-06 — Deterministic core roadmap refresh
+
+- Added `docs/ROADMAP_2026-08-06.md` as the current roadmap while retaining
+  `ROADMAP_2026-08-02.md` as historical context.
+- Re-centered the next implementation phases on waiter → kitchen → management,
+  independent-item inventory, schedule/report acceptance, recovery, and
+  supervised beta readiness.
+- Kept AI, recipes, multi-instance expansion, and major UI redesign work
+  explicitly deferred until the core workflow contract is stable.
+
+## 2026-08-06 — AI feature gated hold
+
+- Removed the active application-to-command-gateway connection from the
+  current release. The web app no longer registers the gateway HTTP client,
+  no longer joins the private `command` Docker network, and does not activate
+  AI service registrations while the hold is enabled.
+- Added a fail-closed `Ai:Hold=true` gate. The Assistant navigation and route
+  are hidden/not found, including when a stale `AI_ENABLED=true` value is
+  present.
+- Preserved the AI implementation, contracts, benchmark evidence, and
+  `ai-lab` Compose profile for a future version; they are not production
+  dependencies.
+- Recorded the boundary and re-enable acceptance gate in
+  [AI_HOLD.md](AI_HOLD.md).
+- Updated the E2E smoke contract to verify the Assistant is unavailable while
+  the core waiter, kitchen, management, inventory, schedule, and reports
+  workflows remain the active product scope.
+- Release build passed with 0 warnings/0 errors; Domain 11/11, Command
+  Gateway 11/11, and the isolated real-MariaDB/browser hold-path smoke 1/1
+  passed. The updated local container returned health 200, the public
+  `https://roms.arkworksph.online/health` check returned 200, the app is on
+  `backend` and `edge` only, and the `ai-lab` gateway/Ollama containers were
+  stopped without deleting their future-version images or evidence.
+
+## 2026-08-04 — Resto-VM portable preparation
+
+- Prepared the non-secret `arcworks-suite-resto-vm` profile for
+  `resto-vm.arkworksph.online` with tunnel service `http://app:8080`, host port
+  `7071`, MariaDB server ID `2`, unique volume/backup/monitoring identities, and
+  AI disabled for acceptance.
+- Added [PORTABLE_RESTO_VM_PREPARATION.md](PORTABLE_RESTO_VM_PREPARATION.md)
+  with the VM operator sequence and isolation gate.
+- Updated `Initialize-ProductionEnv.ps1` so generated administrator labels use
+  the final ARCWorks Restaurant Suite branding.
+- No VM, tunnel, or live workstation container was started or changed by this
+  preparation step.
+
+## 2026-08-04 — Public product branding finalized
+
+- Adopted **ARCWorks Restaurant Suite** as the public product name and
+  **ARCWorks** as the compact label for the UI, PWA metadata, admin bootstrap
+  label, operational monitor label, README, and portable-instance examples.
+- Added `docs/BRANDING_AND_COMPATIBILITY.md` to define the branding boundary.
+- Preserved `ROMS` in namespaces, database/migration identifiers, Docker and
+  environment compatibility names, historical evidence, and Data Protection's
+  application name so existing data, cookies, and key rings are not invalidated.
+- Updated the Playwright smoke test to verify the new public name. Release build
+  completed with 0 warnings/0 errors; the isolated real-application browser test
+  passed 1/1.
+- This was a source/documentation change only. The running legacy
+  `arcworks-resto-*` Docker stack was not renamed or restarted.
+
 ## 2026-08-02 — AI Benchmark 3 final disposition
 
 ### Benchmark decision
@@ -958,3 +1132,135 @@ independent security scan.
   anonymous routes redirected to login; `AI_ENABLED=false` remained active.
 - Full technical evidence and the remaining AI acceptance gate are recorded in
   `docs/SECURITY_HARDENING_2026-08-02.md`.
+
+## 2026-08-06 - Deterministic workflow backend implementation
+
+Status: implemented and unit/integration checked; browser and isolated MariaDB
+acceptance remain required before the UI redesign gate opens.
+
+- Added persisted manager-controlled order-entry and kitchen-acceptance timer
+  settings with bounded values and audited updates.
+- Draft creation now starts the waiter timer; submission starts the kitchen
+  acceptance timer; preparation still snapshots item timing × quantity.
+- Added persisted, role-checked timer extension requests with required reason,
+  requested minutes, actor, timestamp, cumulative count, and audit entries.
+- Added manager live-order projections and the `ManagerOrAdmin` authorization
+  policy without granting managers waiter/kitchen transaction or history-edit
+  authority.
+- Added migration `20260806143000_AddWorkflowTimers` and updated the frozen
+  contract, roadmap, and rollback/evidence log.
+- Verification: release solution build 0 warnings/0 errors; Domain 15/15;
+  focused order workflow integration 5/5. The full solution test command was
+  stopped at the 120-second limit while waiting on the broader environment;
+  no failure result was recorded.
+
+## 2026-08-09 - Direct UI implementation pass
+
+Status: source implementation complete for local visual acceptance; public
+deployment and visual sign-off intentionally remain pending.
+
+- Completed the Neo-Glass/Soft-Bento visual pass directly in the canonical
+  project. No Gemini session or external design handoff is required for this
+  implementation.
+- Expanded desktop content, strengthened status-coded table cards, restored the
+  intended three-pane order-editor grid, improved menu-card hierarchy, and
+  applied a landscape-first three-column KDS layout with responsive fallbacks.
+- Restyled inventory as independent-item operational bento panels without
+  reintroducing recipe functionality.
+- Removed a conflicting Bootstrap flex utility from the order editor that was
+  preventing its grid geometry from being applied.
+- `dotnet build Roms.slnx --no-restore` passed with 0 warnings and 0 errors;
+  `git diff --check` passed. The complete test command exceeded its two-minute
+  verification window and is recorded as pending rather than passed.
+- Detailed scope and acceptance instructions are in
+  `docs/UI_IMPLEMENTATION_STATUS_2026-08-09.md`.
+
+### Menu image integration follow-up
+
+- Added the 12 supplied menu images to the web static assets and mapped them by
+  normalized database item name.
+- Image cards use contain/center rendering so source images with different
+  dimensions are not stretched or cropped.
+- Rebuilt only the app image; local `/health` returned HTTP 200.
+# 2026-08-11 — Ideal Glass visual rebuild plan established
+
+- Accepted `docs/NOTES/ARCWorks_ROMS_Ideal_Glass_Design_Spec3.md` as the
+  authoritative visual target, replacing prior broad glass-theme instructions.
+- Recorded `docs/NOTES/IDEAL_GLASS_IMPLEMENTATION_PLAN_2026-08-11.md` before
+  the next UI change. The plan separates reusable visual-system work from
+  screen work: Tables, Kitchen Display, Waiter Order Editor, Manager/Inventory,
+  then supporting responsive screens.
+- Confirmed the prior smoked-glass pass is only a foundation. It is not a claim
+  of ideal-mockup parity, functional acceptance, or beta readiness.
+- Preserved rejected inventory scope: the visual inventory reference must not
+  reintroduce recipes, automatic stock deduction, supplier management, or
+  unit-cost functionality.
+- Completed the shared-token portion of the plan in `roms.css`: neutral
+  background, reusable glass foundation, status-colored fills/borders/glows,
+  and common status-pill treatment. Rebuilt the Docker `app` image; the
+  container became healthy and loopback `/health` returned HTTP 200. This does
+  not yet claim screen-level visual parity with the approved mockups.
+
+## 2026-08-11 - Single active staff session and inactivity protection
+
+Status: deployed to the local container; human multi-browser acceptance is
+still required.
+
+- Added a database-backed session claim for every successful staff login,
+  including password, two-factor, and recovery-code completion routes. A user
+  cannot start a second session while their existing session has recent server
+  activity.
+- Added 15-minute inactivity expiration. Browser activity updates the server
+  record and server-side authentication revalidation checks that the active
+  claim still belongs to the user.
+- Explicit logout and clock-out/logout release the active claim. Cookie
+  expiration is bounded at 20 minutes and does not slide.
+- Applied migration `20260811190000_AddSingleActiveStaffSession` to MariaDB;
+  the healthy app container startup log records the migration, both columns,
+  and the `IX_AspNetUsers_ActiveSessionId` index as applied.
+- No landing page, navigation, role workflow, or visual changes were made as
+  part of this security step. The detailed policy and manual browser acceptance
+  checklist are in `docs/NOTES/SINGLE_ACTIVE_SESSION_POLICY_2026-08-11.md`.
+
+## 2026-08-11 - Landing page Design 2 collaborator preparation
+
+Status: backend/configuration preparation complete; visual implementation is
+deliberately delegated to a separately reviewed landing-page pull request.
+
+- Added typed, startup-validated `LandingPageBranding` configuration for a
+  restaurant name, descriptor, local logo path, local decorative background,
+  and support message. The configuration carries presentation values only; it
+  does not control tenancy, authorization, or authentication.
+- Added neutral local placeholder SVGs and an asset-boundary README under
+  `src/Roms.Web/wwwroot/images/branding/`. External images/scripts are not
+  permitted for this public sign-in surface.
+- Created `docs/UI/LANDING_PAGE_GROK_HANDOFF_2026-08-11.md`, defining the
+  Design 2 scope, exact permitted files, session/security invariants, asset
+  rules, responsive/accessibility requirements, rollback-safe PR process, and
+  required verification evidence.
+- No login layout, authenticated navigation, workflow behavior, or visual
+  operational tab was changed in this preparation step.
+
+## 2026-08-12 - Premium landing page formally accepted
+
+Status: visually accepted by the project owner in desktop, landscape,
+portrait/mobile, and zoomed views; ready to serve as the rollback baseline for
+the next screen phase.
+
+- Completed the layered Chef Doy's staff-login composition with a
+  restaurant-first identity, secondary ARCWorks endorsement, responsive glass
+  login card, enhanced gold/cyan background, and deliberate breakpoint reflow.
+- Disabled the procedural grain after full-resolution inspection showed that
+  it read as background pixelation rather than premium texture.
+- Recovered the 8192 x 5492 source raster embedded inside the supplied SVG
+  wrapper, cropped it to its alpha content with a glow margin, resized it to
+  3200 x 1406, and applied restrained edge sharpening without generatively
+  redrawing the approved Chef Doy's lettering.
+- The final wordmark SHA-256 is
+  `18BE00E4721B405C2D241D4FBCB3AB8C294AF2AC31D0FAB81E912E15914C439E`.
+- Docker Release publish, isolated container health, desktop and 393 x 852
+  browser rendering, browser-console inspection, and `git diff --check`
+  passed. The complete .NET test command exceeded its local verification
+  window and remains pending rather than being claimed as passed.
+- Formal acceptance and scope boundaries are recorded in
+  `docs/UI/LANDING_PAGE_ACCEPTANCE_2026-08-12.md`.

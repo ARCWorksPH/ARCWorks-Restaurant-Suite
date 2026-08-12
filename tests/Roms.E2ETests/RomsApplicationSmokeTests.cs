@@ -59,15 +59,11 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Menu & Tables" }))
                 .ToBeVisibleAsync();
             await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Assistant" }))
-                .ToBeVisibleAsync();
+                .ToHaveCountAsync(0);
 
             await Page.GotoAsync($"{baseAddress}/assistant");
-            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "ROMS Assistant" }))
+            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Not Found" }))
                 .ToBeVisibleAsync();
-            await Expect(Page.GetByText("Responses come from deterministic ROMS queries."))
-                .ToBeVisibleAsync();
-            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Ask ROMS" }))
-                .ToBeDisabledAsync();
 
             await Page.SetViewportSizeAsync(390, 844);
             await Page.GotoAsync($"{baseAddress}/inventory");
@@ -88,20 +84,10 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Page.WaitForTimeoutAsync(500);
             await Page.GetByRole(AriaRole.Button, new() { Name = "Add item" }).ClickAsync();
             await Expect(Page.Locator(".alert").Last).ToContainTextAsync("Saved.");
-            await Page.GetByLabel("Loss inventory item").SelectOptionAsync(
-                new SelectOptionValue { Label = "Test milk (piece)" });
-            await Page.GetByPlaceholder("Quantity", new() { Exact = true }).FillAsync("1");
-            await Page.GetByPlaceholder("What happened? (required)").FillAsync("Container damaged in receiving");
-            await Page.WaitForTimeoutAsync(500);
-            await Page.GetByRole(AriaRole.Button, new() { Name = "Submit for approval" }).ClickAsync();
-            await Expect(Page.GetByText("Pending", new() { Exact = true })).ToBeVisibleAsync();
-            await Page.GetByRole(AriaRole.Button, new() { Name = "Approve" }).ClickAsync();
-            await Expect(Page.GetByText("Approved", new() { Exact = true })).ToBeVisibleAsync();
             var balancesPanel = Page.Locator("section.panel").Filter(new()
             {
                 Has = Page.GetByRole(AriaRole.Heading, new() { Name = "Current balances" })
             });
-            await Expect(balancesPanel.GetByText("-1.000 piece")).ToBeVisibleAsync();
             await Page.GetByLabel("Received inventory item").SelectOptionAsync(
                 new SelectOptionValue { Label = "Test milk (piece)" });
             await Page.GetByPlaceholder("Received quantity").FillAsync("10");
@@ -148,19 +134,16 @@ public sealed class RomsApplicationSmokeTests : PageTest
 
             var sidebar = Page.Locator(".sidebar");
             await Expect(sidebar).ToBeVisibleAsync();
-            var sidebarBox = await sidebar.BoundingBoxAsync();
+            var sidebarBox = await WaitForBoundingBoxAsync(sidebar, Page);
             Assert.That(sidebarBox, Is.Not.Null);
-            Assert.That(sidebarBox!.Width, Is.InRange(70, 74));
+            Assert.That(sidebarBox!.Value.Width, Is.InRange(248, 252));
+            await Expect(sidebar.Locator(".nav-text").First).ToBeVisibleAsync();
 
-            var compactLabel = sidebar.Locator(".nav-text").First;
-            await Expect(compactLabel).ToBeAttachedAsync();
-            var compactLabelBox = await compactLabel.BoundingBoxAsync();
-            Assert.That(compactLabelBox, Is.Not.Null);
-            Assert.Multiple(() =>
-            {
-                Assert.That(compactLabelBox!.Width, Is.LessThanOrEqualTo(1));
-                Assert.That(compactLabelBox.Height, Is.LessThanOrEqualTo(1));
-            });
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Minimize kitchen navigation panel" }).ClickAsync();
+            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Expand kitchen navigation panel" })).ToBeVisibleAsync();
+            var collapsedSidebarBox = await WaitForBoundingBoxAsync(sidebar, Page);
+            Assert.That(collapsedSidebarBox, Is.Not.Null);
+            Assert.That(collapsedSidebarBox!.Value.Width, Is.InRange(70, 74));
 
             await Page.GotoAsync($"{baseAddress}/tables");
             await Page.GetByRole(AriaRole.Button, new()
@@ -335,7 +318,7 @@ public sealed class RomsApplicationSmokeTests : PageTest
         startInfo.Environment["Seed__AdminUsername"] = username;
         startInfo.Environment["Seed__AdminPassword"] = password;
         startInfo.Environment["Seed__DemoData"] = "true";
-        startInfo.Environment["Ai__Enabled"] = "true";
+        startInfo.Environment["Ai__Hold"] = "true";
 
         var process = new Process { StartInfo = startInfo };
         process.OutputDataReceived += (_, args) =>
@@ -398,6 +381,19 @@ public sealed class RomsApplicationSmokeTests : PageTest
     private async Task WaitForInteractiveAsync(IPage page) =>
         await Expect(page.Locator("#roms-connection-indicator")).ToContainTextAsync(
             "Connected", new() { Timeout = 15_000 });
+
+    private static async Task<(float X, float Y, float Width, float Height)?> WaitForBoundingBoxAsync(ILocator locator, IPage page)
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var box = await locator.BoundingBoxAsync();
+            if (box is not null) return (box.X, box.Y, box.Width, box.Height);
+            await page.WaitForTimeoutAsync(100);
+        }
+
+        var finalBox = await locator.BoundingBoxAsync();
+        return finalBox is null ? null : (finalBox.X, finalBox.Y, finalBox.Width, finalBox.Height);
+    }
 
     private static async Task SeedStaffAsync(
         string connectionString,

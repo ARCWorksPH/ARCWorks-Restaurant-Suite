@@ -1,18 +1,55 @@
 @page "/reports"
 @attribute [Authorize(Roles = "Admin")]
 @inject IReportService ReportService
+@inject IAuditService AuditService
+@inject AuthenticationStateProvider Authentication
 <PageTitle>Reports</PageTitle>
 <div class="page-heading"><div><h1>Confirmed payment reports</h1><p>Only orders whose payment was confirmed by Admin are included.</p></div><div class="input-row"><input class="form-control" type="date" @bind="from" /><input class="form-control" type="date" @bind="to" /><button class="btn btn-primary touch-button" @onclick="Load">Apply</button></div></div>
 @if (!string.IsNullOrEmpty(error)) { <div class="alert alert-danger">@error</div> }
 @if (report is not null) { <div class="metric-grid"><div><span>Confirmed payment value</span><strong>₱@report.CompletedOrderValue.ToString("N2")</strong></div><div><span>Paid orders</span><strong>@report.OrderCount</strong></div><div><span>Average paid order</span><strong>₱@report.AverageOrderValue.ToString("N2")</strong></div></div><section class="panel"><h2>Best-selling paid items</h2><table class="table"><thead><tr><th>Item</th><th>Quantity</th><th>Value</th></tr></thead><tbody>@foreach (var item in report.BestSellers) { <tr><td>@item.Name</td><td>@item.Quantity</td><td>₱@item.Value.ToString("N2")</td></tr> }</tbody></table></section> }
+<section class="panel mt-4">
+    <div class="page-heading"><div><h2>Historical action log</h2><p>Administrative and workflow actions recorded by the server. Raw values are retained for review.</p></div><span class="text-muted">Showing @auditRecords.Count of up to 200 entries</span></div>
+    @if (auditRecords.Count == 0)
+    {
+        <div class="empty-state">No audit entries were recorded in this date range.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table audit-table">
+                <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Entity</th><th>Reason</th><th>Raw values</th></tr></thead>
+                <tbody>
+                    @foreach (var entry in auditRecords)
+                    {
+                        <tr>
+                            <td>@Local(entry.OccurredUtc).ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>@entry.ActorId</td>
+                            <td>@entry.Action</td>
+                            <td>@entry.EntityType · @entry.EntityId</td>
+                            <td>@entry.Reason</td>
+                            <td><details><summary>View JSON</summary><pre class="audit-json">@entry.OldValuesJson</pre><pre class="audit-json">@entry.NewValuesJson</pre></details></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
 @code {
     private static readonly TimeZoneInfo BusinessTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila");
     private DateTime from = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, BusinessTimeZone).Date;
     private DateTime to = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, BusinessTimeZone).Date;
     private DashboardReport? report;
+    private IReadOnlyList<AuditRecordView> auditRecords = [];
     private string? error;
+    private string actor = "unknown";
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Authentication.GetAuthenticationStateAsync();
+        actor = state.User.Identity?.Name ?? "unknown";
+        await Load();
+    }
 
     private async Task Load()
     {
@@ -23,6 +60,7 @@
             var end = TimeZoneInfo.ConvertTimeToUtc(
                 DateTime.SpecifyKind(to.Date.AddDays(1), DateTimeKind.Unspecified), BusinessTimeZone);
             report = await ReportService.GetDashboardAsync(start, end);
+            auditRecords = await AuditService.GetRecentAsync(actor, start, end);
             error = null;
         }
         catch (Exception ex)
@@ -30,4 +68,6 @@
             error = ex.Message;
         }
     }
+
+    private static DateTime Local(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), BusinessTimeZone);
 }

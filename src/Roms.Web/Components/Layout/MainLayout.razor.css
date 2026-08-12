@@ -32,12 +32,21 @@ main {
 }
 
 .top-row .roms-brand-title {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 800;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
     background: var(--roms-gradient-primary, linear-gradient(135deg, #8B5CF6 0%, #38BDF8 52%, #2DD4BF 100%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+}
+
+@media (max-width: 640px) {
+    .top-row .roms-brand-title {
+        max-width: 48vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 }
 
 .user-badge {
@@ -63,9 +72,25 @@ main {
     color: var(--roms-danger, #F87171);
 }
 
+.page.standard-mode {
+    flex-direction: column;
+}
+
+.page.standard-mode main {
+    width: 100%;
+}
+
+.horizontal-nav-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
 @media (min-width: 641px) {
-    .page {
-        flex-direction: row;
+    .page.standard-mode,
+    .page.kds-mode {
+        flex-direction: row !important;
     }
 
     .sidebar {
@@ -76,31 +101,70 @@ main {
         z-index: 10;
     }
 
-    .page.kds-mode .sidebar {
-        width: 72px;
-        overflow: hidden;
-    }
-
-    .page.kds-mode .sidebar ::deep .navbar-brand,
-    .page.kds-mode .sidebar ::deep .nav-user-item {
+    .page.standard-mode .top-row .roms-brand-title {
         display: none;
     }
 
+    .page.standard-mode .sidebar {
+        display: block;
+    }
+
+    .page.standard-mode main {
+        width: auto;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .page.standard-mode .sidebar ::deep .navbar-brand {
+        display: block !important;
+    }
+
+    .page.kds-mode .sidebar {
+        width: 250px;
+        display: block !important;
+        overflow: hidden;
+    }
+
+    .page.kds-mode .sidebar ::deep .navbar-brand {
+        display: block !important;
+    }
+
+    .page.kds-mode .sidebar ::deep .nav-user-item {
+        display: flex;
+    }
+
     .page.kds-mode .sidebar ::deep .top-row {
+        padding: 0 1rem !important;
+    }
+
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar {
+        width: 72px;
+    }
+
+    .page.kds-mode .sidebar.kitchen-sidebar-collapsed {
+        width: 72px !important;
+    }
+
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .navbar-brand,
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .nav-user-item {
+        display: none;
+    }
+
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .top-row {
         padding: 0 !important;
     }
 
-    .page.kds-mode .sidebar ::deep .container-fluid {
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .container-fluid {
         justify-content: center;
         padding: 0;
     }
 
-    .page.kds-mode .sidebar ::deep .nav-item {
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .nav-item {
         padding-left: 0 !important;
         padding-right: 0 !important;
     }
 
-    .page.kds-mode .sidebar ::deep .nav-link {
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .nav-link {
         justify-content: center;
         gap: 0;
         width: 48px;
@@ -109,7 +173,7 @@ main {
         padding-right: 0 !important;
     }
 
-    .page.kds-mode .sidebar ::deep .nav-text {
+    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .nav-text {
         position: absolute;
         width: 1px;
         height: 1px;
@@ -126,6 +190,10 @@ main {
         width: 100% !important;
         padding-left: 1.5rem !important;
         padding-right: 1.5rem !important;
+    }
+
+    .kitchen-sidebar-toggle {
+        white-space: nowrap;
     }
 
     .top-row {
@@ -163,4 +231,24 @@ main {
     right: 1.25rem;
     top: 0.75rem;
     color: var(--roms-text-muted, #A8B3C2);
+}
+
+/* By default (mobile), hide desktop header nav and show mobile sidebar */
+.desktop-nav-only {
+    display: none !important;
+}
+.mobile-sidebar-only {
+    display: block;
+}
+
+/* The compact mobile header owns the brand on phones; the desktop rail owns it on larger screens. */
+.page.standard-mode .sidebar ::deep .navbar-brand {
+    display: none;
+}
+
+/* On desktop */
+@media (min-width: 641px) {
+    .desktop-nav-only {
+        display: flex !important;
+    }
 }
