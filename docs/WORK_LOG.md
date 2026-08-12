@@ -1264,3 +1264,19 @@ the next screen phase.
   window and remains pending rather than being claimed as passed.
 - Formal acceptance and scope boundaries are recorded in
   `docs/UI/LANDING_PAGE_ACCEPTANCE_2026-08-12.md`.
+# 2026-08-12 - Accepted landing page promoted to live ROMS
+
+- Recorded the owner's formal desktop, landscape, portrait/mobile, and zoom
+  acceptance of the Chef Doy's landing page.
+- Merged PR #11 into protected `main` after CI and GitGuardian passed.
+- Preserved the previous live app image and the replaced landing files.
+- Built versioned image `roms:landing-accepted-daedd2c` and recreated only the
+  ROMS web app container.
+- Confirmed local and public login endpoints returned HTTP 200 and referenced
+  the final landing composition.
+- Confirmed the public wordmark and responsive background assets matched the
+  accepted assets by SHA-256.
+- Confirmed the app and MariaDB were healthy, and MariaDB plus the Cloudflare
+  tunnel retained their existing container identities.
+- Closed the Landing Page UI section. Waiter Tables Overview and order entry
+  are the next focused UI section.
