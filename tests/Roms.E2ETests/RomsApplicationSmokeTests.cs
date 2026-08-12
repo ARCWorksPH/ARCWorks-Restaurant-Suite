@@ -145,6 +145,9 @@ public sealed class RomsApplicationSmokeTests : PageTest
             Assert.That(collapsedSidebarBox, Is.Not.Null);
             Assert.That(collapsedSidebarBox!.Value.Width, Is.InRange(70, 74));
 
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Expand navigation panel" }).ClickAsync();
+            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Minimize navigation panel" })).ToBeVisibleAsync();
+
             await Page.GotoAsync($"{baseAddress}/tables");
             await Page.GetByRole(AriaRole.Button, new()
             {
