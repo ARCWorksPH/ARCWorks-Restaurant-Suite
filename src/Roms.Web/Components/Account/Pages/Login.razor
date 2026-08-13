@@ -1,4 +1,5 @@
 @page "/Account/Login"
+@layout LandingLayout
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
@@ -17,108 +18,109 @@
 
 <PageTitle>Staff login — @Branding.RestaurantName</PageTitle>
 
-<div class="landing-page">
-    <div class="landing-bg" style="--landing-bg-image: url('@SafeBackgroundPath')"></div>
+<div class="ld2">
+    <!-- Layer 1: Background art -->
+    <div class="ld2-bg" aria-hidden="true">
+        <picture>
+            <source media="(max-width: 700px)" srcset="@Branding.MobileBackgroundImagePath" />
+            <img src="@Branding.BackgroundImagePath" alt="" class="ld2-bg-img" width="1920" height="1080" />
+        </picture>
+        <div class="ld2-bg-wash"></div>
+    </div>
 
-    <header class="landing-header">
-        <div class="landing-arcworks" aria-label="@ProductBrand.Name">
-            <span class="landing-arcworks-mark" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L13.5 8.5L20 7L15.5 12L20 17L13.5 15.5L12 22L10.5 15.5L4 17L8.5 12L4 7L10.5 8.5L12 2Z" fill="url(#arcworksGrad)" opacity="0.95"/>
-                    <defs>
-                        <linearGradient id="arcworksGrad" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
-                            <stop stop-color="#38BDF8"/>
-                            <stop offset="1" stop-color="#2DD4BF"/>
-                        </linearGradient>
-                    </defs>
-                </svg>
-            </span>
-            <span class="landing-arcworks-text">
-                <strong>@ProductBrand.ShortName</strong>
-                <small>RESTAURANT SUITE</small>
-            </span>
-        </div>
+    <!-- Layer 2: Atmosphere -->
+    <div class="ld2-atmosphere" aria-hidden="true">
+        <div class="ld2-glow ld2-glow-gold"></div>
+        <div class="ld2-glow ld2-glow-cyan"></div>
+        <div class="ld2-grain"></div>
+    </div>
+
+    <!-- Layer 3: ARCWorks endorsement -->
+    <header class="ld2-header">
+        <img class="ld2-arcworks"
+             src="@Branding.ProductLogoPath"
+             alt="@ProductBrand.Name"
+             width="180"
+             height="120"
+             loading="eager" />
     </header>
 
-    <main class="landing-main">
-        <div class="landing-identity">
-            @if (!string.IsNullOrWhiteSpace(SafeLogoPath))
-            {
-                <img class="landing-logo" src="@SafeLogoPath" alt="@Branding.RestaurantName logo" width="420" height="140" />
-            }
-            else
-            {
-                <div class="landing-logo-fallback" role="img" aria-label="@Branding.RestaurantName">
-                    <span class="landing-logo-name">@Branding.RestaurantName</span>
-                    <span class="landing-logo-descriptor">@Branding.RestaurantDescriptor</span>
-                </div>
-            }
+    <!-- Layer 4 + 5: Restaurant identity + Glass login -->
+    <main class="ld2-main">
+        <div class="ld2-identity">
+            <img class="ld2-wordmark"
+                 src="@Branding.RestaurantLogoPath"
+                 alt="@Branding.RestaurantName"
+                 width="3200"
+                 height="1406"
+                 loading="eager" />
+            <p class="ld2-descriptor">
+                <span class="ld2-descriptor-text">@Branding.RestaurantDescriptor</span>
+                <span class="ld2-descriptor-rule" aria-hidden="true"></span>
+            </p>
         </div>
 
-        <section class="landing-card glass-card" aria-labelledby="staff-login-heading">
-            <div class="card-glow" aria-hidden="true"></div>
+        <section class="ld2-card" aria-labelledby="staff-login-heading">
+            <div class="ld2-card-glass" aria-hidden="true"></div>
+            <div class="ld2-card-edge" aria-hidden="true"></div>
+            <div class="ld2-card-shine" aria-hidden="true"></div>
 
-            <h1 id="staff-login-heading" class="landing-card-title">Staff login</h1>
-            <p class="landing-card-lead">Enter your @ProductBrand.Name username and password.</p>
+            <div class="ld2-card-body">
+                <h1 id="staff-login-heading" class="ld2-title">Staff login</h1>
+                <p class="ld2-lead">Enter your @ProductBrand.Name username and password.</p>
 
-            @if (Reason == "inactive")
-            {
-                <div class="alert alert-warning landing-alert" role="status">
-                    Your @ProductBrand.Name session ended after a period of inactivity. Your attendance record was not changed.
-                </div>
-            }
-            @if (ClockedOut)
-            {
-                <div class="alert alert-success landing-alert" role="status">
-                    You have been clocked out and logged out.
-                </div>
-            }
-
-            <StatusMessage Message="@errorMessage" />
-
-            <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login" class="landing-form">
-                <DataAnnotationsValidator />
-                <ValidationSummary class="text-danger landing-validation" role="alert" />
-
-                <div class="landing-field">
-                    <label for="Input.Username" class="landing-label">Username</label>
-                    <div class="landing-input-wrap">
-                        <span class="landing-input-icon" aria-hidden="true">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        </span>
-                        <InputText @bind-Value="Input.Username" id="Input.Username" class="form-control landing-input" autocomplete="username" aria-required="true" placeholder="Enter your username" />
+                @if (Reason == "inactive")
+                {
+                    <div class="alert alert-warning ld2-alert" role="status">
+                        Your @ProductBrand.Name session ended after a period of inactivity. Your attendance record was not changed.
                     </div>
-                    <ValidationMessage For="() => Input.Username" class="text-danger" />
-                </div>
+                }
+                @if (ClockedOut)
+                {
+                    <div class="alert alert-success ld2-alert" role="status">
+                        You have been clocked out and logged out.
+                    </div>
+                }
 
-                <div class="landing-field">
-                    <label for="Input.Password" class="landing-label">Password</label>
-                    <div class="landing-input-wrap">
-                        <span class="landing-input-icon" aria-hidden="true">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        </span>
-                        <InputText type="@(showPassword ? "text" : "password")" @bind-Value="Input.Password" id="Input.Password" class="form-control landing-input" autocomplete="current-password" aria-required="true" placeholder="Enter your password" />
-                        <button type="button" class="landing-password-toggle" @onclick="TogglePassword" aria-label="@(showPassword ? "Hide password" : "Show password")" title="@(showPassword ? "Hide password" : "Show password")">
-                            @if (showPassword)
-                            {
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                            }
-                            else
-                            {
+                <StatusMessage Message="@errorMessage" />
+
+                <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login" class="ld2-form">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger ld2-validation" role="alert" />
+
+                    <div class="ld2-field">
+                        <label for="Input.Username" class="ld2-label">Username</label>
+                        <div class="ld2-input-wrap">
+                            <span class="ld2-input-icon" aria-hidden="true">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </span>
+                            <InputText @bind-Value="Input.Username" id="Input.Username" class="form-control ld2-input" autocomplete="username" aria-required="true" placeholder="Enter your username" />
+                        </div>
+                        <ValidationMessage For="() => Input.Username" class="text-danger" />
+                    </div>
+
+                    <div class="ld2-field">
+                        <label for="Input.Password" class="ld2-label">Password</label>
+                        <div class="ld2-input-wrap">
+                            <span class="ld2-input-icon" aria-hidden="true">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            </span>
+                            <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control ld2-input" autocomplete="current-password" aria-required="true" placeholder="Enter your password" />
+                            <button type="button" class="ld2-pw-toggle" data-password-toggle data-target="Input.Password" aria-label="Reveal secret" title="Show password">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                            }
-                        </button>
+                            </button>
+                        </div>
+                        <ValidationMessage For="() => Input.Password" class="text-danger" />
                     </div>
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
-                </div>
 
-                <button type="submit" class="landing-submit btn btn-primary">
-                    Log in
-                    <span class="landing-submit-arrow" aria-hidden="true">→</span>
-                </button>
+                    <button type="submit" class="ld2-submit">
+                        Log in
+                        <span class="ld2-submit-arrow" aria-hidden="true">→</span>
+                    </button>
 
-                <p class="landing-support">@Branding.SupportMessage</p>
-            </EditForm>
+                    <p class="ld2-support">@Branding.SupportMessage</p>
+                </EditForm>
+            </div>
         </section>
     </main>
 </div>
@@ -126,19 +128,8 @@
 @code {
     private string? errorMessage;
     private EditContext editContext = default!;
-    private bool showPassword;
 
     private LandingPageBrandingOptions Branding => LandingBranding.Value;
-
-    private string SafeLogoPath =>
-        LandingPageBrandingOptions.IsSafeLocalAssetPath(Branding.RestaurantLogoPath)
-            ? Branding.RestaurantLogoPath
-            : "/images/branding/restaurant-logo-placeholder.svg";
-
-    private string SafeBackgroundPath =>
-        LandingPageBrandingOptions.IsSafeLocalAssetPath(Branding.BackgroundImagePath)
-            ? Branding.BackgroundImagePath
-            : "/images/branding/login-background-placeholder.svg";
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -158,17 +149,13 @@
     protected override async Task OnInitializedAsync()
     {
         Input ??= new();
-
         editContext = new EditContext(Input);
 
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
-            // Clear the existing external cookie to ensure a clean login process
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
         }
     }
-
-    private void TogglePassword() => showPassword = !showPassword;
 
     public async Task LoginUser()
     {
