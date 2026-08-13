@@ -54,7 +54,7 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Page.GetByLabel("Password").FillAsync(password);
             await Page.GetByRole(AriaRole.Button, new() { Name = "Log in" }).ClickAsync();
 
-            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "My dashboard" }))
+            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Restaurant operations" }))
                 .ToBeVisibleAsync();
             await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Menu & Tables" }))
                 .ToBeVisibleAsync();
@@ -474,7 +474,7 @@ public sealed class RomsApplicationSmokeTests : PageTest
         await page.GetByLabel("Username").FillAsync(username);
         await page.GetByLabel("Password").FillAsync(E2ePassword);
         await page.GetByRole(AriaRole.Button, new() { Name = "Log in" }).ClickAsync();
-        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "My dashboard" }))
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Restaurant operations" }))
             .ToBeVisibleAsync();
         await WaitForInteractiveAsync(page);
     }
