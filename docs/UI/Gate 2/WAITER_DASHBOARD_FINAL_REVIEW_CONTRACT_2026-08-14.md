@@ -6,6 +6,8 @@
 
 - [Final landscape composition](mockups/WAITER_DASHBOARD_LANDSCAPE_FINAL_REVIEW_V2_2026-08-14.png) — clocked-in state with Staff Hub drawer open.
 - [Final Android portrait composition](mockups/WAITER_DASHBOARD_PORTRAIT_FINAL_REVIEW_V2_2026-08-14.png) — clocked-in state with compact Staff Hub launcher.
+- [Final landscape resting state](mockups/WAITER_DASHBOARD_LANDSCAPE_FINAL_REVIEW_V3_2026-08-14.png) — left-side Staff Hub and profile controls.
+- [Final Staff Hub modal state](mockups/WAITER_DASHBOARD_STAFF_HUB_MODAL_FINAL_REVIEW_2026-08-14.png) — centered overlay above the dimmed and blurred dashboard.
 - The earlier V1 compositions remain in the folder as superseded design evidence; they are not implementation targets.
 
 The mockups define composition and information hierarchy. Generated faces and the rendered Chef Doy mark are illustrative only; implementation must use the approved, exact restaurant-owned logo and staff portrait assets from the versioned restaurant package.
@@ -46,7 +48,7 @@ It contains:
 6. **Today's Team** portrait carousel: portraits only, without names or roles; all staff scheduled anywhere on the current restaurant date are included.
 7. Recent attendance records and calculated hours for the current Monday-based week. No payroll or compensation inference is shown.
 8. Today's scheduled shift, assigned section if available, and the Manager note attached to that shift.
-9. A secondary **Staff Hub** holds Shift Announcements, Manager Notes, Leave Requests, and My Journal. In landscape it is a closable right drawer; in portrait it opens as a full-height mobile sheet. It does not permanently consume primary dashboard space.
+9. A secondary **Staff Hub** holds Shift Announcements, Manager Notes, Leave Requests, and My Journal. In landscape, its launcher and the separate profile control are placed on a narrow left utility rail. Opening Staff Hub presents a centered modal above a dimmed and softly blurred dashboard. In portrait, the launcher remains in the accepted compact position and opens a near-full-height mobile sheet. Staff Hub does not navigate away from or permanently consume the dashboard.
 10. Notification severity is explicit and not color-only: Normal creates a quiet unread indicator; Important creates a labeled amber-priority indicator; Urgent / Requires acknowledgment opens an interruptive modal and records the user's server-side acknowledgment. Editing an acknowledged urgent message creates a new version that requires acknowledgment again.
 11. Announcements can be dismissed for that user without deleting the Manager/Admin source record.
 12. Leave requests support one or more future dates and a private request message sent to Manager/Admin. Approval handling is a later Manager gate.
@@ -69,8 +71,9 @@ Explicitly excluded: Reservations, Messages, Team tab, Reports tab, payroll, fut
 ### Landscape
 
 - Reference canvas: 1920 × 1080 at 100% browser zoom.
-- No side panel. Use a spacious two-column hierarchy with greeting/team above, attendance and shift/announcements/leave below, and a clear floor-entry CTA.
+- No office navigation panel. A narrow left utility rail may contain only Staff Hub and the separate profile control. Use a spacious two-column hierarchy with a clear floor-entry CTA.
 - Essential actions and server time remain visible without horizontal scroll.
+- While the Staff Hub modal is open, the underlying dashboard is inert, visibly dimmed, and softly blurred. Focus is trapped inside the modal; Escape and the visible close control dismiss it and return focus to the launcher.
 
 ### Android portrait
 
