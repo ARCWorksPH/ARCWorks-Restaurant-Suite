@@ -1,7 +1,9 @@
 .top-row {
     min-height: 3.5rem;
-    background-color: var(--roms-surface, #171E27);
-    border-bottom: 1px solid var(--roms-border, #344153);
+    background: rgba(17, 24, 34, 0.78);
+    backdrop-filter: blur(20px) saturate(125%);
+    -webkit-backdrop-filter: blur(20px) saturate(125%);
+    border-bottom: 1px solid rgba(116, 220, 235, 0.10);
     display: flex;
     align-items: center;
 }
@@ -47,14 +49,14 @@
 }
 
 .nav-item ::deep a.active {
-    background: var(--roms-gradient-primary, linear-gradient(135deg, #8B5CF6 0%, #38BDF8 52%, #2DD4BF 100%)) !important;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.72), rgba(45, 212, 191, 0.62)) !important;
     color: #FFFFFF !important;
     font-weight: 700;
     box-shadow: 0 0 16px rgba(45, 212, 191, 0.18);
 }
 
 .nav-item ::deep .nav-link:hover:not(.active) {
-    background-color: var(--roms-surface-soft, #253140) !important;
+    background-color: rgba(50, 200, 225, 0.08) !important;
     color: var(--roms-text, #F4F7FB) !important;
 }
 
@@ -96,7 +98,7 @@
 
 .nav-scrollable {
     display: none;
-    background-color: var(--roms-surface, #171E27);
+    background: rgba(17, 24, 34, 0.78);
 }
 
 .nav-scrollable.show {

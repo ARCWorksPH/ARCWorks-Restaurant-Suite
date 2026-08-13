@@ -28,3 +28,8 @@ __pycache__/
 
 # Local-only runtime secrets used by optional hardened infrastructure profiles.
 /.secrets/
+
+# Decrypted local test credentials must never be committed if an operator
+# deliberately exports them from the DPAPI-protected credential store.
+*TEST-CREDENTIALS*.txt
+*test-credentials*.json
