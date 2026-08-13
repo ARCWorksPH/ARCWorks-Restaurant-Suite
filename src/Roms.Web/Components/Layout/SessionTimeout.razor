@@ -12,6 +12,16 @@
         <button id="session-timeout-continue" type="button" class="btn btn-primary touch-button">Stay signed in</button>
     </div>
 </div>
+@if (windowBlocked)
+{
+    <div id="single-window-warning" class="single-window-warning" role="alertdialog" aria-modal="true" aria-labelledby="single-window-title">
+        <div>
+            <strong id="single-window-title">This account is already open in another window</strong>
+            <p>Close the other ARCWorks window, then retry here. Opening another browser or device still requires the first session to log out or expire.</p>
+            <button type="button" class="btn btn-primary touch-button" @onclick="RetryWindowLeaseAsync">Retry</button>
+        </div>
+    </div>
+}
 <form id="session-timeout-form" action="Account/Logout" method="post" hidden>
     <AntiforgeryToken />
     <input type="hidden" name="ReturnUrl" value="Account/Login?reason=inactive" />
@@ -19,22 +29,39 @@
 
 @code {
     private bool started;
+    private bool windowBlocked;
     private DotNetObjectReference<SessionTimeout>? selfReference;
     private int IdleMinutes => Math.Clamp(Configuration.GetValue("Session:IdleTimeoutMinutes", 15), 5, 720);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+        var state = await Authentication.GetAuthenticationStateAsync();
+        var accountKey = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(accountKey)) return;
+
         selfReference = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("romsSession.start", "session-timeout-form", IdleMinutes, selfReference);
+        windowBlocked = !await JS.InvokeAsync<bool>(
+            "romsSession.start", "session-timeout-form", IdleMinutes, selfReference, accountKey);
         started = true;
+        if (windowBlocked) StateHasChanged();
     }
 
     [JSInvokable]
-    public async Task RecordActivity()
+    public async Task<bool> RecordActivity()
     {
         var state = await Authentication.GetAuthenticationStateAsync();
-        await StaffSessions.TouchAsync(state.User);
+        return await StaffSessions.TouchAsync(state.User);
+    }
+
+    private async Task RetryWindowLeaseAsync()
+    {
+        var state = await Authentication.GetAuthenticationStateAsync();
+        var accountKey = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(accountKey) || selfReference is null) return;
+
+        windowBlocked = !await JS.InvokeAsync<bool>(
+            "romsSession.start", "session-timeout-form", IdleMinutes, selfReference, accountKey);
     }
 
     public async ValueTask DisposeAsync()

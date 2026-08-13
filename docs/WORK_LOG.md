@@ -1306,3 +1306,14 @@ the next screen phase.
 - Recorded the existing mobile/header/overflow and back-office presentation as
   baseline limitations rather than changing them during the checkpoint gate.
 - No feature implementation begins until project-owner review.
+# 2026-08-13 — Waiter Gate 1 session truth
+
+- Diagnosed the waiter login block as an active-session lease rather than an
+  Identity password lockout.
+- Replaced the fixed 20-minute active-user cutoff with a bounded session-only
+  cookie and retained the 15-minute database idle authority.
+- Added atomic stale-session cleanup, expanded throttled activity coverage, and
+  an ephemeral same-browser one-window lease for every authenticated role.
+- Preserved logout/attendance independence and added logout cache/storage
+  cleanup headers.
+- Evidence: `docs/testing/GATE_1_SESSION_TRUTH_EVIDENCE_2026-08-13.md`.

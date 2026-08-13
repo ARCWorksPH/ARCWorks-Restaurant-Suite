@@ -72,13 +72,16 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    // The server-side StaffSessionService separately validates actual activity.
-    // The cookie remains short-lived as a second boundary for shared devices.
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(20);
-    options.SlidingExpiration = false;
+    // The database activity timestamp is the authoritative 15-minute idle
+    // clock. The longer bounded cookie must not expel a genuinely active shift.
+    options.ExpireTimeSpan = TimeSpan.FromHours(
+        Math.Clamp(builder.Configuration.GetValue("Session:CookieLifetimeHours", 16), 8, 24));
+    options.SlidingExpiration = true;
     options.Cookie.HttpOnly = true;
-    options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
 });
 builder.Services.AddAntiforgery(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest);

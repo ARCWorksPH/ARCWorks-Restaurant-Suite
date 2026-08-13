@@ -187,6 +187,72 @@ public sealed class RomsApplicationSmokeTests : PageTest
     }
 
     [Test]
+    public async Task One_staff_account_allows_only_one_active_window_or_device()
+    {
+        const string username = "single-session-admin";
+        await using var database = new MariaDbBuilder("mariadb:11.4")
+            .WithDatabase("roms_single_session")
+            .WithUsername("root")
+            .WithPassword($"roms-{Guid.NewGuid():N}")
+            .Build();
+        await database.StartAsync();
+
+        var port = ReservePort();
+        var baseAddress = $"http://127.0.0.1:{port}";
+        var keysPath = Path.Combine(Path.GetTempPath(), $"roms-session-keys-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(keysPath);
+        var runningApplication = StartApplication(
+            baseAddress,
+            database.GetConnectionString(),
+            keysPath,
+            username,
+            E2ePassword);
+        using var application = runningApplication.Process;
+
+        try
+        {
+            await WaitUntilHealthyAsync(runningApplication, baseAddress);
+            await LoginAsync(Page, baseAddress, username);
+            await Page.WaitForFunctionAsync("() => window.romsSession?.isWindowLeaseOwner() === true");
+            await using var verificationDb = CreateDbContext(database.GetConnectionString());
+            var accountKey = await verificationDb.Users
+                .Where(x => x.UserName == username)
+                .Select(x => x.Id)
+                .SingleAsync();
+
+            var secondWindow = await Page.Context.NewPageAsync();
+            await secondWindow.GotoAsync($"{baseAddress}/Account/Login");
+            var secondWindowAcquired = await secondWindow.EvaluateAsync<bool>(
+                "account => window.romsSession.retryWindowLease(account)", accountKey);
+            Assert.That(secondWindowAcquired, Is.False,
+                "A second window in the same browser must not acquire the account lease.");
+
+            await using var secondDevice = await Browser.NewContextAsync();
+            var secondDevicePage = await secondDevice.NewPageAsync();
+            await secondDevicePage.GotoAsync($"{baseAddress}/Account/Login");
+            await secondDevicePage.GetByLabel("Username").FillAsync(username);
+            await secondDevicePage.GetByLabel("Password").FillAsync(E2ePassword);
+            await secondDevicePage.GetByRole(AriaRole.Button, new() { Name = "Log in" }).ClickAsync();
+            await Expect(secondDevicePage.GetByText("already signed in on another device"))
+                .ToBeVisibleAsync();
+
+            await Page.CloseAsync();
+            await secondWindow.WaitForTimeoutAsync(500);
+            var acquiredAfterOwnerClosed = await secondWindow.EvaluateAsync<bool>(
+                "account => window.romsSession.retryWindowLease(account)", accountKey);
+            Assert.That(acquiredAfterOwnerClosed, Is.True,
+                "The surviving window may acquire the ephemeral lease after its owner closes.");
+        }
+        finally
+        {
+            if (!application.HasExited)
+                application.Kill(entireProcessTree: true);
+            await application.WaitForExitAsync();
+            Directory.Delete(keysPath, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task Independent_waiter_kitchen_and_cashier_sessions_complete_one_order_in_real_time()
     {
         const string adminUsername = "synthetic-admin";

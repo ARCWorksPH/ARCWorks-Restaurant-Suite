@@ -1,7 +1,8 @@
 (() => {
     let installPrompt, idleTimer, warningTimer, countdownTimer;
     let listeners = [];
-    let activityReference, lastActivitySentAt = 0;
+    let activityReference, lastActivitySentAt = 0, lastMeaningfulActivityAt = 0, heartbeatTimer;
+    let windowLeaseChannel, ownsWindowLease = false;
 
     window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); installPrompt = event; });
     const showInstallRequirement = message => {
@@ -120,7 +121,12 @@
         }
     };
 
-    const clearTimers = () => { clearTimeout(idleTimer); clearTimeout(warningTimer); clearInterval(countdownTimer); };
+    const clearTimers = () => {
+        clearTimeout(idleTimer);
+        clearTimeout(warningTimer);
+        clearInterval(countdownTimer);
+        clearInterval(heartbeatTimer);
+    };
     const hideWarning = () => { const warning = document.getElementById("session-timeout-warning"); if (warning) warning.hidden = true; };
     const reset = (formId, idleMinutes) => {
         clearTimers();
@@ -139,34 +145,91 @@
     };
 
     window.romsSession = {
-        start: (formId, idleMinutes, dotNetReference) => {
+        start: async (formId, idleMinutes, dotNetReference, accountKey) => {
             window.romsSession.stop();
             activityReference = dotNetReference;
-            const onActivity = () => {
-                reset(formId, idleMinutes);
-                const now = Date.now();
-                if (activityReference && now - lastActivitySentAt >= 60_000) {
-                    lastActivitySentAt = now;
-                    activityReference.invokeMethodAsync("RecordActivity").catch(() => {});
+            ownsWindowLease = await window.romsSession.retryWindowLease(accountKey);
+            if (!ownsWindowLease) return false;
+
+            const recordActivity = async () => {
+                if (!activityReference) return;
+                try {
+                    // The authoritative revalidator owns forced sign-out. A transient
+                    // circuit/database race must not expel an otherwise active user.
+                    await activityReference.invokeMethodAsync("RecordActivity");
+                } catch {
+                    // A disconnected circuit cannot refresh the authoritative
+                    // database clock. The reconnect UI remains in charge.
                 }
             };
-            ["pointerdown", "keydown", "touchstart"].forEach(name => {
+            const onActivity = () => {
+                lastMeaningfulActivityAt = Date.now();
+                reset(formId, idleMinutes);
+                const now = lastMeaningfulActivityAt;
+                if (activityReference && now - lastActivitySentAt >= 60_000) {
+                    lastActivitySentAt = now;
+                    recordActivity();
+                }
+            };
+            ["pointerdown", "keydown", "touchstart", "input", "change", "scroll"].forEach(name => {
                 document.addEventListener(name, onActivity, { passive: true });
                 listeners.push([name, onActivity]);
             });
+            const onFocus = () => { if (document.visibilityState === "visible") onActivity(); };
+            document.addEventListener("visibilitychange", onFocus, { passive: true });
+            window.addEventListener("focus", onActivity, { passive: true });
+            listeners.push(["visibilitychange", onFocus], ["window-focus", onActivity]);
             document.getElementById("session-timeout-continue")?.addEventListener("click", onActivity);
             listeners.push(["continue", onActivity]);
             reset(formId, idleMinutes);
+            lastMeaningfulActivityAt = Date.now();
+            await recordActivity();
+            heartbeatTimer = setInterval(() => {
+                if (Date.now() - lastMeaningfulActivityAt <= 75_000) recordActivity();
+            }, 60_000);
+            return true;
         },
+        retryWindowLease: async accountKey => {
+            if (ownsWindowLease) return true;
+            if (!window.BroadcastChannel || !accountKey) return true;
+
+            if (windowLeaseChannel) windowLeaseChannel.close();
+            const channel = new BroadcastChannel(`arcworks-active-window:${accountKey}`);
+            windowLeaseChannel = channel;
+            let occupied = false;
+            channel.onmessage = event => {
+                if (event.data?.type === "arcworks-window-probe" && ownsWindowLease) {
+                    channel.postMessage({ type: "arcworks-window-occupied" });
+                } else if (event.data?.type === "arcworks-window-occupied") {
+                    occupied = true;
+                }
+            };
+            channel.postMessage({ type: "arcworks-window-probe" });
+            await new Promise(resolve => setTimeout(resolve, 300));
+            if (occupied) {
+                channel.close();
+                if (windowLeaseChannel === channel) windowLeaseChannel = null;
+                return false;
+            }
+
+            ownsWindowLease = true;
+            return true;
+        },
+        isWindowLeaseOwner: () => ownsWindowLease,
         stop: () => {
             clearTimers();
             listeners.forEach(([name, handler]) => {
                 if (name === "continue") document.getElementById("session-timeout-continue")?.removeEventListener("click", handler);
+                else if (name === "window-focus") window.removeEventListener("focus", handler);
                 else document.removeEventListener(name, handler);
             });
             listeners = [];
             activityReference = null;
             lastActivitySentAt = 0;
+            lastMeaningfulActivityAt = 0;
+            if (windowLeaseChannel) windowLeaseChannel.close();
+            windowLeaseChannel = null;
+            ownsWindowLease = false;
             hideWarning();
         }
     };
