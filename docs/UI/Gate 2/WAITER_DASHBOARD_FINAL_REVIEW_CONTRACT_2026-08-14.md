@@ -4,8 +4,9 @@
 
 ## Review mockups
 
-- [Landscape 1920 × 1080](mockups/WAITER_DASHBOARD_LANDSCAPE_FINAL_REVIEW_2026-08-14.png)
-- [Android portrait 1080 × 2400](mockups/WAITER_DASHBOARD_PORTRAIT_FINAL_REVIEW_2026-08-14.png)
+- [Final landscape composition](mockups/WAITER_DASHBOARD_LANDSCAPE_FINAL_REVIEW_V2_2026-08-14.png) — clocked-in state with Staff Hub drawer open.
+- [Final Android portrait composition](mockups/WAITER_DASHBOARD_PORTRAIT_FINAL_REVIEW_V2_2026-08-14.png) — clocked-in state with compact Staff Hub launcher.
+- The earlier V1 compositions remain in the folder as superseded design evidence; they are not implementation targets.
 
 The mockups define composition and information hierarchy. Generated faces and the rendered Chef Doy mark are illustrative only; implementation must use the approved, exact restaurant-owned logo and staff portrait assets from the versioned restaurant package.
 
@@ -45,11 +46,15 @@ It contains:
 6. **Today's Team** portrait carousel: portraits only, without names or roles; all staff scheduled anywhere on the current restaurant date are included.
 7. Recent attendance records and calculated hours for the current Monday-based week. No payroll or compensation inference is shown.
 8. Today's scheduled shift, assigned section if available, and the Manager note attached to that shift.
-9. Visible staff announcements. Each announcement can be dismissed for that user without deleting the Manager/Admin source record.
-10. Leave request panel with one or more future dates and a private request message sent to Manager/Admin. Approval handling is a later Manager gate.
-11. A compact **My Journal** entry point. Journal content is server-stored, private to the staff author, protected by the application data boundary, absent from operational reports, and unreadable through ordinary Manager/Admin UI.
-12. A compact profile control with portrait and a small expand button. Its drop-up provides editable personal information, Change Password, and **Log Out**. Logging out does not clock out.
-13. **Enter the Floor — Tables & Orders** as the sole transition to operational work. It is disabled while the Waiter is clocked out.
+9. A secondary **Staff Hub** holds Shift Announcements, Manager Notes, Leave Requests, and My Journal. In landscape it is a closable right drawer; in portrait it opens as a full-height mobile sheet. It does not permanently consume primary dashboard space.
+10. Notification severity is explicit and not color-only: Normal creates a quiet unread indicator; Important creates a labeled amber-priority indicator; Urgent / Requires acknowledgment opens an interruptive modal and records the user's server-side acknowledgment. Editing an acknowledged urgent message creates a new version that requires acknowledgment again.
+11. Announcements can be dismissed for that user without deleting the Manager/Admin source record.
+12. Leave requests support one or more future dates and a private request message sent to Manager/Admin. Approval handling is a later Manager gate.
+13. **My Journal** remains inside Staff Hub. Journal content is server-stored, private to the staff author, protected by the application data boundary, absent from operational reports, and unreadable through ordinary Manager/Admin UI.
+14. A compact profile control with portrait and a small expand button. Its drop-up provides editable personal information, Change Password, and **Log Out**. Logging out does not clock out.
+15. **Enter the Floor — Tables & Orders** as the sole transition to operational work. It is disabled while the Waiter is clocked out.
+
+Today's Team can be collapsed without hiding its heading or scheduled count. Expanded portrait rows remain swipeable and show portraits only, with no employee names or roles.
 
 Explicitly excluded: Reservations, Messages, Team tab, Reports tab, payroll, future staff schedules in Today's Team, employee names beneath team portraits, and automatic clock-out merely because the browser session ends.
 
