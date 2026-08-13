@@ -32,10 +32,16 @@ practice:
 - A heartbeat only refreshes the database when meaningful browser activity was
   observed recently; it cannot keep an abandoned window alive indefinitely.
 - Expired leases atomically clear both database session fields.
-- A same-browser, per-account `BroadcastChannel` lease blocks another active
-  application window without using local storage, IndexedDB, or persistent
-  device data. A different browser/profile/device remains governed by the
-  database lease.
+- Each authenticated top-level browsing context now claims one server-owned
+  application-instance lease. The instance identifier lives in `window.name`,
+  survives an ordinary reload, and is not copied with cookies, local storage,
+  session storage, or an exported browser profile.
+- If another runtime presents the same authentication cookie with a different
+  instance identifier, ARCWorks treats the condition as authenticated-session
+  replay. It atomically revokes the database session and application lease,
+  forcing both the original and copied runtimes back to login.
+- The retained audit record contains only cryptographic fingerprints. Reusing
+  the already revoked cookie remains denied and does not flood the audit log.
 - Logout responses clear ARCWorks-owned browser cache/storage and do not alter
   attendance unless the explicit clock-out-and-logout action is used.
 
@@ -44,11 +50,12 @@ practice:
 - `dotnet build Roms.slnx --no-restore`: passed, 0 warnings / 0 errors.
 - `Roms.Domain.Tests`: 16/16 passed.
 - `Roms.CommandGateway.Tests`: 11/11 passed.
-- Focused real-MariaDB/Playwright session test
-  `One_staff_account_allows_only_one_active_window_or_device`: 1/1 passed.
-  It proves denial of a second same-browser window and a second independent
-  browser/device, then proves the ephemeral window lease can transfer only
-  after the owning window closes.
+- Focused real-MariaDB/Playwright copied-profile regression
+  `Copied_authenticated_session_revokes_every_instance_and_records_security_incident`:
+  1/1 passed. It proves that an ordinary reload retains authority, an exported
+  authenticated browser state triggers full revocation in a new runtime, the
+  original runtime also loses authority, and five additional replay attempts
+  remain denied while exactly one incident is retained.
 - Real-browser investigation reproduced and verified the cookie and concurrent
   session boundaries against an isolated MariaDB application. During expansion
   of the existing monolithic E2E smoke test, later unrelated UI assertions ran
@@ -66,3 +73,13 @@ the following time-bound/manual browser checks on an isolated preview:
 2. 15 minutes of genuine inactivity;
 3. logout, clock-out-only behavior, password change, disablement, and session
    revocation.
+
+## Gate 1 final verification
+
+- Solution build: passed with 0 warnings and 0 errors.
+- Domain tests: 16/16 passed.
+- Command Gateway tests: 11/11 passed.
+- Copied-profile real MariaDB + Playwright regression: 1/1 passed.
+- The full integration-suite invocation exceeded its bounded execution window
+  without emitting a failure report. It remains recorded as a timeout rather
+  than being represented as a pass.
