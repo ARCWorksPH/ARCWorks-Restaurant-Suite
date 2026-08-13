@@ -1317,3 +1317,18 @@ the next screen phase.
 - Preserved logout/attendance independence and added logout cache/storage
   cleanup headers.
 - Evidence: `docs/testing/GATE_1_SESSION_TRUTH_EVIDENCE_2026-08-13.md`.
+
+# 2026-08-14 — Gate 1 accepted, backed up, and deployed
+
+- Updated the Gate 1 evidence to replace the superseded browser-only design
+  description with the server-owned application-instance fail-safe actually
+  implemented and tested.
+- Integrated the security work with the accepted live UI in a clean worktree.
+- Completed a validated database backup and restic integrity check before
+  deployment; snapshot `8912e212` is the deployment recovery point.
+- Tagged the former web image `roms:rollback-gate1-20260814` and recreated only
+  the ROMS application container from the integrated image.
+- Confirmed app health, local/public HTTP 200 responses, Chef Doy login
+  branding, and the applied application-instance lease migration.
+- Gate 2 remains design-contract work only until the project owner accepts the
+  final Waiter dashboard mockups.

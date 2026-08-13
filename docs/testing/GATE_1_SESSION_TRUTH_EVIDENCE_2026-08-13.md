@@ -83,3 +83,29 @@ the following time-bound/manual browser checks on an isolated preview:
 - The full integration-suite invocation exceeded its bounded execution window
   without emitting a failure report. It remains recorded as a timeout rather
   than being represented as a pass.
+
+## Accepted merge and live deployment — 2026-08-14
+
+- Merged the isolated Gate 1 security branch with the accepted live-UI
+  checkpoint in a clean deployment worktree. No untracked design source or
+  unrelated workspace material was included.
+- Before deployment, completed database-only backup run
+  `20260813T164133Z`: MariaDB and PostgreSQL dumps validated, SHA-256 manifest
+  created, restic snapshot `8912e212` saved, and repository integrity check
+  completed with no errors. One abandoned six-day-old restic lock was removed
+  only after confirming its recorded PID was no longer running.
+- Preserved the prior application image as
+  `roms:rollback-gate1-20260814` (image ID beginning `8771075857e8`).
+- Built the integrated release as `roms:gate1-20260814` / `roms:local` and
+  recreated only `arcworks-resto-app-1`. MariaDB, Cloudflare tunnel, and the
+  monitor were not recreated.
+- The application became healthy. Local `/health`, local `/Account/Login`, and
+  public `https://roms.arkworksph.online/health` returned HTTP 200; the local
+  login response contained the accepted Chef Doy branding.
+- MariaDB confirms migration
+  `20260813090000_AddApplicationInstanceLease` as the newest applied migration.
+- The integrated solution build and focused Domain/Command tests passed. The
+  solution build reports two existing NU1903 findings in test projects through
+  their SSH.NET dependency; the production web image publish itself completed
+  successfully. This dependency warning remains tracked separately and is not
+  represented as resolved by Gate 1.

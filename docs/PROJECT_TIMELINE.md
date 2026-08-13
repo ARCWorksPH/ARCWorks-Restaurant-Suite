@@ -175,3 +175,14 @@ that acceptance should workflow completion be claimed.
   fresh copied-browser runtime with a real MariaDB + Playwright regression.
 - Work remained isolated in `D:\ARCWorks_Restaurant_Suite_Codex_Waiter_Shell`;
   the live container, database, tunnel, and public hostname were not changed.
+
+## 2026-08-14 — Gate 1 promoted to the live instance
+
+- Accepted Gate 1 was merged with the approved landing page and current live
+  UI checkpoint, backed up, and deployed to the ROMS application container.
+- A copied authenticated runtime now triggers server-side fail-safe revocation
+  for the whole staff session. The current migration, local service, and public
+  tunnel endpoint were verified after deployment.
+- The previous web image remains available under the explicit Gate 1 rollback
+  tag. Gate 2 begins with central restaurant/time contracts and final Waiter
+  dashboard mockups; it does not begin by changing the operational UI.
