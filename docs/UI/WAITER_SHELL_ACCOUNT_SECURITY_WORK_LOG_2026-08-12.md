@@ -26,6 +26,33 @@ staff account lifecycle required before that visual phase.
 - Existing single-active-device enforcement and the 15-minute inactivity
   expiry remain in force.
 
+## 2026-08-13 — copied-browser fail-safe enforcement
+
+- Added a server-authoritative application-instance lease on top of the
+  existing one-account/one-session rule. Each authenticated browsing context
+  must register the exact instance that owns the staff session.
+- An ordinary reload retains the same top-level browsing-context lease. The
+  lease identifier is not stored in cookies, local storage, or session
+  storage, so copying those browser artifacts cannot reproduce the live owner.
+- If a different application instance presents the same authenticated cookie,
+  ARCWorks does not choose a winner. It atomically revokes the database
+  session and application lease, then forces every copy back to login.
+- A retained `AuthenticatedSessionReplayDetected` audit entry records only
+  cryptographic fingerprints and the affected staff record ID; raw session
+  and instance secrets are never logged.
+- Manager and Admin dashboards display retained duplicate-session alerts for
+  review. Reuse of an already revoked cookie cannot open another lease or
+  flood the incident log.
+- Login now checks the password first, obtains the database session lease, and
+  only then issues the authentication cookie. This removes the brief invalid
+  cookie state that previously caused false-positive browser revocation.
+- Database migration `20260813090000_AddApplicationInstanceLease` adds the
+  nullable, bounded `ActiveApplicationInstanceId` lease field.
+- Browser proof: a Playwright test logs in, verifies an ordinary reload,
+  copies the authentication state into a fresh browser runtime, confirms both
+  the copied and original runtime lose authority, then confirms five more
+  replay attempts remain denied while exactly one incident is retained.
+
 ## Historical-data boundary
 
 Historical order rows still contain the username used at the time of the

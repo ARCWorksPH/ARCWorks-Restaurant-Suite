@@ -3,9 +3,18 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
-<AuthorizeView>
-    <Authorized><SessionTimeout /></Authorized>
-</AuthorizeView>
+<div id="session-timeout-warning" class="session-warning" role="alertdialog" aria-modal="true" aria-labelledby="session-warning-title" hidden>
+    <div>
+        <strong id="session-warning-title">Your session is about to end</strong>
+        <p>For shared-device security, @ProductBrand.Name will log out in <span id="session-timeout-countdown">60</span> seconds. This will not clock you out.</p>
+        <button id="session-timeout-continue" type="button" class="btn btn-primary touch-button">Stay signed in</button>
+    </div>
+</div>
+<form id="session-timeout-form" action="Account/Logout" method="post"
+      data-idle-minutes="15" hidden>
+    <AntiforgeryToken />
+    <input id="session-timeout-return-url" type="hidden" name="ReturnUrl" value="Account/Login?reason=inactive" />
+</form>
 
 <div class="page @(isKitchenPage ? "kds-mode" : "standard-mode") @(isSidebarCollapsed ? "sidebar-collapsed" : "")">
     <!-- Sidebar / Mobile Navigation -->
@@ -43,6 +52,7 @@
         </div>
 
         <article class="content px-4">
+            <SecurityReplayAlerts />
             @Body
         </article>
     </main>

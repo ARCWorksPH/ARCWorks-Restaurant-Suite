@@ -44,6 +44,7 @@ public static class DbInitializer
             inactiveUser.UserName = ApplicationUser.BuildArchivedUserName(inactiveUser.Id, oldUserName);
             inactiveUser.NormalizedUserName = userManager.NormalizeName(inactiveUser.UserName);
             inactiveUser.ActiveSessionId = null;
+            inactiveUser.ActiveApplicationInstanceId = null;
             inactiveUser.SessionLastActivityUtc = null;
             var archiveResult = await userManager.UpdateAsync(inactiveUser);
             if (!archiveResult.Succeeded)

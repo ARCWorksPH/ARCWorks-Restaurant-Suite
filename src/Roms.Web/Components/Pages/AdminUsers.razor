@@ -99,6 +99,7 @@
         user.NormalizedUserName = UserManager.NormalizeName(user.UserName);
         user.IsActive = false;
         user.ActiveSessionId = null;
+        user.ActiveApplicationInstanceId = null;
         user.SessionLastActivityUtc = null;
         var result = await UserManager.UpdateAsync(user);
         if (result.Succeeded && !user.IsActive)

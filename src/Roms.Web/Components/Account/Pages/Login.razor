@@ -75,6 +75,18 @@
                         Your @ProductBrand.Name session ended after a period of inactivity. Your attendance record was not changed.
                     </div>
                 }
+                @if (Reason == "session-replay")
+                {
+                    <div class="alert alert-danger ld2-alert" role="alert">
+                        A duplicate signed-in application instance was detected. For security, every copy of that session was revoked. Please sign in again and notify a Manager or Administrator.
+                    </div>
+                }
+                else if (Reason == "session-revoked")
+                {
+                    <div class="alert alert-warning" role="alert">
+                        This signed-in session is no longer valid. Sign in again only after the duplicate-session security alert has been reviewed.
+                    </div>
+                }
                 @if (ClockedOut)
                 {
                     <div class="alert alert-success ld2-alert" role="status">
@@ -167,7 +179,7 @@
             user = await UserManager.FindByNameAsync(Input.Username);
             result = user is null || !user.IsActive
                 ? SignInResult.Failed
-                : await SignInManager.PasswordSignInAsync(user, Input.Password, isPersistent: false, lockoutOnFailure: true);
+                : await SignInManager.CheckPasswordSignInAsync(user, Input.Password, lockoutOnFailure: true);
         }
 
         if (result.Succeeded)
@@ -180,10 +192,10 @@
                 return;
             }
 
-            // TryStartAsync has attached the new server session to the user.
-            // Refresh through the principal factory so the cookie receives exactly
-            // one session claim plus the first-login password-change claim.
-            await SignInManager.RefreshSignInAsync(user!);
+            // Issue the authentication cookie only after the database lease is
+            // secured. This avoids briefly issuing a valid cookie without the
+            // authoritative staff-session claim.
+            await SignInManager.SignInAsync(user!, isPersistent: false);
             Logger.LogInformation("User logged in.");
             if (user!.MustChangePassword)
             {

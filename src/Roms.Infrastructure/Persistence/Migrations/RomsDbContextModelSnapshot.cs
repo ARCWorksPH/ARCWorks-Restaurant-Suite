@@ -796,6 +796,10 @@ namespace Roms.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("varchar(64)");
 
+                    b.Property<string>("ActiveApplicationInstanceId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
                     b.Property<string>("ArchivedUserName")
                         .HasMaxLength(256)
                         .HasColumnType("varchar(256)");

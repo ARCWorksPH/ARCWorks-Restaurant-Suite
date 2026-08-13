@@ -1,8 +1,16 @@
 (() => {
+    // Blazor enhanced navigation can encounter the page-level script more than
+    // once without replacing the browser JavaScript heap. Keep exactly one
+    // guard per live runtime. A copied browser profile receives cookies and
+    // storage, but it does not receive this in-memory marker or instance ID.
+    if (window.__arcworksSessionGuardLoaded) return;
+    window.__arcworksSessionGuardLoaded = true;
+
     let installPrompt, idleTimer, warningTimer, countdownTimer;
     let listeners = [];
-    let activityReference, lastActivitySentAt = 0, lastMeaningfulActivityAt = 0, heartbeatTimer;
-    let windowLeaseChannel, ownsWindowLease = false;
+    let lastActivitySentAt = 0, lastMeaningfulActivityAt = 0, heartbeatTimer;
+    let applicationInstanceId, ownsWindowLease = false, sessionBootstrapInProgress = false;
+    let lastLeaseStatus = 0;
 
     window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); installPrompt = event; });
     const showInstallRequirement = message => {
@@ -145,28 +153,43 @@
     };
 
     window.romsSession = {
-        start: async (formId, idleMinutes, dotNetReference, accountKey) => {
+        createApplicationInstanceId: () => {
+            const namePrefix = "ARCWORKS-INSTANCE:";
+            const existing = window.name.startsWith(namePrefix)
+                ? window.name.slice(namePrefix.length)
+                : "";
+            if (existing.length === 64 && /^[0-9A-F]+$/.test(existing)) return existing;
+            const instanceBytes = new Uint8Array(32);
+            crypto.getRandomValues(instanceBytes);
+            const created = Array.from(instanceBytes, byte => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
+            // window.name belongs to this live top-level browsing context and
+            // survives an ordinary reload. It is not included in copied cookie,
+            // localStorage, or sessionStorage data.
+            window.name = `${namePrefix}${created}`;
+            return created;
+        },
+        revokeDuplicate: formId => {
+            const returnUrl = document.getElementById("session-timeout-return-url");
+            if (returnUrl) returnUrl.value = "Account/Login?reason=session-replay";
+            document.getElementById(formId)?.requestSubmit();
+        },
+        start: async (formId, idleMinutes, instanceId) => {
             window.romsSession.stop();
-            activityReference = dotNetReference;
-            ownsWindowLease = await window.romsSession.retryWindowLease(accountKey);
-            if (!ownsWindowLease) return false;
+            applicationInstanceId = instanceId;
 
             const recordActivity = async () => {
-                if (!activityReference) return;
                 try {
-                    // The authoritative revalidator owns forced sign-out. A transient
-                    // circuit/database race must not expel an otherwise active user.
-                    await activityReference.invokeMethodAsync("RecordActivity");
+                    const status = await postLease("/security/session/touch", applicationInstanceId);
+                    if (status === 409) window.romsSession.revokeDuplicate(formId);
                 } catch {
-                    // A disconnected circuit cannot refresh the authoritative
-                    // database clock. The reconnect UI remains in charge.
+                    // A transient network failure is handled by the connection UI.
                 }
             };
             const onActivity = () => {
                 lastMeaningfulActivityAt = Date.now();
                 reset(formId, idleMinutes);
                 const now = lastMeaningfulActivityAt;
-                if (activityReference && now - lastActivitySentAt >= 60_000) {
+                if (now - lastActivitySentAt >= 60_000) {
                     lastActivitySentAt = now;
                     recordActivity();
                 }
@@ -187,35 +210,18 @@
             heartbeatTimer = setInterval(() => {
                 if (Date.now() - lastMeaningfulActivityAt <= 75_000) recordActivity();
             }, 60_000);
-            return true;
-        },
-        retryWindowLease: async accountKey => {
-            if (ownsWindowLease) return true;
-            if (!window.BroadcastChannel || !accountKey) return true;
-
-            if (windowLeaseChannel) windowLeaseChannel.close();
-            const channel = new BroadcastChannel(`arcworks-active-window:${accountKey}`);
-            windowLeaseChannel = channel;
-            let occupied = false;
-            channel.onmessage = event => {
-                if (event.data?.type === "arcworks-window-probe" && ownsWindowLease) {
-                    channel.postMessage({ type: "arcworks-window-occupied" });
-                } else if (event.data?.type === "arcworks-window-occupied") {
-                    occupied = true;
-                }
-            };
-            channel.postMessage({ type: "arcworks-window-probe" });
-            await new Promise(resolve => setTimeout(resolve, 300));
-            if (occupied) {
-                channel.close();
-                if (windowLeaseChannel === channel) windowLeaseChannel = null;
-                return false;
-            }
-
-            ownsWindowLease = true;
-            return true;
         },
         isWindowLeaseOwner: () => ownsWindowLease,
+        diagnostics: () => ({
+            ownsWindowLease,
+            lastLeaseStatus,
+            hasForm: !!document.getElementById("session-timeout-form"),
+            instanceLength: applicationInstanceId?.length ?? 0
+        }),
+        verifyNow: async () => {
+            if (!applicationInstanceId) return false;
+            return (await postLease("/security/session/touch", applicationInstanceId)) === 204;
+        },
         stop: () => {
             clearTimers();
             listeners.forEach(([name, handler]) => {
@@ -224,13 +230,76 @@
                 else document.removeEventListener(name, handler);
             });
             listeners = [];
-            activityReference = null;
             lastActivitySentAt = 0;
             lastMeaningfulActivityAt = 0;
-            if (windowLeaseChannel) windowLeaseChannel.close();
-            windowLeaseChannel = null;
+            applicationInstanceId = null;
             ownsWindowLease = false;
             hideWarning();
         }
     };
+
+    const postLease = async (url, instanceId) => {
+        const antiforgeryToken = document.querySelector("#session-timeout-form input[name='__RequestVerificationToken']")?.value;
+        const response = await fetch(`${url}/${encodeURIComponent(instanceId)}`, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                ...(antiforgeryToken ? { "RequestVerificationToken": antiforgeryToken } : {})
+            },
+            body: ""
+        });
+        lastLeaseStatus = response.status;
+        return lastLeaseStatus;
+    };
+    const bootstrapAuthenticatedSession = async () => {
+        const form = document.getElementById("session-timeout-form");
+        if (!form || applicationInstanceId || sessionBootstrapInProgress) return;
+        sessionBootstrapInProgress = true;
+        try {
+            const instanceId = window.romsSession.createApplicationInstanceId();
+            const status = await postLease("/security/session/register", instanceId);
+            if (status === 409) {
+                window.romsSession.revokeDuplicate(form.id);
+                return;
+            }
+            if (status === 401) {
+                // The cookie may still decrypt after the authoritative database
+                // session has been revoked. Remove that stale cookie immediately
+                // instead of allowing a copied runtime to render the application.
+                const returnUrl = document.getElementById("session-timeout-return-url");
+                if (returnUrl) returnUrl.value = "Account/Login?reason=session-revoked";
+                form.requestSubmit();
+                return;
+            }
+            if (status !== 204) {
+                // A login may complete through enhanced navigation while the new
+                // authentication cookie is still settling. Fail closed by leaving
+                // the application unusable until a short retry establishes the
+                // lease; do not mislabel a transient 401/400 as replay.
+                setTimeout(bootstrapAuthenticatedSession, 500);
+                return;
+            }
+            ownsWindowLease = true;
+            await window.romsSession.start(
+                form.id,
+                Number.parseInt(form.dataset.idleMinutes || "15", 10),
+                instanceId);
+        } finally {
+            sessionBootstrapInProgress = false;
+        }
+    };
+    // Login can complete through Blazor enhanced navigation, which preserves
+    // this JavaScript runtime instead of re-executing the script. Observe the
+    // authenticated layout so the lease is also established after that path.
+    const sessionLayoutObserver = new MutationObserver(() => bootstrapAuthenticatedSession());
+    const startSessionBootstrap = () => {
+        bootstrapAuthenticatedSession();
+        sessionLayoutObserver.observe(document.body, { childList: true, subtree: true });
+    };
+    if (document.readyState === "loading")
+        document.addEventListener("DOMContentLoaded", startSessionBootstrap, { once: true });
+    else
+        startSessionBootstrap();
+    document.addEventListener("enhancedload", bootstrapAuthenticatedSession);
 })();

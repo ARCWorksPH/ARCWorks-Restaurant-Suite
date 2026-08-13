@@ -15,6 +15,9 @@ public sealed class ApplicationUser : IdentityUser
     // One server-issued session identifier is permitted per staff account.
     // It is deliberately not a personal-data field and is cleared on logout.
     public string? ActiveSessionId { get; set; }
+    // Memory-only browser runtime owner. Copying the authentication cookie or
+    // browser profile starts a different runtime and must not inherit access.
+    public string? ActiveApplicationInstanceId { get; set; }
     public DateTime? SessionLastActivityUtc { get; set; }
 
     public static string BuildArchivedUserName(string id, string oldUserName)

@@ -191,6 +191,27 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 app.MapAdditionalIdentityEndpoints();
+app.MapPost("/security/session/register/{instanceId}", async (
+    string instanceId,
+    HttpContext context,
+    Roms.Web.Components.Account.StaffSessionService sessions) =>
+{
+    return await sessions.RegisterApplicationInstanceAsync(context.User, instanceId) switch
+    {
+        Roms.Web.Components.Account.ApplicationInstanceRegistration.Accepted => Results.NoContent(),
+        Roms.Web.Components.Account.ApplicationInstanceRegistration.ReplayDetected => Results.Conflict(),
+        _ => Results.Unauthorized()
+    };
+}).RequireAuthorization();
+app.MapPost("/security/session/touch/{instanceId}", async (
+    string instanceId,
+    HttpContext context,
+    Roms.Web.Components.Account.StaffSessionService sessions) =>
+{
+    return await sessions.TouchAsync(context.User, instanceId)
+        ? Results.NoContent()
+        : Results.Conflict();
+}).RequireAuthorization();
 app.MapHub<OrderHub>("/hubs/orders");
 app.MapHealthChecks("/health");
 app.MapAttendanceExport();

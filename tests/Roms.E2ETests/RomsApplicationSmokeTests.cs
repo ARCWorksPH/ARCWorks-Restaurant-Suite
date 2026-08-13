@@ -187,7 +187,7 @@ public sealed class RomsApplicationSmokeTests : PageTest
     }
 
     [Test]
-    public async Task One_staff_account_allows_only_one_active_window_or_device()
+    public async Task Copied_authenticated_session_revokes_every_instance_and_records_security_incident()
     {
         const string username = "single-session-admin";
         await using var database = new MariaDbBuilder("mariadb:11.4")
@@ -213,35 +213,67 @@ public sealed class RomsApplicationSmokeTests : PageTest
         {
             await WaitUntilHealthyAsync(runningApplication, baseAddress);
             await LoginAsync(Page, baseAddress, username);
-            await Page.WaitForFunctionAsync("() => window.romsSession?.isWindowLeaseOwner() === true");
+            await Expect(Page.Locator("#session-timeout-form")).ToHaveCountAsync(1);
+            await Page.WaitForTimeoutAsync(3_000);
+            var copiedBrowserState = await Page.Context.StorageStateAsync();
             await using var verificationDb = CreateDbContext(database.GetConnectionString());
-            var accountKey = await verificationDb.Users
+            var originalOwner = await verificationDb.Users.AsNoTracking()
                 .Where(x => x.UserName == username)
-                .Select(x => x.Id)
+                .Select(x => x.ActiveApplicationInstanceId)
                 .SingleAsync();
+            Assert.That(originalOwner, Is.Not.Null.And.Length.EqualTo(64),
+                "The first application runtime must own a server-side instance lease.");
 
-            var secondWindow = await Page.Context.NewPageAsync();
-            await secondWindow.GotoAsync($"{baseAddress}/Account/Login");
-            var secondWindowAcquired = await secondWindow.EvaluateAsync<bool>(
-                "account => window.romsSession.retryWindowLease(account)", accountKey);
-            Assert.That(secondWindowAcquired, Is.False,
-                "A second window in the same browser must not acquire the account lease.");
+            // A normal reload retains the live browsing-context lease and must
+            // not be mistaken for a copied browser runtime.
+            await Page.ReloadAsync();
+            await Expect(Page.Locator("#session-timeout-form")).ToHaveCountAsync(1);
+            await Expect(Page).ToHaveURLAsync(new Regex($"^{Regex.Escape(baseAddress)}/?$"));
+            var reloadLeaseValid = false;
+            for (var attempt = 0; attempt < 20 && !reloadLeaseValid; attempt++)
+            {
+                reloadLeaseValid = await Page.EvaluateAsync<bool>("() => window.romsSession.verifyNow()");
+                if (!reloadLeaseValid) await Page.WaitForTimeoutAsync(250);
+            }
+            Assert.That(reloadLeaseValid, Is.True, "An ordinary reload must retain the same browsing-context lease.");
 
-            await using var secondDevice = await Browser.NewContextAsync();
-            var secondDevicePage = await secondDevice.NewPageAsync();
-            await secondDevicePage.GotoAsync($"{baseAddress}/Account/Login");
-            await secondDevicePage.GetByLabel("Username").FillAsync(username);
-            await secondDevicePage.GetByLabel("Password").FillAsync(E2ePassword);
-            await secondDevicePage.GetByRole(AriaRole.Button, new() { Name = "Log in" }).ClickAsync();
-            await Expect(secondDevicePage.GetByText("already signed in on another device"))
+            // This models a copied browser installation/profile: the attacker
+            // receives the exact authentication cookie, but not the live JS heap.
+            await using var copiedProfile = await Browser.NewContextAsync(new()
+            {
+                StorageState = copiedBrowserState
+            });
+            var copiedPage = await copiedProfile.NewPageAsync();
+            await copiedPage.GotoAsync(baseAddress);
+            await Expect(copiedPage).ToHaveURLAsync(new Regex("/Account/Login\\?reason=session-replay"));
+            await Expect(copiedPage.GetByText("duplicate signed-in application instance", new() { Exact = false }))
                 .ToBeVisibleAsync();
 
-            await Page.CloseAsync();
-            await secondWindow.WaitForTimeoutAsync(500);
-            var acquiredAfterOwnerClosed = await secondWindow.EvaluateAsync<bool>(
-                "account => window.romsSession.retryWindowLease(account)", accountKey);
-            Assert.That(acquiredAfterOwnerClosed, Is.True,
-                "The surviving window may acquire the ephemeral lease after its owner closes.");
+            // The original cannot remain authenticated after the replay. This
+            // explicit verification avoids waiting for the one-minute heartbeat.
+            var originalStillCurrent = await Page.EvaluateAsync<bool>("() => window.romsSession.verifyNow()");
+            Assert.That(originalStillCurrent, Is.False);
+
+            await using var incidentDb = CreateDbContext(database.GetConnectionString());
+            Assert.That(await incidentDb.Users.SingleAsync(x => x.UserName == username), Has.Property("ActiveSessionId").Null);
+            Assert.That(await incidentDb.AuditEntries.CountAsync(x =>
+                x.Action == "AuthenticatedSessionReplayDetected"), Is.EqualTo(1));
+
+            // Replaying the already-revoked copy cannot create more sessions or
+            // flood the immutable incident log.
+            await using var massReplay = await Browser.NewContextAsync(new() { StorageState = copiedBrowserState });
+            var replayPages = await Task.WhenAll(Enumerable.Range(0, 5).Select(async _ =>
+            {
+                var page = await massReplay.NewPageAsync();
+                await page.GotoAsync(baseAddress);
+                return page;
+            }));
+            foreach (var page in replayPages)
+                await Expect(page).ToHaveURLAsync(new Regex("/Account/Login"), new() { Timeout = 15_000 });
+
+            await using var finalDb = CreateDbContext(database.GetConnectionString());
+            Assert.That(await finalDb.AuditEntries.CountAsync(x =>
+                x.Action == "AuthenticatedSessionReplayDetected"), Is.EqualTo(1));
         }
         finally
         {
@@ -433,7 +465,7 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Task.Delay(250);
         }
 
-        throw new TimeoutException("ROMS did not become healthy within 60 seconds.");
+        throw new TimeoutException($"ROMS did not become healthy within 60 seconds.{Environment.NewLine}{runningApplication.Output}");
     }
 
     private async Task LoginAsync(IPage page, string baseAddress, string username)
