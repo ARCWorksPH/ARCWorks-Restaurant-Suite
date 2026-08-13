@@ -18,6 +18,14 @@ pilot enablement beyond documented human gates, or AI release from hold.
 | 4 | 2026-08-03 | [2026-08-03 QA compliance post-merge](2026-08-03-qa-compliance-post-merge.md) | Recipe removal; manual ledger; security harden | Conditionally accepted; AI off |
 | 5 | 2026-08-08 | [2026-08-08 ARCWorks Suite rebrand and workflow freeze](2026-08-08-arcworks-suite-rebrand-workflow.md) | Org/repo rename; AI hold; four-role contract; backup; portable; UI; open PRs | Conditionally accepted for private-beta prep; staff acceptance + restore drill still open |
 
+## Next independent review
+
+Audit #6 has been requested against the Waiter account-security and Gate 0
+checkpoint branch. The request is documented in
+[`AUDIT_6_HANDOFF_2026-08-12.md`](AUDIT_6_HANDOFF_2026-08-12.md). It is not a
+completed audit and must not be added to the numbered table until the
+independent report is submitted and reviewed.
+
 ## How to use
 
 1. Read the newest audit first (Audit 5).

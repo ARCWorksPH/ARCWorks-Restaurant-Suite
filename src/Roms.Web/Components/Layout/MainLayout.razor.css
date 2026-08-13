@@ -3,7 +3,7 @@
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background-color: var(--roms-bg, #0F141B);
+    background: transparent;
     color: var(--roms-text, #F4F7FB);
 }
 
@@ -11,17 +11,21 @@ main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background-color: var(--roms-bg, #0F141B);
+    background: transparent;
 }
 
 .sidebar {
-    background-color: var(--roms-surface, #171E27);
-    border-right: 1px solid var(--roms-border, #344153);
+    background: rgba(17, 24, 34, 0.78);
+    backdrop-filter: blur(20px) saturate(125%);
+    -webkit-backdrop-filter: blur(20px) saturate(125%);
+    border-right: 1px solid rgba(116, 220, 235, 0.10);
 }
 
 .top-row {
-    background-color: var(--roms-surface, #171E27);
-    border-bottom: 1px solid var(--roms-border, #344153);
+    background: rgba(17, 24, 34, 0.78);
+    backdrop-filter: blur(20px) saturate(125%);
+    -webkit-backdrop-filter: blur(20px) saturate(125%);
+    border-bottom: 1px solid rgba(116, 220, 235, 0.10);
     color: var(--roms-text, #F4F7FB);
     justify-content: space-between;
     height: 3.5rem;
@@ -137,34 +141,34 @@ main {
         padding: 0 1rem !important;
     }
 
-    .page.kds-mode.kitchen-sidebar-collapsed .sidebar {
+    .page.sidebar-collapsed .sidebar {
         width: 72px;
     }
 
-    .page.kds-mode .sidebar.kitchen-sidebar-collapsed {
+    .page.sidebar-collapsed .sidebar {
         width: 72px !important;
     }
 
-    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .navbar-brand,
-    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .nav-user-item {
+    .page.sidebar-collapsed .sidebar ::deep .navbar-brand,
+    .page.sidebar-collapsed .sidebar ::deep .nav-user-item {
         display: none;
     }
 
-    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .top-row {
+    .page.sidebar-collapsed .sidebar ::deep .top-row {
         padding: 0 !important;
     }
 
-    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .container-fluid {
+    .page.sidebar-collapsed .sidebar ::deep .container-fluid {
         justify-content: center;
         padding: 0;
     }
 
-    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .nav-item {
+    .page.sidebar-collapsed .sidebar ::deep .nav-item {
         padding-left: 0 !important;
         padding-right: 0 !important;
     }
 
-    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .nav-link {
+    .page.sidebar-collapsed .sidebar ::deep .nav-link {
         justify-content: center;
         gap: 0;
         width: 48px;
@@ -173,7 +177,7 @@ main {
         padding-right: 0 !important;
     }
 
-    .page.kds-mode.kitchen-sidebar-collapsed .sidebar ::deep .nav-text {
+    .page.sidebar-collapsed .sidebar ::deep .nav-text {
         position: absolute;
         width: 1px;
         height: 1px;
@@ -192,7 +196,7 @@ main {
         padding-right: 1.5rem !important;
     }
 
-    .kitchen-sidebar-toggle {
+    .sidebar-toggle {
         white-space: nowrap;
     }
 

@@ -72,13 +72,16 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    // The server-side StaffSessionService separately validates actual activity.
-    // The cookie remains short-lived as a second boundary for shared devices.
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(20);
-    options.SlidingExpiration = false;
+    // The database activity timestamp is the authoritative 15-minute idle
+    // clock. The longer bounded cookie must not expel a genuinely active shift.
+    options.ExpireTimeSpan = TimeSpan.FromHours(
+        Math.Clamp(builder.Configuration.GetValue("Session:CookieLifetimeHours", 16), 8, 24));
+    options.SlidingExpiration = true;
     options.Cookie.HttpOnly = true;
-    options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
 });
 builder.Services.AddAntiforgery(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest);
@@ -101,6 +104,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddEntityFrameworkStores<RomsDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
+builder.Services.AddScoped<IUserClaimsPrincipalFactory<ApplicationUser>, StaffClaimsPrincipalFactory>();
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("WaiterOrAdmin", p => p.RequireRole(RomsRoles.Waiter, RomsRoles.Admin))
@@ -160,10 +164,54 @@ else
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+app.Use(async (context, next) =>
+{
+    var mustChangePassword = context.User.HasClaim(
+        StaffClaimsPrincipalFactory.MustChangePasswordClaimType, bool.TrueString);
+    var permittedPath = context.Request.Path.StartsWithSegments("/Account/Manage/ChangePassword") ||
+                        context.Request.Path.StartsWithSegments("/Account/Logout") ||
+                        context.Request.Path.StartsWithSegments("/_framework") ||
+                        context.Request.Path.StartsWithSegments("/_blazor") ||
+                        context.Request.Path.StartsWithSegments("/css") ||
+                        context.Request.Path.StartsWithSegments("/js") ||
+                        context.Request.Path.StartsWithSegments("/lib") ||
+                        context.Request.Path.StartsWithSegments("/images") ||
+                        Path.HasExtension(context.Request.Path.Value);
+    if (context.User.Identity?.IsAuthenticated == true && mustChangePassword && !permittedPath)
+    {
+        context.Response.Redirect("/Account/Manage/ChangePassword?forced=true");
+        return;
+    }
+
+    await next();
+});
 app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 app.MapAdditionalIdentityEndpoints();
+app.MapPost("/security/session/register/{instanceId}", async (
+    string instanceId,
+    HttpContext context,
+    Roms.Web.Components.Account.StaffSessionService sessions) =>
+{
+    return await sessions.RegisterApplicationInstanceAsync(context.User, instanceId) switch
+    {
+        Roms.Web.Components.Account.ApplicationInstanceRegistration.Accepted => Results.NoContent(),
+        Roms.Web.Components.Account.ApplicationInstanceRegistration.ReplayDetected => Results.Conflict(),
+        _ => Results.Unauthorized()
+    };
+}).RequireAuthorization();
+app.MapPost("/security/session/touch/{instanceId}", async (
+    string instanceId,
+    HttpContext context,
+    Roms.Web.Components.Account.StaffSessionService sessions) =>
+{
+    return await sessions.TouchAsync(context.User, instanceId)
+        ? Results.NoContent()
+        : Results.Conflict();
+}).RequireAuthorization();
 app.MapHub<OrderHub>("/hubs/orders");
 app.MapHealthChecks("/health");
 app.MapAttendanceExport();

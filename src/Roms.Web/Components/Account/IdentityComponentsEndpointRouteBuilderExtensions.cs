@@ -45,6 +45,7 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
         });
 
         accountGroup.MapPost("/Logout", async (
+            HttpContext context,
             ClaimsPrincipal user,
             [FromServices] StaffSessionService staffSessions,
             [FromServices] SignInManager<ApplicationUser> signInManager,
@@ -52,10 +53,12 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
         {
             await staffSessions.EndAsync(user);
             await signInManager.SignOutAsync();
+            AddLogoutCleanupHeaders(context.Response);
             return TypedResults.LocalRedirect($"~/{returnUrl}");
         });
 
         accountGroup.MapPost("/ClockOutAndLogout", async (
+            HttpContext context,
             ClaimsPrincipal user,
             [FromServices] IAttendanceService attendanceService,
             [FromServices] StaffSessionService staffSessions,
@@ -76,6 +79,7 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
 
             await staffSessions.EndAsync(user);
             await signInManager.SignOutAsync();
+            AddLogoutCleanupHeaders(context.Response);
             return TypedResults.LocalRedirect("~/Account/Login?clockedOut=true");
         });
 
@@ -177,5 +181,11 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
         });
 
         return accountGroup;
+    }
+
+    private static void AddLogoutCleanupHeaders(HttpResponse response)
+    {
+        response.Headers.CacheControl = "no-store";
+        response.Headers["Clear-Site-Data"] = "\"cache\", \"storage\"";
     }
 }

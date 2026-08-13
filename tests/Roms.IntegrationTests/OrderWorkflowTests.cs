@@ -68,6 +68,34 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Archived_waiter_login_name_still_resolves_historical_display_name()
+    {
+        await using (var db = new RomsDbContext(options))
+        {
+            var waiter = await db.Users.SingleAsync(x => x.UserName == "waiter");
+            waiter.ArchivedUserName = "waiter";
+            waiter.UserName = ApplicationUser.BuildArchivedUserName(waiter.Id, "waiter");
+            waiter.NormalizedUserName = waiter.UserName.ToUpperInvariant();
+            waiter.IsActive = false;
+            await db.SaveChangesAsync();
+        }
+
+        var service = CreateService();
+        await using var verify = new RomsDbContext(options);
+        var tableId = (await verify.RestaurantTables.SingleAsync()).Id;
+        var order = new Order
+        {
+            TableId = tableId,
+            WaiterId = "waiter",
+            CreatedUtc = new DateTime(2026, 7, 13, 12, 0, 0, DateTimeKind.Utc)
+        };
+        verify.Orders.Add(order);
+        await verify.SaveChangesAsync();
+
+        Assert.Equal("Waiter One", (await service.GetTablesAsync()).Single().WaiterName);
+    }
+
+    [Fact]
     public async Task Kitchen_waiter_and_cashier_complete_the_serving_workflow()
     {
         await using var db = new RomsDbContext(options);
