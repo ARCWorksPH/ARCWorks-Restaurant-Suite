@@ -54,7 +54,7 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Page.GetByLabel("Password").FillAsync(password);
             await Page.GetByRole(AriaRole.Button, new() { Name = "Log in" }).ClickAsync();
 
-            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "My attendance" }))
+            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "My dashboard" }))
                 .ToBeVisibleAsync();
             await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Menu & Tables" }))
                 .ToBeVisibleAsync();
@@ -139,11 +139,14 @@ public sealed class RomsApplicationSmokeTests : PageTest
             Assert.That(sidebarBox!.Value.Width, Is.InRange(248, 252));
             await Expect(sidebar.Locator(".nav-text").First).ToBeVisibleAsync();
 
-            await Page.GetByRole(AriaRole.Button, new() { Name = "Minimize kitchen navigation panel" }).ClickAsync();
-            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Expand kitchen navigation panel" })).ToBeVisibleAsync();
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Minimize navigation panel" }).ClickAsync();
+            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Expand navigation panel" })).ToBeVisibleAsync();
             var collapsedSidebarBox = await WaitForBoundingBoxAsync(sidebar, Page);
             Assert.That(collapsedSidebarBox, Is.Not.Null);
             Assert.That(collapsedSidebarBox!.Value.Width, Is.InRange(70, 74));
+
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Expand navigation panel" }).ClickAsync();
+            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Minimize navigation panel" })).ToBeVisibleAsync();
 
             await Page.GotoAsync($"{baseAddress}/tables");
             await Page.GetByRole(AriaRole.Button, new()
@@ -173,6 +176,104 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Page.GetByRole(AriaRole.Button, new() { Name = "Cancel order" }).ClickAsync();
             await Expect(Page.GetByText("Order cancelled."))
                 .ToBeVisibleAsync();
+        }
+        finally
+        {
+            if (!application.HasExited)
+                application.Kill(entireProcessTree: true);
+            await application.WaitForExitAsync();
+            Directory.Delete(keysPath, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task Copied_authenticated_session_revokes_every_instance_and_records_security_incident()
+    {
+        const string username = "single-session-admin";
+        await using var database = new MariaDbBuilder("mariadb:11.4")
+            .WithDatabase("roms_single_session")
+            .WithUsername("root")
+            .WithPassword($"roms-{Guid.NewGuid():N}")
+            .Build();
+        await database.StartAsync();
+
+        var port = ReservePort();
+        var baseAddress = $"http://127.0.0.1:{port}";
+        var keysPath = Path.Combine(Path.GetTempPath(), $"roms-session-keys-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(keysPath);
+        var runningApplication = StartApplication(
+            baseAddress,
+            database.GetConnectionString(),
+            keysPath,
+            username,
+            E2ePassword);
+        using var application = runningApplication.Process;
+
+        try
+        {
+            await WaitUntilHealthyAsync(runningApplication, baseAddress);
+            await LoginAsync(Page, baseAddress, username);
+            await Expect(Page.Locator("#session-timeout-form")).ToHaveCountAsync(1);
+            await Page.WaitForTimeoutAsync(3_000);
+            var copiedBrowserState = await Page.Context.StorageStateAsync();
+            await using var verificationDb = CreateDbContext(database.GetConnectionString());
+            var originalOwner = await verificationDb.Users.AsNoTracking()
+                .Where(x => x.UserName == username)
+                .Select(x => x.ActiveApplicationInstanceId)
+                .SingleAsync();
+            Assert.That(originalOwner, Is.Not.Null.And.Length.EqualTo(64),
+                "The first application runtime must own a server-side instance lease.");
+
+            // A normal reload retains the live browsing-context lease and must
+            // not be mistaken for a copied browser runtime.
+            await Page.ReloadAsync();
+            await Expect(Page.Locator("#session-timeout-form")).ToHaveCountAsync(1);
+            await Expect(Page).ToHaveURLAsync(new Regex($"^{Regex.Escape(baseAddress)}/?$"));
+            var reloadLeaseValid = false;
+            for (var attempt = 0; attempt < 20 && !reloadLeaseValid; attempt++)
+            {
+                reloadLeaseValid = await Page.EvaluateAsync<bool>("() => window.romsSession.verifyNow()");
+                if (!reloadLeaseValid) await Page.WaitForTimeoutAsync(250);
+            }
+            Assert.That(reloadLeaseValid, Is.True, "An ordinary reload must retain the same browsing-context lease.");
+
+            // This models a copied browser installation/profile: the attacker
+            // receives the exact authentication cookie, but not the live JS heap.
+            await using var copiedProfile = await Browser.NewContextAsync(new()
+            {
+                StorageState = copiedBrowserState
+            });
+            var copiedPage = await copiedProfile.NewPageAsync();
+            await copiedPage.GotoAsync(baseAddress);
+            await Expect(copiedPage).ToHaveURLAsync(new Regex("/Account/Login\\?reason=session-replay"));
+            await Expect(copiedPage.GetByText("duplicate signed-in application instance", new() { Exact = false }))
+                .ToBeVisibleAsync();
+
+            // The original cannot remain authenticated after the replay. This
+            // explicit verification avoids waiting for the one-minute heartbeat.
+            var originalStillCurrent = await Page.EvaluateAsync<bool>("() => window.romsSession.verifyNow()");
+            Assert.That(originalStillCurrent, Is.False);
+
+            await using var incidentDb = CreateDbContext(database.GetConnectionString());
+            Assert.That(await incidentDb.Users.SingleAsync(x => x.UserName == username), Has.Property("ActiveSessionId").Null);
+            Assert.That(await incidentDb.AuditEntries.CountAsync(x =>
+                x.Action == "AuthenticatedSessionReplayDetected"), Is.EqualTo(1));
+
+            // Replaying the already-revoked copy cannot create more sessions or
+            // flood the immutable incident log.
+            await using var massReplay = await Browser.NewContextAsync(new() { StorageState = copiedBrowserState });
+            var replayPages = await Task.WhenAll(Enumerable.Range(0, 5).Select(async _ =>
+            {
+                var page = await massReplay.NewPageAsync();
+                await page.GotoAsync(baseAddress);
+                return page;
+            }));
+            foreach (var page in replayPages)
+                await Expect(page).ToHaveURLAsync(new Regex("/Account/Login"), new() { Timeout = 15_000 });
+
+            await using var finalDb = CreateDbContext(database.GetConnectionString());
+            Assert.That(await finalDb.AuditEntries.CountAsync(x =>
+                x.Action == "AuthenticatedSessionReplayDetected"), Is.EqualTo(1));
         }
         finally
         {
@@ -364,7 +465,7 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Task.Delay(250);
         }
 
-        throw new TimeoutException("ROMS did not become healthy within 60 seconds.");
+        throw new TimeoutException($"ROMS did not become healthy within 60 seconds.{Environment.NewLine}{runningApplication.Output}");
     }
 
     private async Task LoginAsync(IPage page, string baseAddress, string username)
@@ -373,7 +474,7 @@ public sealed class RomsApplicationSmokeTests : PageTest
         await page.GetByLabel("Username").FillAsync(username);
         await page.GetByLabel("Password").FillAsync(E2ePassword);
         await page.GetByRole(AriaRole.Button, new() { Name = "Log in" }).ClickAsync();
-        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "My attendance" }))
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "My dashboard" }))
             .ToBeVisibleAsync();
         await WaitForInteractiveAsync(page);
     }

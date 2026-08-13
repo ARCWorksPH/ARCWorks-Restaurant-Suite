@@ -42,6 +42,19 @@ html, body {
     outline-offset: 2px !important;
 }
 
+/*
+ * FocusOnNavigate moves screen-reader focus to the new page heading after a
+ * route change. Keep that semantic focus, but do not draw the interactive
+ * control ring around a programmatically focused heading. Real controls keep
+ * the global keyboard focus ring above.
+ */
+h1[tabindex="-1"]:focus,
+h1[tabindex="-1"]:focus-visible {
+    outline: none !important;
+    outline-offset: 0 !important;
+    box-shadow: none !important;
+}
+
 /* Accessibility: Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
     *, ::before, ::after {
@@ -767,6 +780,15 @@ h3 {
     justify-content: center;
     border-bottom: 1px solid var(--roms-border);
     position: relative;
+}
+
+.menu-card-image-box .menu-card-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    pointer-events: none;
 }
 
 .menu-card-image-box svg.fallback-svg {

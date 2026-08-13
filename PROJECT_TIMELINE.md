@@ -220,3 +220,49 @@ Waiter section, beginning with Tables Overview and the order-entry workflow.
 
 The AI hold can be revisited later, but it is not on the critical path for
 finishing the core restaurant system.
+# 2026-08-12 - Waiter shell and account-security gate
+
+- Completed the pre-Tables waiter shell: Dashboard now owns attendance,
+  schedule, password, clock-out, and logout actions.
+- Added first-login password replacement and safe reuse of login names from
+  inactive staff without deleting historical records.
+- Reduced Waiter navigation to Dashboard and Tables & Orders and added an
+  explicit landscape sidebar control.
+- Tables & Orders visual/function inspection remains the next phase.
+
+# 2026-08-12 - Tables and menu preview populated
+
+- Corrected the navigation-heading focus presentation without weakening
+  keyboard focus visibility for interactive controls.
+- Populated only the isolated waiter-shell preview with 12 tables and 12 menu
+  items across four categories, including prices and preparation times.
+- Added matching contained menu photographs to create realistic visual load
+  before the Tables & Orders UI inspection.
+- The live database and production-facing application remain unchanged.
+
+# 2026-08-12 - Gate 0 Waiter visual checkpoint
+
+- Froze the accepted landing page and the current pre-personal-dashboard
+  Waiter shell as formal desktop, landscape, portrait, and phone-landscape
+  screenshots.
+- Captured authenticated Waiter evidence through a disposable clone of the
+  isolated preview so neither the accepted preview database nor the live
+  instance needed a password reset or evidence-only account.
+- Recorded the exact source commit, preview image, data counts, viewport
+  dimensions, limitations, security boundaries, and SHA-256 hashes.
+- Made no feature-code, schema, live database, tunnel, or production changes.
+- Gate 0 evidence is in
+  `docs/UI/evidence/checkpoints/2026-08-12-waiter-before-personal-dashboard/`.
+- Backend work remains blocked until the project owner reviews this checkpoint.
+
+# 2026-08-12 - External Audit #6 requested
+
+- Restored the already-completed External Audit #5 to the authoritative `main`
+  audit timeline through PR #14, preserving the original independent report.
+- Closed the obsolete stacked Audit #5 PR #6 with a traceable reference to its
+  replacement rather than leaving two competing audit pull requests open.
+- Prepared an independent-review handoff for Audit #6 against PR #13 and the
+  Gate 0 Waiter checkpoint.
+- Audit #6 remains pending: the handoff is not an audit verdict, and Gate 1
+  implementation remains blocked until the independent report is received and
+  assessed by the project owner.

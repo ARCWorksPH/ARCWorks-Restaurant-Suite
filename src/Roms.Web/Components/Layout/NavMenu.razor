@@ -21,8 +21,6 @@
 <div id="roms-navigation" class="nav-scrollable @(isNavExpanded ? "show" : "") @(IsHorizontal ? "nav-horizontal" : "nav-vertical")" @onclick="CollapseNav">
     <nav class="nav @(IsHorizontal ? "flex-row align-items-center" : "flex-column")">
         <div class="nav-item px-2"><NavLink class="nav-link" href="" Match="NavLinkMatch.All" title="Dashboard"><span class="nav-icon">⌂</span> <span class="nav-text">Dashboard</span></NavLink></div>
-        <AuthorizeView><div class="nav-item px-2"><NavLink class="nav-link" href="attendance" title="My Attendance"><span class="nav-icon">◷</span> <span class="nav-text">My Attendance</span></NavLink></div></AuthorizeView>
-        <div class="nav-item px-2 install-nav-item"><NavLink class="nav-link" href="install" title="Install ARCWorks Restaurant Suite"><span class="nav-icon">⬇</span> <span class="nav-text">Install ARCWorks</span></NavLink></div>
         <AuthorizeView Policy="WaiterOrAdmin"><div class="nav-item px-2"><NavLink class="nav-link" href="tables" title="Tables & Orders"><span class="nav-icon">▦</span> <span class="nav-text">Tables & Orders</span></NavLink></div></AuthorizeView>
         <AuthorizeView Policy="KitchenOrAdmin">
             <div class="nav-item px-2"><NavLink class="nav-link" href="kitchen" title="Kitchen Display"><span class="nav-icon">▤</span> <span class="nav-text">Kitchen Display</span></NavLink></div>
@@ -50,8 +48,6 @@
                 {
                     <div class="nav-item px-2 nav-user-item"><span class="nav-user-label">● @context.User.Identity?.Name (@GetRole(context.User))</span></div>
                 }
-                <div class="nav-item px-2"><form action="Account/ClockOutAndLogout" method="post" onsubmit="return confirm('Clock out and log out now?');"><AntiforgeryToken /><button type="submit" class="nav-link nav-clockout btn-link-form" title="Clock Out + Log Out"><span class="nav-icon">⇥</span> <span class="nav-text">Clock Out + Log Out</span></button></form></div>
-                <div class="nav-item px-2"><form action="Account/Logout" method="post" onsubmit="return confirm('Log out now?');"><AntiforgeryToken /><input type="hidden" name="ReturnUrl" value="Account/Login" /><button type="submit" class="nav-link nav-session-logout btn-link-form" title="Log Out Only"><span class="nav-icon">🚪</span> <span class="nav-text">Log Out Only</span></button></form></div>
             </Authorized>
             <NotAuthorized><div class="nav-item px-2"><NavLink class="nav-link" href="Account/Login"><span class="nav-icon">●</span> <span class="nav-text">Staff Login</span></NavLink></div></NotAuthorized>
         </AuthorizeView>

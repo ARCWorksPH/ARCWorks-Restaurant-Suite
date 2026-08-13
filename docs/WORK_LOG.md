@@ -1280,3 +1280,40 @@ the next screen phase.
   tunnel retained their existing container identities.
 - Closed the Landing Page UI section. Waiter Tables Overview and order entry
   are the next focused UI section.
+# 2026-08-12 - Waiter shell and staff account lifecycle
+
+- Released inactive staff usernames for reuse while retaining immutable
+  Identity, attendance, schedule, order, and audit history.
+- Added mandatory first-login password replacement and a persistent Dashboard
+  Change Password option.
+- Consolidated attendance and session actions into Dashboard, removed the
+  redundant Install ARCWorks and My Attendance navigation items, and limited
+  Waiter navigation to Dashboard plus Tables & Orders.
+- Added the landscape Minimize / Expand navigation control for all roles.
+- Kept Tables & Orders itself out of scope pending the next supervised phase.
+- Full evidence and rollback boundary:
+  `docs/UI/WAITER_SHELL_ACCOUNT_SECURITY_WORK_LOG_2026-08-12.md`.
+
+# 2026-08-12 - Gate 0 personal-Waiter-dashboard checkpoint
+
+- Added the backend-first Waiter personal-dashboard implementation plan.
+- Captured the accepted landing page and the current Waiter dashboard at
+  fixed desktop, landscape, portrait, and phone-landscape viewports.
+- Used an evidence-only disposable clone for authenticated Waiter screenshots;
+  the isolated preview and live project were not modified.
+- Added a checkpoint record and SHA-256 manifest under
+  `docs/UI/evidence/checkpoints/2026-08-12-waiter-before-personal-dashboard/`.
+- Recorded the existing mobile/header/overflow and back-office presentation as
+  baseline limitations rather than changing them during the checkpoint gate.
+- No feature implementation begins until project-owner review.
+# 2026-08-13 — Waiter Gate 1 session truth
+
+- Diagnosed the waiter login block as an active-session lease rather than an
+  Identity password lockout.
+- Replaced the fixed 20-minute active-user cutoff with a bounded session-only
+  cookie and retained the 15-minute database idle authority.
+- Added atomic stale-session cleanup, expanded throttled activity coverage, and
+  an ephemeral same-browser one-window lease for every authenticated role.
+- Preserved logout/attendance independence and added logout cache/storage
+  cleanup headers.
+- Evidence: `docs/testing/GATE_1_SESSION_TRUTH_EVIDENCE_2026-08-13.md`.

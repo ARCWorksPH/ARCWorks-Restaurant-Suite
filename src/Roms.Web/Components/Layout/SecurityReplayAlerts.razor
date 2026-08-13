@@ -1,0 +1,35 @@
+@using Microsoft.EntityFrameworkCore
+@using Roms.Infrastructure.Persistence
+@using Roms.Web.Components.Account
+@inject IDbContextFactory<RomsDbContext> DbFactory
+
+<AuthorizeView Roles="Admin,Manager">
+    <Authorized>
+        @if (alerts.Count > 0)
+        {
+            <section class="alert alert-danger security-replay-alert" role="alert" aria-live="polite">
+                <strong>Security alert: duplicate signed-in application instance detected</strong>
+                <p class="mb-1">The affected staff session was revoked in full. Review the immutable audit record before allowing the account to continue.</p>
+                @foreach (var alert in alerts)
+                {
+                    <small class="d-block">@alert.OccurredUtc.ToLocalTime().ToString("g") — staff record @alert.EntityId</small>
+                }
+            </section>
+        }
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private IReadOnlyList<Roms.Domain.AuditEntry> alerts = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var since = DateTime.UtcNow.AddDays(-7);
+        alerts = await db.AuditEntries.AsNoTracking()
+            .Where(entry => entry.Action == StaffSessionService.SecurityReplayAction && entry.OccurredUtc >= since)
+            .OrderByDescending(entry => entry.OccurredUtc)
+            .Take(5)
+            .ToListAsync();
+    }
+}
