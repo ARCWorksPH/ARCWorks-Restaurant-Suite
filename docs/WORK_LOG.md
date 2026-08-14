@@ -1332,3 +1332,23 @@ the next screen phase.
   branding, and the applied application-instance lease migration.
 - Gate 2 remains design-contract work only until the project owner accepts the
   final Waiter dashboard mockups.
+
+# 2026-08-14 — Gate 2 plan accepted and Gate 2A implemented
+
+- Accepted the final Gate 2 Waiter Dashboard implementation contract after an
+  external review. The review's remaining ambiguities were closed explicitly:
+  the full timesheet is self-only/read-only, the shift-note chevron opens the
+  Staff Hub Manager Notes route, 12-hour attendance auto-close immediately
+  revokes floor eligibility, and journal key loss has no administrator bypass.
+- Consolidated the landing-only branding configuration into one modular,
+  startup-validated restaurant identity profile for Chef Doy's Gourmet
+  Restaurant while retaining the accepted landing-page composition.
+- Added strict local-asset validation and neutral local fallback behavior,
+  plus replaceable names, contact fields, locale, currency, and theme tokens.
+- Added a server-owned Asia/Manila restaurant clock alongside UTC persistence,
+  including Monday week-start calculations for the future Waiter read model.
+- Added focused configuration, fallback, replacement-asset, UTC/timezone, and
+  week-boundary tests. Evidence and honest aggregate-test timeout disclosure:
+  `docs/testing/GATE_2A_RESTAURANT_IDENTITY_CLOCK_EVIDENCE_2026-08-14.md`.
+- No Waiter Dashboard visual work, database migration, or live deployment was
+  performed in Gate 2A.

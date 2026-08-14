@@ -33,27 +33,12 @@ builder.Services.AddDataProtection()
     .SetApplicationName("ROMS");
 
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
-builder.Services.AddOptions<LandingPageBrandingOptions>()
-    .Bind(builder.Configuration.GetSection(LandingPageBrandingOptions.SectionName))
-    .Validate(options => !string.IsNullOrWhiteSpace(options.RestaurantName) && options.RestaurantName.Length <= 120,
-        "LandingPageBranding:RestaurantName must contain at most 120 characters.")
-    .Validate(options => !string.IsNullOrWhiteSpace(options.RestaurantDescriptor) && options.RestaurantDescriptor.Length <= 120,
-        "LandingPageBranding:RestaurantDescriptor must contain at most 120 characters.")
-    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.RestaurantLogoPath),
-        "LandingPageBranding:RestaurantLogoPath must be a local /images/ asset path.")
-    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.ProductLogoPath),
-        "LandingPageBranding:ProductLogoPath must be a local /images/ asset path.")
-    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.BackgroundImagePath),
-        "LandingPageBranding:BackgroundImagePath must be a local /images/ asset path.")
-    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.BackgroundWebpPath),
-        "LandingPageBranding:BackgroundWebpPath must be a local /images/ asset path.")
-    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.MobileBackgroundImagePath),
-        "LandingPageBranding:MobileBackgroundImagePath must be a local /images/ asset path.")
-    .Validate(options => LandingPageBrandingOptions.IsSafeLocalAssetPath(options.MobileBackgroundWebpPath),
-        "LandingPageBranding:MobileBackgroundWebpPath must be a local /images/ asset path.")
-    .Validate(options => !string.IsNullOrWhiteSpace(options.SupportMessage) && options.SupportMessage.Length <= 240,
-        "LandingPageBranding:SupportMessage must contain at most 240 characters.")
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<RestaurantOptions>, RestaurantOptionsValidator>();
+builder.Services.AddOptions<RestaurantOptions>()
+    .Bind(builder.Configuration.GetSection(RestaurantOptions.SectionName))
     .ValidateOnStart();
+builder.Services.AddSingleton<IRestaurantProfile, RestaurantProfile>();
+builder.Services.AddSingleton<IRestaurantClock, RestaurantClock>();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     // cloudflared runs on this server and forwards the visitor's HTTPS scheme.

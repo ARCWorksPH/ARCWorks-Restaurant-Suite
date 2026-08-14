@@ -4,7 +4,6 @@
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
-@using Microsoft.Extensions.Options
 @using Roms.Web.Configuration
 @using Roms.Web.Data
 
@@ -14,16 +13,16 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 @inject StaffSessionService StaffSessions
-@inject IOptions<LandingPageBrandingOptions> LandingBranding
+@inject IRestaurantProfile RestaurantProfile
 
-<PageTitle>Staff login — @Branding.RestaurantName</PageTitle>
+<PageTitle>Staff login — @Branding.DisplayName</PageTitle>
 
 <div class="ld2">
     <!-- Layer 1: Background art -->
     <div class="ld2-bg" aria-hidden="true">
         <picture>
-            <source media="(max-width: 700px)" srcset="@Branding.MobileBackgroundImagePath" />
-            <img src="@Branding.BackgroundImagePath" alt="" class="ld2-bg-img" width="1920" height="1080" />
+            <source media="(max-width: 700px)" srcset="@Branding.MobileBackground" />
+            <img src="@Branding.DesktopBackground" alt="" class="ld2-bg-img" width="1920" height="1080" />
         </picture>
         <div class="ld2-bg-wash"></div>
     </div>
@@ -38,7 +37,7 @@
     <!-- Layer 3: ARCWorks endorsement -->
     <header class="ld2-header">
         <img class="ld2-arcworks"
-             src="@Branding.ProductLogoPath"
+             src="@Branding.ProductLogo"
              alt="@ProductBrand.Name"
              width="180"
              height="120"
@@ -49,13 +48,13 @@
     <main class="ld2-main">
         <div class="ld2-identity">
             <img class="ld2-wordmark"
-                 src="@Branding.RestaurantLogoPath"
-                 alt="@Branding.RestaurantName"
+                 src="@Branding.PrimaryLogo"
+                 alt="@Branding.DisplayName"
                  width="3200"
                  height="1406"
                  loading="eager" />
             <p class="ld2-descriptor">
-                <span class="ld2-descriptor-text">@Branding.RestaurantDescriptor</span>
+                <span class="ld2-descriptor-text">@Branding.Descriptor</span>
                 <span class="ld2-descriptor-rule" aria-hidden="true"></span>
             </p>
         </div>
@@ -141,7 +140,7 @@
     private string? errorMessage;
     private EditContext editContext = default!;
 
-    private LandingPageBrandingOptions Branding => LandingBranding.Value;
+    private RestaurantPresentation Branding => RestaurantProfile.Current;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
