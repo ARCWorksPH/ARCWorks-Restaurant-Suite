@@ -266,3 +266,14 @@ finishing the core restaurant system.
 - Audit #6 remains pending: the handoff is not an audit verdict, and Gate 1
   implementation remains blocked until the independent report is received and
   assessed by the project owner.
+
+## 2026-08-14 - Gate 2 accepted; restaurant identity and clock foundation
+
+The project owner accepted the final Waiter Dashboard implementation plan
+after independent review. Gate 2A then established one modular Chef Doy's
+restaurant profile, local-only replacement assets with controlled fallbacks,
+and a server-authoritative Asia/Manila clock while preserving UTC persistence.
+The accepted landing page now consumes the shared profile without a visual
+redesign. Gate 1 session security, tenant identity, workflow behavior, and the
+live instance were not changed. Gate 2B — the restricted Waiter Dashboard read
+model — is the next implementation gate after Gate 2A CI acceptance.
