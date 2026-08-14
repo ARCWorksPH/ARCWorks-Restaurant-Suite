@@ -43,6 +43,7 @@ The upgrade SQL was generated successfully from `20260813090000_AddApplicationIn
 | Logout/session cleanup leaves attendance open | Pass |
 | Floor commands denied before Clock In and after auto-close | Pass |
 | Waiter read-model regression and synthetic four-role workflow | Pass |
+| Real-browser waiter clocks in before completing the waiter/kitchen/cashier workflow | Pass |
 | Two simultaneous MariaDB workers create exactly one closure/audit | Pass |
 | Manual and automatic MariaDB clock-out race creates exactly one closure/audit | Pass |
 | Existing MariaDB order-concurrency scenarios | Pass |
@@ -57,6 +58,8 @@ MariaDB attendance races: **2/2 passed**.
 MariaDB order-concurrency regression: **2/2 passed**.
 
 MariaDB 60-flow stress regression: **1/1 passed**.
+
+Real-browser multi-role workflow: **1/1 passed**.
 
 The full solution build has zero errors. NuGet reports the already-known high-severity advisory `GHSA-q939-rpr3-3284` for test-only package `SSH.NET` 2025.1.0; this checkpoint does not conceal or broaden that separate dependency-remediation item. GitHub CI remains the authoritative full-solution build, browser, test, and Docker gate for merge.
 

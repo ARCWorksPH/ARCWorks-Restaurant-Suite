@@ -328,6 +328,12 @@ public sealed class RomsApplicationSmokeTests : PageTest
                 LoginAsync(kitchenPage, baseAddress, kitchenUsername),
                 LoginAsync(cashierPage, baseAddress, adminUsername));
 
+            await waiterPage.GotoAsync($"{baseAddress}/attendance");
+            await WaitForInteractiveAsync(waiterPage);
+            await waiterPage.GetByRole(AriaRole.Button, new() { Name = "Clock in" }).ClickAsync();
+            await Expect(waiterPage.GetByText("You are present"))
+                .ToBeVisibleAsync(new() { Timeout = 15_000 });
+
             await kitchenPage.GotoAsync($"{baseAddress}/kitchen");
             await WaitForInteractiveAsync(kitchenPage);
             await cashierPage.GotoAsync($"{baseAddress}/admin/payments");
