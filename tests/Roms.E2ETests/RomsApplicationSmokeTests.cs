@@ -330,7 +330,33 @@ public sealed class RomsApplicationSmokeTests : PageTest
 
             await waiterPage.GotoAsync($"{baseAddress}/attendance");
             await WaitForInteractiveAsync(waiterPage);
-            await waiterPage.GetByRole(AriaRole.Button, new() { Name = "Clock in" }).ClickAsync();
+            var clockInButton = waiterPage.GetByRole(AriaRole.Button, new() { Name = "Clock in" });
+            for (var attempt = 0;
+                 attempt < 3 && !await HasOpenAttendanceAsync(database.GetConnectionString(), waiterUsername);
+                 attempt++)
+            {
+                await clockInButton.ClickAsync();
+                for (var poll = 0;
+                     poll < 20 && !await HasOpenAttendanceAsync(database.GetConnectionString(), waiterUsername);
+                     poll++)
+                {
+                    await waiterPage.WaitForTimeoutAsync(250);
+                }
+
+                if (!await HasOpenAttendanceAsync(database.GetConnectionString(), waiterUsername))
+                {
+                    await waiterPage.ReloadAsync();
+                    await WaitForInteractiveAsync(waiterPage);
+                    clockInButton = waiterPage.GetByRole(AriaRole.Button, new() { Name = "Clock in" });
+                }
+            }
+
+            Assert.That(
+                await HasOpenAttendanceAsync(database.GetConnectionString(), waiterUsername),
+                Is.True,
+                "The waiter clock-in command must persist before the floor workflow begins.");
+            await waiterPage.ReloadAsync();
+            await WaitForInteractiveAsync(waiterPage);
             await Expect(waiterPage.GetByText("You are present"))
                 .ToBeVisibleAsync(new() { Timeout = 15_000 });
 
@@ -529,6 +555,16 @@ public sealed class RomsApplicationSmokeTests : PageTest
             });
         }
         await db.SaveChangesAsync();
+    }
+
+    private static async Task<bool> HasOpenAttendanceAsync(string connectionString, string username)
+    {
+        await using var db = CreateDbContext(connectionString);
+        var userId = await db.Users
+            .Where(x => x.UserName == username)
+            .Select(x => x.Id)
+            .SingleAsync();
+        return await db.AttendanceRecords.AnyAsync(x => x.UserId == userId && x.ClockOutUtc == null);
     }
 
     private static RomsDbContext CreateDbContext(string connectionString)

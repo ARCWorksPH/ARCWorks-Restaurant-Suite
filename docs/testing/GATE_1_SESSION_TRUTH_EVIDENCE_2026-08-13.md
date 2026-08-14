@@ -44,6 +44,9 @@ practice:
   the already revoked cookie remains denied and does not flood the audit log.
 - Logout responses clear ARCWorks-owned browser cache/storage and do not alter
   attendance unless the explicit clock-out-and-logout action is used.
+- Replay-driven cleanup uses a dedicated sign-out-only endpoint after server
+  revocation. It does not reuse a now-stale antiforgery token, cannot clock the
+  employee out, and requires ARCWorks' same-origin forced-logout request header.
 
 ## Verification
 
@@ -80,6 +83,8 @@ the following time-bound/manual browser checks on an isolated preview:
 - Domain tests: 16/16 passed.
 - Command Gateway tests: 11/11 passed.
 - Copied-profile real MariaDB + Playwright regression: 1/1 passed.
+- The replay-cleanup regression was rerun after hardening the revoked-claims
+  antiforgery race: 1/1 passed against disposable MariaDB.
 - The full integration-suite invocation exceeded its bounded execution window
   without emitting a failure report. It remains recorded as a timeout rather
   than being represented as a pass.

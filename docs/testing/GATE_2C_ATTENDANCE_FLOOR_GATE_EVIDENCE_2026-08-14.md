@@ -61,6 +61,10 @@ MariaDB 60-flow stress regression: **1/1 passed**.
 
 Real-browser multi-role workflow: **1/1 passed**.
 
+The browser workflow now confirms the persisted open attendance record before
+entering the floor. This keeps the acceptance assertion tied to server state and
+removes dependence on a single UI event being processed during a loaded CI run.
+
 The full solution build has zero errors. NuGet reports the already-known high-severity advisory `GHSA-q939-rpr3-3284` for test-only package `SSH.NET` 2025.1.0; this checkpoint does not conceal or broaden that separate dependency-remediation item. GitHub CI remains the authoritative full-solution build, browser, test, and Docker gate for merge.
 
 ## Rollback
