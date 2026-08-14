@@ -78,6 +78,7 @@ builder.Services.AddHsts(options =>
 });
 
 builder.Services.AddRomsInfrastructure(builder.Configuration);
+builder.Services.AddHostedService<AttendanceAutoClosureWorker>();
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
         options.SignIn.RequireConfirmedAccount = false;

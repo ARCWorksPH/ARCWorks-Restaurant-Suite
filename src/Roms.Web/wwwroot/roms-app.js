@@ -10,6 +10,7 @@
     let listeners = [];
     let lastActivitySentAt = 0, lastMeaningfulActivityAt = 0, heartbeatTimer;
     let applicationInstanceId, ownsWindowLease = false, sessionBootstrapInProgress = false;
+    let forcedLogoutInProgress = false;
     let lastLeaseStatus = 0;
 
     window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); installPrompt = event; });
@@ -168,10 +169,19 @@
             window.name = `${namePrefix}${created}`;
             return created;
         },
-        revokeDuplicate: formId => {
-            const returnUrl = document.getElementById("session-timeout-return-url");
-            if (returnUrl) returnUrl.value = "Account/Login?reason=session-replay";
-            document.getElementById(formId)?.requestSubmit();
+        revokeDuplicate: async (_formId, reason = "session-replay") => {
+            if (forcedLogoutInProgress) return;
+            forcedLogoutInProgress = true;
+            window.romsSession.stop();
+            try {
+                await fetch("/Account/ForcedSessionLogout", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: { "X-ARCWorks-Forced-Logout": "session-replay" }
+                });
+            } finally {
+                window.location.replace(`/Account/Login?reason=${encodeURIComponent(reason)}`);
+            }
         },
         start: async (formId, idleMinutes, instanceId) => {
             window.romsSession.stop();
@@ -267,9 +277,7 @@
                 // The cookie may still decrypt after the authoritative database
                 // session has been revoked. Remove that stale cookie immediately
                 // instead of allowing a copied runtime to render the application.
-                const returnUrl = document.getElementById("session-timeout-return-url");
-                if (returnUrl) returnUrl.value = "Account/Login?reason=session-revoked";
-                form.requestSubmit();
+                window.romsSession.revokeDuplicate(form.id, "session-revoked");
                 return;
             }
             if (status !== 204) {

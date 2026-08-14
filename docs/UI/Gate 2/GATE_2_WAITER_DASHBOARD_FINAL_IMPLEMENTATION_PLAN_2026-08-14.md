@@ -1,6 +1,6 @@
 # Gate 2 Waiter Dashboard — Final Implementation Plan
 
-**Status:** final owner-approved planning baseline; runtime implementation has not started.
+**Status:** final owner-approved baseline; Gates 2A through 2C are implemented and verified. Gate 2D is next.
 
 **Branch at plan freeze:** `design/gate2-waiter-dashboard-contract`
 

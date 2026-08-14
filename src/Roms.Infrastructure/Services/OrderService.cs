@@ -73,6 +73,7 @@ public sealed class OrderService(
     public async Task<Guid> GetOrCreateDraftAsync(Guid tableId, string waiterId, CancellationToken ct = default)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
+        await EnsureFloorEligibilityAsync(db, waiterId, ct);
         var active = await db.Orders.Include(x => x.Table).Where(x => x.TableId == tableId &&
                 (ActiveStatuses.Contains(x.Status) || (x.Status == OrderStatus.Completed && x.PaymentConfirmedUtc == null)))
             .OrderByDescending(x => x.CreatedUtc).FirstOrDefaultAsync(ct);
@@ -328,9 +329,25 @@ public sealed class OrderService(
 
     private static async Task EnsureOwnerOrAdminAsync(RomsDbContext db, Order order, string actorId, CancellationToken ct)
     {
-        if (string.Equals(order.WaiterId, actorId, StringComparison.OrdinalIgnoreCase) || await IsInRoleAsync(db, actorId, RomsRoles.Admin, ct)) return;
+        if (await IsInRoleAsync(db, actorId, RomsRoles.Admin, ct)) return;
+        if (string.Equals(order.WaiterId, actorId, StringComparison.OrdinalIgnoreCase))
+        {
+            await EnsureFloorEligibilityAsync(db, actorId, ct);
+            return;
+        }
         var names = await GetWaiterNamesAsync(db, [order.WaiterId], ct);
         throw new DomainException($"Table {order.Table?.Number ?? "order"} is assigned to {WaiterName(order.WaiterId, names)}.");
+    }
+
+    private static async Task EnsureFloorEligibilityAsync(RomsDbContext db, string actorId, CancellationToken ct)
+    {
+        if (await IsInRoleAsync(db, actorId, RomsRoles.Admin, ct)) return;
+        var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.UserName == actorId && x.IsActive, ct)
+            ?? throw new DomainException("An active staff account is required to enter the floor.");
+        if (!await IsInRoleAsync(db, actorId, RomsRoles.Waiter, ct))
+            throw new DomainException("Only a waiter or administrator may enter the floor.");
+        if (!await db.AttendanceRecords.AsNoTracking().AnyAsync(x => x.UserId == user.Id && x.ClockOutUtc == null, ct))
+            throw new DomainException("Clock in before entering the floor.");
     }
 
     private static async Task EnsureKitchenOrAdminAsync(RomsDbContext db, string actorId, CancellationToken ct)

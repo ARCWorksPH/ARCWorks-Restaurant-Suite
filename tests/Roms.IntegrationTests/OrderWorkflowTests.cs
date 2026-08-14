@@ -27,15 +27,19 @@ public sealed class OrderWorkflowTests : IAsyncLifetime
         db.MenuCategories.Add(category);
         var kitchenRole = new IdentityRole(RomsRoles.Kitchen) { NormalizedName = "KITCHEN" };
         var adminRole = new IdentityRole(RomsRoles.Admin) { NormalizedName = "ADMIN" };
+        var waiterRole = new IdentityRole(RomsRoles.Waiter) { NormalizedName = "WAITER" };
         var waiter = new ApplicationUser { UserName = "waiter", NormalizedUserName = "WAITER", DisplayName = "Waiter One" };
         var waiter2 = new ApplicationUser { UserName = "waiter2", NormalizedUserName = "WAITER2", DisplayName = "Waiter Two" };
         var kitchen = new ApplicationUser { UserName = "kitchen", NormalizedUserName = "KITCHEN", DisplayName = "Kitchen One" };
         var admin = new ApplicationUser { UserName = "admin", NormalizedUserName = "ADMIN", DisplayName = "Administrator" };
-        db.Roles.AddRange(kitchenRole, adminRole);
+        db.Roles.AddRange(kitchenRole, adminRole, waiterRole);
         db.Users.AddRange(waiter, waiter2, kitchen, admin);
         db.UserRoles.AddRange(
+            new IdentityUserRole<string> { UserId = waiter.Id, RoleId = waiterRole.Id },
+            new IdentityUserRole<string> { UserId = waiter2.Id, RoleId = waiterRole.Id },
             new IdentityUserRole<string> { UserId = kitchen.Id, RoleId = kitchenRole.Id },
             new IdentityUserRole<string> { UserId = admin.Id, RoleId = adminRole.Id });
+        db.AttendanceRecords.Add(AttendanceRecord.ClockIn(waiter.Id, null, new FixedClock().UtcNow));
         await db.SaveChangesAsync();
     }
 

@@ -83,7 +83,7 @@ public sealed class WaiterDashboardReadModelTests : IAsyncLifetime
         var fields = typeof(WaiterDashboardView).GetProperties().Select(x => x.Name).Order().ToArray();
         Assert.Equal(new[]
         {
-            "CanEnterFloor", "ClockInLocal", "DisplayName", "HoursThisWeek", "IsClockedIn",
+            "AttendanceReviewNotice", "CanEnterFloor", "ClockInLocal", "DisplayName", "HoursThisWeek", "IsClockedIn",
             "RecentAttendance", "RestaurantDate", "RestaurantNowLocal", "TodayShift"
         }, fields);
     }

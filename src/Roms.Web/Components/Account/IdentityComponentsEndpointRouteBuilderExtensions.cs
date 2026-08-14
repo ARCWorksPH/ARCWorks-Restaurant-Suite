@@ -57,6 +57,30 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             return TypedResults.LocalRedirect($"~/{returnUrl}");
         });
 
+        // A replay-detection response can arrive after the authoritative session
+        // has already been revoked.  In that state the page's antiforgery token no
+        // longer belongs to the current claims principal, so the normal logout
+        // form must not be reused.  This endpoint only clears the stale sign-in
+        // cookie; it cannot clock a staff member out or perform another action.
+        accountGroup.MapPost("/ForcedSessionLogout", async (
+            HttpContext context,
+            ClaimsPrincipal user,
+            [FromServices] StaffSessionService staffSessions,
+            [FromServices] SignInManager<ApplicationUser> signInManager) =>
+        {
+            if (!StringValues.Equals(
+                    context.Request.Headers["X-ARCWorks-Forced-Logout"],
+                    "session-replay"))
+            {
+                return Results.Unauthorized();
+            }
+
+            await staffSessions.EndAsync(user);
+            await signInManager.SignOutAsync();
+            AddLogoutCleanupHeaders(context.Response);
+            return Results.NoContent();
+        }).DisableAntiforgery();
+
         accountGroup.MapPost("/ClockOutAndLogout", async (
             HttpContext context,
             ClaimsPrincipal user,

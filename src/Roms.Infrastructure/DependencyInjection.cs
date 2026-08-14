@@ -41,6 +41,7 @@ public static class DependencyInjection
             services.AddScoped<IAiAssistantService, AiAssistantService>();
         }
         services.AddScoped<IAttendanceService, AttendanceService>();
+        services.AddScoped<IAttendanceAutoClosureService, AttendanceAutoClosureService>();
         services.AddScoped<IWaiterDashboardService, WaiterDashboardService>();
         return services;
     }
