@@ -41,7 +41,7 @@ schema migration, production deployment, or tenant/authentication change.
 | Check | Result |
 | --- | --- |
 | `dotnet build Roms.slnx --no-restore` | PASS — 0 errors; 2 existing `SSH.NET` NU1903 advisory warnings |
-| Focused Gate 2A tests | PASS — 4/4 |
+| Focused Gate 2A tests | PASS — 5/5 |
 | Domain tests | PASS — 16/16 |
 | Command Gateway tests | PASS — 11/11 |
 | `git diff --check` | PASS |
@@ -55,7 +55,9 @@ Focused tests prove:
 2. a remote asset and incorrect timezone fail closed;
 3. an existing replacement asset is selected while a missing optional asset
    receives a local fallback; and
-4. UTC remains UTC while Manila local date/time and Monday week-start are
+4. hosts that omit an explicit web-root path safely resolve against their
+   content root; and
+5. UTC remains UTC while Manila local date/time and Monday week-start are
    calculated by the server boundary.
 
 Timed-out aggregate runs were terminated after their command windows to avoid

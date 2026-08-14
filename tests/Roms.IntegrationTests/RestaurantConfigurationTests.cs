@@ -60,6 +60,32 @@ public sealed class RestaurantConfigurationTests
     }
 
     [Fact]
+    public void Profile_uses_content_root_when_host_does_not_publish_a_web_root_path()
+    {
+        var contentRoot = Path.Combine(Path.GetTempPath(), $"roms-content-{Guid.NewGuid():N}");
+        var branding = Path.Combine(contentRoot, "wwwroot", "images", "branding");
+        Directory.CreateDirectory(branding);
+        File.WriteAllText(Path.Combine(branding, "custom.svg"), "<svg xmlns=\"http://www.w3.org/2000/svg\"/>");
+
+        try
+        {
+            var environment = new TestWebHostEnvironment(null!, contentRoot);
+            var options = ValidOptions(assets: new RestaurantAssetOptions
+            {
+                PrimaryLogo = "/images/branding/custom.svg"
+            });
+
+            var profile = new RestaurantProfile(Options.Create(options), environment);
+
+            Assert.Equal("/images/branding/custom.svg", profile.Current.PrimaryLogo);
+        }
+        finally
+        {
+            Directory.Delete(contentRoot, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Restaurant_clock_keeps_UTC_persistence_and_uses_Manila_calendar()
     {
         var utc = new DateTime(2026, 8, 16, 16, 30, 0, DateTimeKind.Utc);
@@ -94,13 +120,13 @@ public sealed class RestaurantConfigurationTests
         public DateTime UtcNow { get; } = utcNow;
     }
 
-    private sealed class TestWebHostEnvironment(string webRootPath) : IWebHostEnvironment
+    private sealed class TestWebHostEnvironment(string webRootPath, string? contentRootPath = null) : IWebHostEnvironment
     {
         public string ApplicationName { get; set; } = "Roms.IntegrationTests";
         public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
         public string WebRootPath { get; set; } = webRootPath;
         public string EnvironmentName { get; set; } = "Testing";
-        public string ContentRootPath { get; set; } = webRootPath;
+        public string ContentRootPath { get; set; } = contentRootPath ?? webRootPath;
         public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
     }
 }

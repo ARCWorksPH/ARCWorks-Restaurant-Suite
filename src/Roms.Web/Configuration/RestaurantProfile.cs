@@ -78,9 +78,12 @@ public sealed class RestaurantProfile : IRestaurantProfile
     private string Resolve(string configured, string fallback)
     {
         if (!RestaurantOptions.IsSafeLocalAssetPath(configured)) return fallback;
+        var webRootPath = string.IsNullOrWhiteSpace(environment.WebRootPath)
+            ? Path.Combine(environment.ContentRootPath, "wwwroot")
+            : environment.WebRootPath;
         var relative = configured.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-        var candidate = Path.GetFullPath(Path.Combine(environment.WebRootPath, relative));
-        var root = Path.GetFullPath(environment.WebRootPath) + Path.DirectorySeparatorChar;
+        var candidate = Path.GetFullPath(Path.Combine(webRootPath, relative));
+        var root = Path.GetFullPath(webRootPath) + Path.DirectorySeparatorChar;
         return candidate.StartsWith(root, StringComparison.OrdinalIgnoreCase) && File.Exists(candidate)
             ? configured
             : fallback;
