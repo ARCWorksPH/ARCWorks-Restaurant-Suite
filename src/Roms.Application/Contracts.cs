@@ -91,7 +91,8 @@ public sealed record StaffScheduleView(Guid Id, string UserId, string Username, 
     DateTime ScheduledStartUtc, DateTime ScheduledEndUtc, string Notes);
 public sealed record AttendanceRecordView(Guid Id, string UserId, string Username, string DisplayName,
     Guid? ScheduleId, DateTime ClockInUtc, DateTime? ClockOutUtc, decimal Hours,
-    string? AdjustmentReason, string? AdjustedBy);
+    string? AdjustmentReason, string? AdjustedBy, AttendanceClosureKind? ClosureKind,
+    bool RequiresManagerReview, string? ReviewedBy, DateTime? ReviewedUtc, string? ReviewReason);
 public sealed record MyAttendanceView(AttendanceRecordView? OpenRecord,
     IReadOnlyList<StaffScheduleView> Schedules, IReadOnlyList<AttendanceRecordView> Records);
 public sealed record AttendanceAdminView(IReadOnlyList<StaffScheduleView> Schedules,
@@ -107,6 +108,7 @@ public sealed record WaiterAttendanceSummary(
     DateTime ClockInLocal,
     DateTime? ClockOutLocal,
     decimal Hours);
+public sealed record AttendanceReviewNotice(DateTime ClosedLocal, AttendanceClosureKind ClosureKind);
 public sealed record WaiterDashboardView(
     string DisplayName,
     DateTime RestaurantNowLocal,
@@ -116,7 +118,14 @@ public sealed record WaiterDashboardView(
     bool CanEnterFloor,
     WaiterShiftSummary? TodayShift,
     decimal HoursThisWeek,
-    IReadOnlyList<WaiterAttendanceSummary> RecentAttendance);
+    IReadOnlyList<WaiterAttendanceSummary> RecentAttendance,
+    AttendanceReviewNotice? AttendanceReviewNotice);
+
+public sealed record AttendanceAutoClosureResult(int Examined, int Closed, int ConcurrencySkipped);
+public interface IAttendanceAutoClosureService
+{
+    Task<AttendanceAutoClosureResult> ProcessDueAsync(CancellationToken cancellationToken = default);
+}
 
 public interface IWaiterDashboardService
 {
@@ -208,4 +217,5 @@ public interface IAttendanceService
     Task SaveScheduleAsync(Guid? scheduleId, string userId, DateTime startUtc, DateTime endUtc, string? notes, string adminId, CancellationToken cancellationToken = default);
     Task DeleteScheduleAsync(Guid scheduleId, string adminId, CancellationToken cancellationToken = default);
     Task CorrectAsync(Guid attendanceId, DateTime clockInUtc, DateTime? clockOutUtc, string reason, string adminId, CancellationToken cancellationToken = default);
+    Task ReviewAutomaticClosureAsync(Guid attendanceId, string reason, string actorId, CancellationToken cancellationToken = default);
 }

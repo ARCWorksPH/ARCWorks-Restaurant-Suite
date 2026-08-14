@@ -62,6 +62,11 @@ public sealed class WaiterDashboardService(
             .Take(RecentRecordLimit)
             .ToListAsync(cancellationToken);
 
+        var pendingReview = await db.AttendanceRecords.AsNoTracking()
+            .Where(x => x.UserId == waiter.Id && x.RequiresManagerReview && x.ClockOutUtc != null && x.ClosureKind != null)
+            .OrderByDescending(x => x.ClockOutUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+
         var weeklyHours = weeklyRecords.Sum(record => DurationHours(
             record.ClockInUtc < weekStartUtc ? weekStartUtc : record.ClockInUtc,
             (record.ClockOutUtc ?? nowUtc) > nowUtc ? nowUtc : record.ClockOutUtc ?? nowUtc));
@@ -81,7 +86,9 @@ public sealed class WaiterDashboardService(
             RecentAttendance: recentRecords.Select(record => new WaiterAttendanceSummary(
                 restaurantClock.ToLocal(record.ClockInUtc),
                 record.ClockOutUtc is null ? null : restaurantClock.ToLocal(record.ClockOutUtc.Value),
-                DurationHours(record.ClockInUtc, record.ClockOutUtc ?? nowUtc))).ToList());
+                DurationHours(record.ClockInUtc, record.ClockOutUtc ?? nowUtc))).ToList(),
+            AttendanceReviewNotice: pendingReview is null ? null : new AttendanceReviewNotice(
+                restaurantClock.ToLocal(pendingReview.ClockOutUtc!.Value), pendingReview.ClosureKind!.Value));
     }
 
     private static decimal DurationHours(DateTime startUtc, DateTime endUtc) =>

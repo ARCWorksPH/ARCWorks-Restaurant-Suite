@@ -39,6 +39,7 @@ public sealed class SyntheticWorkflowAcceptanceTests : IAsyncLifetime
         db.Roles.AddRange(roles);
         db.Users.AddRange(users);
         db.UserRoles.AddRange(users.Select((u, i) => new IdentityUserRole<string> { UserId = u.Id, RoleId = roles[i].Id }));
+        db.AttendanceRecords.Add(AttendanceRecord.ClockIn(users[0].Id, null, clock.UtcNow));
         await db.SaveChangesAsync();
     }
 

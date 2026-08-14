@@ -61,18 +61,22 @@ public sealed class MariaDbOrderConcurrencyTests(MariaDbFixture fixture)
         category.Items.Add(menu);
         var table = new RestaurantTable { Number = "1" };
         var kitchenRole = new IdentityRole(RomsRoles.Kitchen) { NormalizedName = "KITCHEN" };
+        var waiterRole = new IdentityRole(RomsRoles.Waiter) { NormalizedName = "WAITER" };
         var kitchen = new ApplicationUser { UserName = "kitchen", NormalizedUserName = "KITCHEN", DisplayName = "Kitchen" };
         var waiter = new ApplicationUser { UserName = "waiter", NormalizedUserName = "WAITER", DisplayName = "Waiter" };
         db.MenuCategories.Add(category);
         db.RestaurantTables.Add(table);
-        db.Roles.Add(kitchenRole);
+        db.Roles.AddRange(kitchenRole, waiterRole);
         db.Users.AddRange(kitchen, waiter);
-        db.UserRoles.Add(new IdentityUserRole<string> { UserId = kitchen.Id, RoleId = kitchenRole.Id });
+        db.UserRoles.AddRange(
+            new IdentityUserRole<string> { UserId = kitchen.Id, RoleId = kitchenRole.Id },
+            new IdentityUserRole<string> { UserId = waiter.Id, RoleId = waiterRole.Id });
+        db.AttendanceRecords.Add(AttendanceRecord.ClockIn(waiter.Id, null, new FixedClock().UtcNow));
         await db.SaveChangesAsync();
         var service = CreateService(database);
-        var orderId = await service.GetOrCreateDraftAsync(table.Id, waiter.Id);
-        await service.AddItemAsync(orderId, menu.Id, 2, null, waiter.Id);
-        await service.SubmitAsync(orderId, $"submit:{orderId}", waiter.Id);
+        var orderId = await service.GetOrCreateDraftAsync(table.Id, waiter.UserName!);
+        await service.AddItemAsync(orderId, menu.Id, 2, null, waiter.UserName!);
+        await service.SubmitAsync(orderId, $"submit:{orderId}", waiter.UserName!);
         return orderId;
     }
 

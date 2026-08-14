@@ -154,7 +154,12 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
             e.Property(x => x.UserId).HasMaxLength(255);
             e.Property(x => x.AdjustedBy).HasMaxLength(256);
             e.Property(x => x.AdjustmentReason).HasMaxLength(500);
+            e.Property(x => x.ClosureKind).HasConversion<string>().HasMaxLength(40);
+            e.Property(x => x.ReviewedBy).HasMaxLength(256);
+            e.Property(x => x.ReviewReason).HasMaxLength(500);
+            if (Database.IsRelational()) e.Property(x => x.Version).IsConcurrencyToken();
             e.HasIndex(x => new { x.UserId, x.ClockInUtc });
+            e.HasIndex(x => new { x.ClockOutUtc, x.RequiresManagerReview });
             e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.StaffSchedule).WithMany().HasForeignKey(x => x.StaffScheduleId).OnDelete(DeleteBehavior.SetNull);
         });

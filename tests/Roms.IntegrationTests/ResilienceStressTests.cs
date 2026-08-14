@@ -58,17 +58,20 @@ public sealed class ResilienceStressTests(MariaDbFixture fixture)
         category.Items.Add(menuItem);
         var adminRole = new IdentityRole(RomsRoles.Admin) { NormalizedName = "ADMIN" };
         var kitchenRole = new IdentityRole(RomsRoles.Kitchen) { NormalizedName = "KITCHEN" };
+        var waiterRole = new IdentityRole(RomsRoles.Waiter) { NormalizedName = "WAITER" };
         var waiter = new ApplicationUser { UserName = "stress-waiter", NormalizedUserName = "STRESS-WAITER", DisplayName = "Stress Waiter" };
         var kitchen = new ApplicationUser { UserName = "stress-kitchen", NormalizedUserName = "STRESS-KITCHEN", DisplayName = "Stress Kitchen" };
         var admin = new ApplicationUser { UserName = "stress-admin", NormalizedUserName = "STRESS-ADMIN", DisplayName = "Stress Admin" };
         var tables = Enumerable.Range(1, orderCount).Select(x => new RestaurantTable { Number = $"S{x:00}", SortOrder = x }).ToList();
         db.MenuCategories.Add(category);
         db.RestaurantTables.AddRange(tables);
-        db.Roles.AddRange(adminRole, kitchenRole);
+        db.Roles.AddRange(adminRole, kitchenRole, waiterRole);
         db.Users.AddRange(waiter, kitchen, admin);
         db.UserRoles.AddRange(
+            new IdentityUserRole<string> { UserId = waiter.Id, RoleId = waiterRole.Id },
             new IdentityUserRole<string> { UserId = kitchen.Id, RoleId = kitchenRole.Id },
             new IdentityUserRole<string> { UserId = admin.Id, RoleId = adminRole.Id });
+        db.AttendanceRecords.Add(AttendanceRecord.ClockIn(waiter.Id, null, new FixedClock().UtcNow));
         await db.SaveChangesAsync();
         return new Scenario(tables.Select(x => x.Id).ToList(), menuItem.Id, waiter.UserName!, kitchen.UserName!, admin.UserName!);
     }

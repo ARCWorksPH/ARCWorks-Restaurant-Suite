@@ -50,9 +50,50 @@ public sealed class AttendanceService(IDbContextFactory<RomsDbContext> factory, 
         var record = await db.AttendanceRecords.Where(x => x.UserId == user.Id && x.ClockOutUtc == null)
             .OrderByDescending(x => x.ClockInUtc).FirstOrDefaultAsync(ct)
             ?? throw new DomainException("You are not currently clocked in.");
-        record.ClockOut(clock.UtcNow);
+        var clockOutUtc = clock.UtcNow;
+
+        if (db.Database.IsRelational())
+        {
+            var strategy = db.Database.CreateExecutionStrategy();
+            var claimed = await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await db.Database.BeginTransactionAsync(ct);
+                var affected = await db.AttendanceRecords
+                    .Where(x => x.Id == record.Id && x.ClockOutUtc == null)
+                    .ExecuteUpdateAsync(updates => updates
+                        .SetProperty(x => x.ClockOutUtc, clockOutUtc)
+                        .SetProperty(x => x.ClosureKind, AttendanceClosureKind.Manual)
+                        .SetProperty(x => x.RequiresManagerReview, false)
+                        .SetProperty(x => x.Version, x => x.Version + 1), ct);
+
+                if (affected != 1)
+                {
+                    await transaction.RollbackAsync(ct);
+                    return false;
+                }
+
+                db.AuditEntries.Add(Audit(username, "ClockOut", record.Id, null,
+                    JsonSerializer.Serialize(new { ClockOutUtc = clockOutUtc })));
+                await db.SaveChangesAsync(ct);
+                await transaction.CommitAsync(ct);
+                return true;
+            });
+
+            if (!claimed)
+                throw new DomainException("This attendance record was already closed by another action. Refresh attendance before continuing.");
+            return;
+        }
+
+        record.ClockOut(clockOutUtc);
         db.AuditEntries.Add(Audit(username, "ClockOut", record.Id, null, JsonSerializer.Serialize(new { record.ClockOutUtc })));
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new DomainException("This attendance record was already closed by another action. Refresh attendance before continuing.");
+        }
     }
 
     public async Task<IReadOnlyList<StaffMemberView>> GetStaffAsync(CancellationToken ct = default)
@@ -142,6 +183,18 @@ public sealed class AttendanceService(IDbContextFactory<RomsDbContext> factory, 
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task ReviewAutomaticClosureAsync(Guid attendanceId, string reason, string actorId, CancellationToken ct = default)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await EnsureManagerOrAdminAsync(db, actorId, ct);
+        var record = await db.AttendanceRecords.SingleOrDefaultAsync(x => x.Id == attendanceId, ct)
+            ?? throw new DomainException("Attendance record not found.");
+        record.ReviewAutomaticClosure(actorId, reason, clock.UtcNow);
+        db.AuditEntries.Add(Audit(actorId, "ReviewAutomaticAttendanceClosure", record.Id, null,
+            JsonSerializer.Serialize(new { record.ClosureKind, record.ReviewedUtc, record.ReviewedBy }), reason));
+        await db.SaveChangesAsync(ct);
+    }
+
     private static async Task<Identity.ApplicationUser> ActiveUserAsync(RomsDbContext db, string username, CancellationToken ct) =>
         await db.Users.SingleOrDefaultAsync(x => x.UserName == username && x.IsActive, ct) ?? throw new DomainException("Active staff account not found.");
 
@@ -152,7 +205,8 @@ public sealed class AttendanceService(IDbContextFactory<RomsDbContext> factory, 
 
     private AttendanceRecordView Map(AttendanceRecord x, string username, string displayName) => new(x.Id, x.UserId, username,
         string.IsNullOrWhiteSpace(displayName) ? username : displayName, x.StaffScheduleId, x.ClockInUtc, x.ClockOutUtc,
-        (decimal)((x.ClockOutUtc ?? clock.UtcNow) - x.ClockInUtc).TotalHours, x.AdjustmentReason, x.AdjustedBy);
+        (decimal)((x.ClockOutUtc ?? clock.UtcNow) - x.ClockInUtc).TotalHours, x.AdjustmentReason, x.AdjustedBy,
+        x.ClosureKind, x.RequiresManagerReview, x.ReviewedBy, x.ReviewedUtc, x.ReviewReason);
 
     private AttendanceRecordView Map(AttendanceRecord x, IReadOnlyDictionary<string, StaffIdentity> users)
     {

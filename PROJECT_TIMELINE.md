@@ -280,3 +280,7 @@ model — is the next implementation gate after Gate 2A CI acceptance.
 # 2026-08-14 — Gate 2B: restricted Waiter Dashboard contract
 
 Gate 2B established the server-authorized read boundary that the accepted Waiter Dashboard will later render. The signed-in Waiter's immutable Identity ID selects the data; active Waiter role membership is mandatory. Restaurant-local date/shift calculations and Monday weekly hours use the Gate 2A Manila clock. The checkpoint intentionally contains no final UI or new database tables.
+
+# 2026-08-14 — Gate 2C: attendance and floor eligibility
+
+Gate 2C made an open attendance record the server-side requirement for Waiter floor commands. Logout and the 15-minute application-session timeout remain separate from attendance. Forgotten scheduled and unscheduled records now close at their exact 12-hour boundaries, require Manager review, and produce an audit trail. Restart, duplicate execution, a real MariaDB two-worker race, existing order concurrency, and the 60-order stress workflow were verified. Gate 2D — staff portraits and the date-based Today's Team carousel — is next.

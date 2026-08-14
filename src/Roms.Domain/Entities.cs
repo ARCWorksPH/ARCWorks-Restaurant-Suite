@@ -7,6 +7,7 @@ public enum StockMovementType { Receipt, Consumption, Adjustment, Reversal, Wast
 public enum InventoryLossType { Waste, Spoilage }
 public enum InventoryLossStatus { Pending, Approved, Rejected }
 public enum WorkflowTimerKind { OrderEntry, KitchenAcceptance, Preparation }
+public enum AttendanceClosureKind { Manual, AutomaticScheduledLimit, AutomaticUnscheduledLimit }
 
 public sealed class WorkflowSettings
 {
@@ -62,6 +63,12 @@ public sealed class AttendanceRecord
     public string? AdjustedBy { get; private set; }
     public DateTime? AdjustedUtc { get; private set; }
     public string? AdjustmentReason { get; private set; }
+    public AttendanceClosureKind? ClosureKind { get; private set; }
+    public bool RequiresManagerReview { get; private set; }
+    public string? ReviewedBy { get; private set; }
+    public DateTime? ReviewedUtc { get; private set; }
+    public string? ReviewReason { get; private set; }
+    public long Version { get; private set; }
 
     public static AttendanceRecord ClockIn(string userId, Guid? scheduleId, DateTime utcNow) => new()
         { UserId = userId, StaffScheduleId = scheduleId, ClockInUtc = utcNow };
@@ -71,6 +78,33 @@ public sealed class AttendanceRecord
         if (ClockOutUtc is not null) throw new DomainException("This attendance record is already clocked out.");
         if (utcNow <= ClockInUtc) throw new DomainException("Clock-out time must be after clock-in time.");
         ClockOutUtc = utcNow;
+        ClosureKind = AttendanceClosureKind.Manual;
+        Version++;
+    }
+
+    public void CloseAutomatically(DateTime clockOutUtc, bool hadScheduledEnd)
+    {
+        if (ClockOutUtc is not null) throw new DomainException("This attendance record is already clocked out.");
+        if (clockOutUtc <= ClockInUtc) throw new DomainException("Automatic clock-out time must be after clock-in time.");
+        ClockOutUtc = clockOutUtc;
+        ClosureKind = hadScheduledEnd
+            ? AttendanceClosureKind.AutomaticScheduledLimit
+            : AttendanceClosureKind.AutomaticUnscheduledLimit;
+        RequiresManagerReview = true;
+        Version++;
+    }
+
+    public void ReviewAutomaticClosure(string reviewerId, string reason, DateTime utcNow)
+    {
+        if (!RequiresManagerReview) throw new DomainException("This attendance record does not require review.");
+        if (string.IsNullOrWhiteSpace(reviewerId)) throw new DomainException("A reviewing manager is required.");
+        if (string.IsNullOrWhiteSpace(reason)) throw new DomainException("A review reason is required.");
+        if (reason.Trim().Length > 500) throw new DomainException("A review reason cannot exceed 500 characters.");
+        RequiresManagerReview = false;
+        ReviewedBy = reviewerId.Trim();
+        ReviewedUtc = utcNow;
+        ReviewReason = reason.Trim();
+        Version++;
     }
 
     public void Correct(DateTime clockInUtc, DateTime? clockOutUtc, string adminId, string reason, DateTime utcNow)
@@ -83,6 +117,7 @@ public sealed class AttendanceRecord
         AdjustedBy = adminId;
         AdjustedUtc = utcNow;
         AdjustmentReason = reason.Trim();
+        Version++;
     }
 }
 
