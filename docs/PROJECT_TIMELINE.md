@@ -186,3 +186,16 @@ that acceptance should workflow completion be claimed.
 - The previous web image remains available under the explicit Gate 1 rollback
   tag. Gate 2 begins with central restaurant/time contracts and final Waiter
   dashboard mockups; it does not begin by changing the operational UI.
+
+## 2026-08-14 — Gate 2 design contract opened
+
+- Fixed the first restaurant identity as Chef Doy's Gourmet Restaurant while
+  requiring a versioned, local, replaceable branding package for future
+  restaurant instances.
+- Defined server-issued UTC plus Asia/Manila display conversion as the sole
+  time authority; browser/device clocks cannot decide attendance or workflow.
+- Frozen the proposed personal Waiter dashboard contents and exclusions for
+  landscape and Android portrait mockup review. No Waiter UI implementation is
+  authorized until both mockups are explicitly accepted.
+- Deferred possible hotel/resort adaptation until near project completion so
+  it cannot expand the current restaurant scope.
