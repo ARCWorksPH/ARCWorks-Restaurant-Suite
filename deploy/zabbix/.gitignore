@@ -1,0 +1,7 @@
+.secrets/
+data/
+downloads/
+logs/
+*.db
+*.msi
+*.log
