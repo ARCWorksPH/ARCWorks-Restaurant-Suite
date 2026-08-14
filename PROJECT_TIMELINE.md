@@ -277,3 +277,6 @@ The accepted landing page now consumes the shared profile without a visual
 redesign. Gate 1 session security, tenant identity, workflow behavior, and the
 live instance were not changed. Gate 2B — the restricted Waiter Dashboard read
 model — is the next implementation gate after Gate 2A CI acceptance.
+# 2026-08-14 — Gate 2B: restricted Waiter Dashboard contract
+
+Gate 2B established the server-authorized read boundary that the accepted Waiter Dashboard will later render. The signed-in Waiter's immutable Identity ID selects the data; active Waiter role membership is mandatory. Restaurant-local date/shift calculations and Monday weekly hours use the Gate 2A Manila clock. The checkpoint intentionally contains no final UI or new database tables.

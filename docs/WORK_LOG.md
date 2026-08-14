@@ -1352,3 +1352,11 @@ the next screen phase.
   `docs/testing/GATE_2A_RESTAURANT_IDENTITY_CLOCK_EVIDENCE_2026-08-14.md`.
 - No Waiter Dashboard visual work, database migration, or live deployment was
   performed in Gate 2A.
+# 2026-08-14 — Gate 2B restricted Waiter Dashboard read model
+
+- Added a single read-only Waiter Dashboard contract backed by existing Identity, schedules, and attendance records.
+- Bound employee selection to the authenticated principal's immutable user ID; the browser cannot request another employee's dashboard.
+- Restricted access to active Waiter accounts and excluded payroll, other staff identities, future team data, operational orders, journal data, and Manager/Admin controls.
+- Applied the Gate 2A `Asia/Manila` restaurant clock to today's shift and the Monday-based weekly attendance window.
+- Added focused authorization, field-boundary, timezone, identity-substitution, inactive-user, and empty-state tests.
+- No schema migration, final waiter UI, live deployment, or other-tab change was made.

@@ -1,4 +1,5 @@
 using Roms.Domain;
+using System.Security.Claims;
 
 namespace Roms.Application;
 
@@ -97,6 +98,32 @@ public sealed record AttendanceAdminView(IReadOnlyList<StaffScheduleView> Schedu
     IReadOnlyList<AttendanceRecordView> Records, IReadOnlyList<AttendanceRecordView> Present);
 public sealed record ManagerPresenceView(string UserId, string Username, string DisplayName, DateTime ClockInUtc);
 public sealed record ManagerOperationalView(IReadOnlyList<ManagerPresenceView> Present);
+
+public sealed record WaiterShiftSummary(
+    DateTime ScheduledStartLocal,
+    DateTime ScheduledEndLocal,
+    string ManagerNote);
+public sealed record WaiterAttendanceSummary(
+    DateTime ClockInLocal,
+    DateTime? ClockOutLocal,
+    decimal Hours);
+public sealed record WaiterDashboardView(
+    string DisplayName,
+    DateTime RestaurantNowLocal,
+    DateOnly RestaurantDate,
+    bool IsClockedIn,
+    DateTime? ClockInLocal,
+    bool CanEnterFloor,
+    WaiterShiftSummary? TodayShift,
+    decimal HoursThisWeek,
+    IReadOnlyList<WaiterAttendanceSummary> RecentAttendance);
+
+public interface IWaiterDashboardService
+{
+    Task<WaiterDashboardView> GetAsync(
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken = default);
+}
 
 public interface IOrderService
 {
