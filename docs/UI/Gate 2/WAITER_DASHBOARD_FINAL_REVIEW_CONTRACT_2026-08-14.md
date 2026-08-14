@@ -1,12 +1,12 @@
 # Gate 2 Waiter Dashboard — final review contract
 
-**Status:** design review only; no operational Waiter UI implementation is authorized by this document.
+**Status:** owner-accepted Gate 2 design contract; no operational Waiter UI implementation has been performed by this document.
 
 ## Review mockups
 
 - [Final landscape composition](mockups/WAITER_DASHBOARD_LANDSCAPE_FINAL_REVIEW_V2_2026-08-14.png) — clocked-in state with Staff Hub drawer open.
 - [Final Android portrait composition](mockups/WAITER_DASHBOARD_PORTRAIT_FINAL_REVIEW_V2_2026-08-14.png) — clocked-in state with compact Staff Hub launcher.
-- [Final landscape resting state](mockups/WAITER_DASHBOARD_LANDSCAPE_FINAL_REVIEW_V3_2026-08-14.png) — left-side Staff Hub and profile controls.
+- [Superseded landscape resting state](mockups/WAITER_DASHBOARD_LANDSCAPE_FINAL_REVIEW_V3_2026-08-14.png) — retained evidence of the rejected full-height left utility rail.
 - [Final Staff Hub modal state](mockups/WAITER_DASHBOARD_STAFF_HUB_MODAL_FINAL_REVIEW_2026-08-14.png) — centered overlay above the dimmed and blurred dashboard.
 - The earlier V1 compositions remain in the folder as superseded design evidence; they are not implementation targets.
 
@@ -47,8 +47,10 @@ It contains:
 5. Shift state and, when present, authoritative clock-in time.
 6. **Today's Team** portrait carousel: portraits only, without names or roles; all staff scheduled anywhere on the current restaurant date are included.
 7. Recent attendance records and calculated hours for the current Monday-based week. No payroll or compensation inference is shown.
+   A read-only full-timesheet destination may show only the authenticated employee's own attendance records; it does not expose payroll calculations or other employees.
 8. Today's scheduled shift, assigned section if available, and the Manager note attached to that shift.
-9. A secondary **Staff Hub** holds Shift Announcements, Manager Notes, Leave Requests, and My Journal. In landscape, its launcher and the separate profile control are placed on a narrow left utility rail. Opening Staff Hub presents a centered modal above a dimmed and softly blurred dashboard. In portrait, the launcher remains in the accepted compact position and opens a near-full-height mobile sheet. Staff Hub does not navigate away from or permanently consume the dashboard.
+   Selecting the shift note indicator opens **Staff Hub -> Manager Notes**, which reads the same schedule note rather than a copied note record.
+9. A secondary **Staff Hub** holds Shift Announcements, Manager Notes, Leave Requests, and My Journal. Its launcher and the separate profile control are compact actions in the bottom dashboard action dock; there is no full-height utility rail. Opening Staff Hub presents a centered modal above a dimmed and softly blurred dashboard. In portrait, the launcher remains in the accepted compact position and opens a near-full-height mobile sheet. Staff Hub does not navigate away from or permanently consume the dashboard.
 10. Notification severity is explicit and not color-only: Normal creates a quiet unread indicator; Important creates a labeled amber-priority indicator; Urgent / Requires acknowledgment opens an interruptive modal and records the user's server-side acknowledgment. Editing an acknowledged urgent message creates a new version that requires acknowledgment again.
 11. Announcements can be dismissed for that user without deleting the Manager/Admin source record.
 12. Leave requests support one or more future dates and a private request message sent to Manager/Admin. Approval handling is a later Manager gate.
@@ -64,6 +66,7 @@ Explicitly excluded: Reservations, Messages, Team tab, Reports tab, payroll, fut
 
 - Clock state survives ordinary logout and the 15-minute authenticated-session inactivity timeout.
 - If an attendance record remains open 12 hours after the scheduled shift end, or 12 hours after clock-in when no shift end exists, the server automatically closes it and flags it for Manager review. It is never allowed to run indefinitely.
+- Automatic closure immediately removes floor-entry eligibility and requires a fresh Clock In if the employee continues working. Concurrent automatic and manual closure must remain idempotent and produce one closed record.
 - Automatic closure is an audited safety limit, not a silent payroll correction.
 
 ## Responsive review targets
@@ -71,7 +74,8 @@ Explicitly excluded: Reservations, Messages, Team tab, Reports tab, payroll, fut
 ### Landscape
 
 - Reference canvas: 1920 × 1080 at 100% browser zoom.
-- No office navigation panel. A narrow left utility rail may contain only Staff Hub and the separate profile control. Use a spacious two-column hierarchy with a clear floor-entry CTA.
+- No office navigation panel and no full-height left or right utility rail. Use a spacious two-column hierarchy and allow the shift, attendance, and team panels to consume the recovered width without stretching beyond a readable maximum.
+- A compact bottom action dock contains the profile launcher, Staff Hub launcher with unread/priority state, and the dominant **Enter the Floor** CTA.
 - Essential actions and server time remain visible without horizontal scroll.
 - While the Staff Hub modal is open, the underlying dashboard is inert, visibly dimmed, and softly blurred. Focus is trapped inside the modal; Escape and the visible close control dismiss it and return focus to the launcher.
 
@@ -84,4 +88,4 @@ Explicitly excluded: Reservations, Messages, Team tab, Reports tab, payroll, fut
 
 ## Acceptance gate
 
-Before implementation, the owner explicitly accepts the information scope, identity, clock states, floor-entry gate, portrait-only team behavior, both responsive compositions, and replacement assets. After approval, backend work remains separate from the visual pass and must preserve Gate 1 security.
+The project owner accepted the information scope, identity, clock states, floor-entry gate, portrait-only team behavior, responsive direction, and replacement-asset boundary on 2026-08-14. The later borderless landscape adjustment replaces the full-height utility rail with the compact bottom action dock. Backend work remains separate from the visual pass and must preserve Gate 1 security.
