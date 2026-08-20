@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Neutral staff portrait">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#162a42"/><stop offset="1" stop-color="#0d1725"/></linearGradient></defs>
+  <rect width="160" height="160" rx="80" fill="url(#bg)"/>
+  <circle cx="80" cy="57" r="26" fill="#a9bad0" opacity=".9"/>
+  <path d="M34 137c5-31 23-48 46-48s41 17 46 48" fill="#a9bad0" opacity=".9"/>
+  <circle cx="80" cy="80" r="77" fill="none" stroke="#c9983a" stroke-opacity=".65" stroke-width="3"/>
+</svg>

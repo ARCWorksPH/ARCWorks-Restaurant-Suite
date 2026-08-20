@@ -109,6 +109,9 @@ public sealed record WaiterAttendanceSummary(
     DateTime? ClockOutLocal,
     decimal Hours);
 public sealed record AttendanceReviewNotice(DateTime ClosedLocal, AttendanceClosureKind ClosureKind);
+// Intentionally contains no employee id, name, role, schedule time, or contact
+// information. The Waiter Dashboard carousel is a presence-only experience.
+public sealed record TodayTeamPortrait(string PortraitPath, bool UsesFallback);
 public sealed record WaiterDashboardView(
     string DisplayName,
     DateTime RestaurantNowLocal,
@@ -119,7 +122,8 @@ public sealed record WaiterDashboardView(
     WaiterShiftSummary? TodayShift,
     decimal HoursThisWeek,
     IReadOnlyList<WaiterAttendanceSummary> RecentAttendance,
-    AttendanceReviewNotice? AttendanceReviewNotice);
+    AttendanceReviewNotice? AttendanceReviewNotice,
+    IReadOnlyList<TodayTeamPortrait> TodayTeam);
 
 public sealed record AttendanceAutoClosureResult(int Examined, int Closed, int ConcurrencySkipped);
 public interface IAttendanceAutoClosureService

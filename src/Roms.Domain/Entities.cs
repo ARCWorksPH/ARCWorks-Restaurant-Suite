@@ -8,6 +8,7 @@ public enum InventoryLossType { Waste, Spoilage }
 public enum InventoryLossStatus { Pending, Approved, Rejected }
 public enum WorkflowTimerKind { OrderEntry, KitchenAcceptance, Preparation }
 public enum AttendanceClosureKind { Manual, AutomaticScheduledLimit, AutomaticUnscheduledLimit }
+public enum StaffProfileLifecycle { Draft, Approved, Archived }
 
 public sealed class WorkflowSettings
 {

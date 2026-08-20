@@ -284,3 +284,21 @@ Gate 2B established the server-authorized read boundary that the accepted Waiter
 # 2026-08-14 — Gate 2C: attendance and floor eligibility
 
 Gate 2C made an open attendance record the server-side requirement for Waiter floor commands. Logout and the 15-minute application-session timeout remain separate from attendance. Forgotten scheduled and unscheduled records now close at their exact 12-hour boundaries, require Manager review, and produce an audit trail. Restart, duplicate execution, a real MariaDB two-worker race, existing order concurrency, and the 60-order stress workflow were verified. Gate 2D — staff portraits and the date-based Today's Team carousel — is next.
+
+# 2026-08-20 — Gate 2D: staff profiles and privacy-safe Today's Team
+
+Gate 2D added staff-profile portrait metadata and lifecycle state through an
+EF Core migration, then established a server-authoritative, Asia/Manila
+calendar-date Team read model. It returns only a local portrait reference and a
+fallback flag; employee names, roles, identifiers, schedules, and contacts are
+not exposed. Only active, approved profiles scheduled on the current date are
+eligible. Missing, remote, and unsupported paths use a neutral local fallback.
+
+Development-only fixtures provide ten synthetic non-login profiles with local
+SVG placeholders, schedule coverage, attendance history, and audited seed
+events. Focused Gate 2D tests passed 8/8; domain and command-gateway suites
+also passed. A workstation-local unfiltered Integration/E2E runner hang was
+recorded separately for CI follow-up rather than treated as a Gate 2D feature
+failure. Full evidence and asset-replacement rules are retained under
+`docs/testing/GATE_2D_PROFILES_TODAYS_TEAM_EVIDENCE_2026-08-20.md` and
+`docs/UI/Gate 2/MODULAR_RESTAURANT_ASSET_REGISTRY_2026-08-14.md`.

@@ -20,12 +20,29 @@ This registry defines every restaurant-replaceable presentation element known fo
 
 All paths resolve inside the local static-asset root. No remote URL, inline script, or restaurant-supplied executable content is accepted.
 
+## Gate 2D staff portrait rules
+
+The neutral fallback is `/images/staff/neutral-avatar.svg`. Development fixtures
+use ten synthetic, local SVG portraits under `/images/staff/demo/`; they do not
+represent real people and are not sign-in accounts. A portrait is eligible for
+the Waiter Dashboard's **Today's Team** read model only when the staff account
+is active, the profile lifecycle is `Approved`, the asset is a local
+`/images/staff/*.svg` path, and that employee has a schedule overlapping the
+current Asia/Manila calendar date. Invalid, remote, or missing paths resolve
+to the neutral fallback.
+
+For a real restaurant, replace the synthetic files through an Admin-authorized
+profile-management workflow to be delivered with the later editable-profile
+surface. That workflow must audit the old/new local asset reference, actor,
+and reason. Until then, there is deliberately no browser/API endpoint that can
+alter profile portraits or lifecycle state.
+
 ## Page/tab replacement inventory
 
 | Surface | Replaceable assets/data | Recommended source | Display behavior |
 | --- | --- | --- | --- |
 | Landing / Login | primary logo, compact product endorsement, desktop/portrait backgrounds, name, descriptor, support text | logo SVG/PNG ≥1600 px; desktop WebP 3840×2160; portrait WebP 1440×2560 | art-directed sources; logo `contain`; safe-center focal point |
-| Waiter Dashboard | compact restaurant logo, greeting name, staff portraits, announcement accents | compact logo SVG; portraits 1024×1024 WebP/AVIF | portraits centered `cover`; original retained server-side |
+| Waiter Dashboard | compact restaurant logo, greeting name, staff portraits, announcement accents | compact logo SVG; portraits 1024×1024 WebP/AVIF, or 160×160 SVG placeholder | portraits centered `cover`; original retained server-side; carousel returns no names or roles |
 | Tables Overview | compact logo, table/section labels, status colors | SVG; labels from database | cards use theme tokens |
 | Order Editor | logo, category icons, menu photos, currency/locale | SVG icons; images ≥1600×1200, 4:3 preferred | images `contain`; neutral letterbox allowed; never crop/stretch |
 | Kitchen Display | horizontal logo, station label, status colors, alert tones | horizontal SVG ≥1200 px; tokens | landscape-only; no decorative photo behind tickets |
