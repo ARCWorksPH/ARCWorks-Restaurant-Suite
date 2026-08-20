@@ -33,13 +33,22 @@ public sealed class WaiterDashboardReadModelTests : IAsyncLifetime
         var waiter = User("waiter-id", "waiter", "Waiter Two");
         var otherWaiter = User("other-id", "other", "Other Waiter");
         var inactiveWaiter = User("inactive-id", "inactive", "Inactive Waiter", false);
-        var manager = User("manager-id", "manager", "Manager");
-        db.Users.AddRange(waiter, otherWaiter, inactiveWaiter, manager);
+        var manager = User("manager-id", "manager", "Manager", portrait: "/images/staff/demo/team-01.svg");
+        var teamMate = User("team-id", "team", "Team Mate", portrait: "/images/staff/demo/team-02.svg");
+        var fallbackMate = User("fallback-id", "fallback", "Fallback Mate", portrait: "https://example.invalid/avatar.svg");
+        var draftMate = User("draft-id", "draft", "Draft Mate", portrait: "/images/staff/demo/team-03.svg");
+        draftMate.ProfileLifecycle = StaffProfileLifecycle.Draft;
+        var nextDayMate = User("next-day-id", "next-day", "Next Day Mate", portrait: "/images/staff/demo/team-04.svg");
+        db.Users.AddRange(waiter, otherWaiter, inactiveWaiter, manager, teamMate, fallbackMate, draftMate, nextDayMate);
         db.UserRoles.AddRange(
             UserRole(waiter.Id, waiterRole.Id),
             UserRole(otherWaiter.Id, waiterRole.Id),
             UserRole(inactiveWaiter.Id, waiterRole.Id),
-            UserRole(manager.Id, managerRole.Id));
+            UserRole(manager.Id, managerRole.Id),
+            UserRole(teamMate.Id, waiterRole.Id),
+            UserRole(fallbackMate.Id, waiterRole.Id),
+            UserRole(draftMate.Id, waiterRole.Id),
+            UserRole(nextDayMate.Id, waiterRole.Id));
 
         var todayShift = new StaffSchedule { UserId = waiter.Id, CreatedBy = "admin" };
         todayShift.SetSchedule(
@@ -48,6 +57,26 @@ public sealed class WaiterDashboardReadModelTests : IAsyncLifetime
             "Welcome the VIP table.",
             clock.UtcNow);
         db.StaffSchedules.Add(todayShift);
+        foreach (var user in new[] { manager, teamMate, fallbackMate })
+        {
+            var schedule = new StaffSchedule { UserId = user.Id, CreatedBy = "admin" };
+            schedule.SetSchedule(
+                clock.ToUtc(new DateTime(2026, 8, 17, 10, 0, 0)),
+                clock.ToUtc(new DateTime(2026, 8, 17, 18, 0, 0)),
+                "Demo schedule.", clock.UtcNow);
+            db.StaffSchedules.Add(schedule);
+        }
+        var draftSchedule = new StaffSchedule { UserId = draftMate.Id, CreatedBy = "admin" };
+        draftSchedule.SetSchedule(
+            clock.ToUtc(new DateTime(2026, 8, 17, 10, 0, 0)),
+            clock.ToUtc(new DateTime(2026, 8, 17, 18, 0, 0)),
+            "Draft profile must not appear.", clock.UtcNow);
+        var nextDaySchedule = new StaffSchedule { UserId = nextDayMate.Id, CreatedBy = "admin" };
+        nextDaySchedule.SetSchedule(
+            clock.ToUtc(new DateTime(2026, 8, 18, 0, 0, 0)),
+            clock.ToUtc(new DateTime(2026, 8, 18, 8, 0, 0)),
+            "Tomorrow only.", clock.UtcNow);
+        db.StaffSchedules.AddRange(draftSchedule, nextDaySchedule);
 
         var mondayOpen = AttendanceRecord.ClockIn(
             waiter.Id,
@@ -84,8 +113,10 @@ public sealed class WaiterDashboardReadModelTests : IAsyncLifetime
         Assert.Equal(new[]
         {
             "AttendanceReviewNotice", "CanEnterFloor", "ClockInLocal", "DisplayName", "HoursThisWeek", "IsClockedIn",
-            "RecentAttendance", "RestaurantDate", "RestaurantNowLocal", "TodayShift"
+            "RecentAttendance", "RestaurantDate", "RestaurantNowLocal", "TodayShift", "TodayTeam"
         }, fields);
+        Assert.Equal(4, view.TodayTeam.Count);
+        Assert.All(view.TodayTeam, item => Assert.DoesNotContain("Name", item.GetType().GetProperties().Select(x => x.Name)));
     }
 
     [Fact]
@@ -131,6 +162,20 @@ public sealed class WaiterDashboardReadModelTests : IAsyncLifetime
         Assert.Null(view.TodayShift);
         Assert.Equal(0m, view.HoursThisWeek);
         Assert.Empty(view.RecentAttendance);
+        Assert.Equal(4, view.TodayTeam.Count);
+    }
+
+    [Fact]
+    public async Task Today_team_returns_only_local_approved_portraits_and_uses_neutral_fallback()
+    {
+        var view = await Service().GetAsync(Principal("waiter-id", "waiter"));
+
+        Assert.Contains(view.TodayTeam, item => item.PortraitPath == "/images/staff/demo/team-01.svg" && !item.UsesFallback);
+        Assert.Contains(view.TodayTeam, item => item.PortraitPath == "/images/staff/neutral-avatar.svg" && item.UsesFallback);
+        Assert.Equal(4, view.TodayTeam.Count);
+        Assert.All(view.TodayTeam, item => Assert.StartsWith("/images/staff/", item.PortraitPath));
+        Assert.DoesNotContain(view.TodayTeam, item => item.PortraitPath == "/images/staff/demo/team-03.svg");
+        Assert.DoesNotContain(view.TodayTeam, item => item.PortraitPath == "/images/staff/demo/team-04.svg");
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -144,13 +189,14 @@ public sealed class WaiterDashboardReadModelTests : IAsyncLifetime
             new Claim(ClaimTypes.Name, username)
         }, "Gate2BTest"));
 
-    private static ApplicationUser User(string id, string username, string displayName, bool active = true) => new()
+    private static ApplicationUser User(string id, string username, string displayName, bool active = true, string? portrait = null) => new()
     {
         Id = id,
         UserName = username,
         NormalizedUserName = username.ToUpperInvariant(),
         DisplayName = displayName,
-        IsActive = active
+        IsActive = active,
+        ProfilePortraitPath = portrait
     };
 
     private static IdentityRole Role(string name) => new(name)

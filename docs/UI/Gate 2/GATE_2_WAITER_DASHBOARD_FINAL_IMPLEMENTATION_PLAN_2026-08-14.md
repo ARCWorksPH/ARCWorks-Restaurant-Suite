@@ -1,6 +1,6 @@
 # Gate 2 Waiter Dashboard — Final Implementation Plan
 
-**Status:** final owner-approved baseline; Gates 2A through 2C are implemented and verified. Gate 2D is next.
+**Status:** final owner-approved baseline; Gates 2A through 2D are implemented. Gate 2D repository closeout is recorded in `docs/testing/GATE_2D_PROFILES_TODAYS_TEAM_EVIDENCE_2026-08-20.md`; Gate 2E is next after CI/merge confirmation.
 
 **Branch at plan freeze:** `design/gate2-waiter-dashboard-contract`
 
@@ -133,7 +133,17 @@ The query must not accept an arbitrary employee ID from the browser. Identity co
 - Include neutral local fallback portraits.
 - All profile edits remain authorization-checked and audited.
 
-**Exit:** date-boundary, portrait fallback, inactive-user, authorization, carousel overflow, and responsive tests pass.
+**Exit:** date-boundary, portrait fallback, inactive-user, and read-model
+authorization tests pass. Carousel overflow and responsive visual acceptance
+belong to the later Waiter Dashboard UI gate, where the approved dashboard
+layout is rendered.
+
+**Implementation note (2026-08-20):** The approved-profile metadata,
+local-only portrait validation, neutral fallback, date-based read model, ten
+non-login development fixtures, and focused evidence are implemented on the
+Gate 2D branch. Final visual carousel acceptance remains with the later Waiter
+Dashboard UI gate; the future Admin profile editor must add its own
+authorization/audit test coverage before it can modify profile metadata.
 
 ### Gate 2E — Announcements and Manager notes
 

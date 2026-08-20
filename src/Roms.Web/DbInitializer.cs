@@ -30,6 +30,7 @@ public static class DbInitializer
 
         var options = scope.ServiceProvider.GetRequiredService<IOptions<SeedOptions>>().Value;
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var restaurantClock = scope.ServiceProvider.GetRequiredService<IRestaurantClock>();
 
         // Earlier soft-deletion retained the original login name, which prevented a
         // restaurant from reusing a departed employee's username. Repair those rows
@@ -95,5 +96,8 @@ public static class DbInitializer
             db.MenuCategories.AddRange(mains, drinks);
             await db.SaveChangesAsync();
         }
+
+        if (options.DemoData && environment.IsDevelopment())
+            await DemoStaffFixtures.EnsureAsync(db, userManager, restaurantClock);
     }
 }

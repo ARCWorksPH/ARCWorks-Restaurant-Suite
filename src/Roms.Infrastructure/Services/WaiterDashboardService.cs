@@ -11,6 +11,7 @@ public sealed class WaiterDashboardService(
     IRestaurantClock restaurantClock) : IWaiterDashboardService
 {
     private const int RecentRecordLimit = 3;
+    private const string DefaultPortraitPath = "/images/staff/neutral-avatar.svg";
 
     public async Task<WaiterDashboardView> GetAsync(
         ClaimsPrincipal principal,
@@ -67,6 +68,18 @@ public sealed class WaiterDashboardService(
             .OrderByDescending(x => x.ClockOutUtc)
             .FirstOrDefaultAsync(cancellationToken);
 
+        // Membership deliberately uses the restaurant's calendar date only. It
+        // does not expose roster times or make the carousel depend on a shift
+        // being active at this exact moment.
+        var todayTeam = await (from schedule in db.StaffSchedules.AsNoTracking()
+                               join user in db.Users.AsNoTracking() on schedule.UserId equals user.Id
+                               where user.IsActive && user.ProfileLifecycle == StaffProfileLifecycle.Approved &&
+                                     schedule.ScheduledStartUtc < dayEndUtc && schedule.ScheduledEndUtc > dayStartUtc
+                               select new { user.Id, user.ProfilePortraitPath })
+            .Distinct()
+            .OrderBy(member => member.Id)
+            .ToListAsync(cancellationToken);
+
         var weeklyHours = weeklyRecords.Sum(record => DurationHours(
             record.ClockInUtc < weekStartUtc ? weekStartUtc : record.ClockInUtc,
             (record.ClockOutUtc ?? nowUtc) > nowUtc ? nowUtc : record.ClockOutUtc ?? nowUtc));
@@ -88,8 +101,16 @@ public sealed class WaiterDashboardService(
                 record.ClockOutUtc is null ? null : restaurantClock.ToLocal(record.ClockOutUtc.Value),
                 DurationHours(record.ClockInUtc, record.ClockOutUtc ?? nowUtc))).ToList(),
             AttendanceReviewNotice: pendingReview is null ? null : new AttendanceReviewNotice(
-                restaurantClock.ToLocal(pendingReview.ClockOutUtc!.Value), pendingReview.ClosureKind!.Value));
+                restaurantClock.ToLocal(pendingReview.ClockOutUtc!.Value), pendingReview.ClosureKind!.Value),
+            TodayTeam: todayTeam.Select(member => new TodayTeamPortrait(
+                IsLocalPortrait(member.ProfilePortraitPath) ? member.ProfilePortraitPath! : DefaultPortraitPath,
+                !IsLocalPortrait(member.ProfilePortraitPath))).ToList());
     }
+
+    private static bool IsLocalPortrait(string? path) =>
+        !string.IsNullOrWhiteSpace(path) &&
+        path.StartsWith("/images/staff/", StringComparison.Ordinal) &&
+        path.EndsWith(".svg", StringComparison.OrdinalIgnoreCase);
 
     private static decimal DurationHours(DateTime startUtc, DateTime endUtc) =>
         endUtc <= startUtc ? 0m : Math.Round((decimal)(endUtc - startUtc).TotalHours, 2);

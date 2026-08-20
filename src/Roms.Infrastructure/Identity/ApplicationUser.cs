@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Roms.Domain;
 
 namespace Roms.Infrastructure.Identity;
 
@@ -6,6 +7,14 @@ public sealed class ApplicationUser : IdentityUser
 {
     public string DisplayName { get; set; } = "";
     public bool IsActive { get; set; } = true;
+    // Stored as an app-relative, local static asset path. External URLs are not
+    // accepted so a staff profile cannot turn the dashboard into a tracker.
+    public string? ProfilePortraitPath { get; set; }
+    public StaffProfileLifecycle ProfileLifecycle { get; set; } = StaffProfileLifecycle.Approved;
+    public DateTime? ProfileUpdatedUtc { get; set; }
+    // Fixture data is explicitly labelled so it can be identified and removed
+    // before restaurant-approved staff data is entered.
+    public bool IsDemoProfile { get; set; }
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
     // Removed staff keep their immutable Identity ID for schedules, attendance,
     // orders, and audit history. Their former login name is retained here while
