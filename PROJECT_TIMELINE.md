@@ -297,8 +297,9 @@ eligible. Missing, remote, and unsupported paths use a neutral local fallback.
 Development-only fixtures provide ten synthetic non-login profiles with local
 SVG placeholders, schedule coverage, attendance history, and audited seed
 events. Focused Gate 2D tests passed 8/8; domain and command-gateway suites
-also passed. A workstation-local unfiltered Integration/E2E runner hang was
-recorded separately for CI follow-up rather than treated as a Gate 2D feature
-failure. Full evidence and asset-replacement rules are retained under
+also passed. The local unfiltered Integration/E2E runner was non-responsive in
+its long database/browser phase, but GitHub Actions pull-request CI completed
+the Release build, full solution suite, Playwright setup, seed-password guard,
+and Docker build successfully. Full evidence and asset-replacement rules are retained under
 `docs/testing/GATE_2D_PROFILES_TODAYS_TEAM_EVIDENCE_2026-08-20.md` and
 `docs/UI/Gate 2/MODULAR_RESTAURANT_ASSET_REGISTRY_2026-08-14.md`.

@@ -2,8 +2,8 @@
 
 **Date:** 2026-08-20
 **Branch:** `agent/gate2d-profiles-todays-team`
-**Status:** implementation verified locally; pending pull-request CI and merge
-at the time this file was updated.
+**Status:** implementation verified locally and by pull-request CI; merge is
+the final repository closeout step.
 
 ## Scope completed
 
@@ -83,8 +83,15 @@ The full unfiltered Integration/E2E runner was attempted twice on this
 workstation. Each attempt became non-responsive after the suite started its
 long database/browser test process; the affected test-process chain was stopped
 without touching the application, Docker, or data. This is an existing broad
-test-runner/environment issue rather than a Gate 2D assertion failure. Pull
-request CI remains the required independent full-suite outcome.
+test-runner/environment issue rather than a Gate 2D assertion failure.
+
+### Independent pull-request CI
+
+GitHub Actions run `32338610125` for pull request #21 passed on 2026-08-20. It
+completed the committed-seed-password guard, Release restore/build, Playwright
+Chromium installation, the full solution test suite, and the Docker image
+build. GitGuardian and Snyk pull-request checks also passed. This independent
+result closes the full-suite gap left by the workstation runner.
 
 This gate is ready for repository review and CI. It is not a claim of
 browser/mobile visual acceptance; that belongs to the later Waiter Dashboard UI
