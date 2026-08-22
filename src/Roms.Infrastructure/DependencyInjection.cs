@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IAttendanceAutoClosureService, AttendanceAutoClosureService>();
         services.AddScoped<IWaiterDashboardService, WaiterDashboardService>();
         services.AddScoped<IStaffCommunicationService, StaffCommunicationService>();
+        services.AddScoped<ILeaveRequestService, LeaveRequestService>();
         return services;
     }
 }

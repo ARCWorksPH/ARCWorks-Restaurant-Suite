@@ -320,3 +320,20 @@ visuals, unread badges, and the urgent modal remain with the later dashboard UI
 gate. Focused tests passed 5/5, the solution built without errors, and EF Core
 confirmed the generated migration matches the model. No running instance was
 deployed or altered.
+
+# 2026-08-23 — Gate 2F: employee-owned leave requests
+
+Gate 2F established an employee-owned, future-date leave-request lifecycle for
+the later Waiter Staff Hub. Requests retain one or more distinct dates,
+optional type and private message, UTC lifecycle timestamps, explicit state,
+decision metadata, and an optimistic concurrency version. Employees can read
+only their own requests and modify only eligible pending future requests;
+Manager/Admin decision access is authorization checked, self-decision is
+blocked, and approvals do not silently change schedules.
+
+Audit entries deliberately record only the presence of a private message, not
+its contents. Five focused service tests, the Gate 2D–2F regression set, domain
+and command-gateway suites, EF migration checks, and a disposable real-MariaDB
+two-manager concurrency race passed. No deployed instance or retained database
+was changed. The final Leave Request and Manager inbox UI remains deferred to
+the accepted responsive Waiter Dashboard implementation gate.

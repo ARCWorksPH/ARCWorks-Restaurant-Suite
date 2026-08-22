@@ -123,6 +123,21 @@ public sealed record StaffAnnouncementView(
     bool RequiresAcknowledgment,
     bool IsAcknowledged);
 public sealed record StaffHubView(string? ManagerNote, IReadOnlyList<StaffAnnouncementView> Announcements);
+public sealed record LeaveRequestView(
+    Guid Id,
+    string UserId,
+    string EmployeeDisplayName,
+    IReadOnlyList<DateOnly> RequestedDates,
+    string? LeaveType,
+    string? PrivateMessage,
+    LeaveRequestStatus Status,
+    DateTime SubmittedLocal,
+    DateTime? ChangedLocal,
+    string? DecidedBy,
+    DateTime? DecisionLocal,
+    string? DecisionReason,
+    DateTime? CancelledLocal,
+    long Version);
 public sealed record WaiterDashboardView(
     string DisplayName,
     DateTime RestaurantNowLocal,
@@ -164,6 +179,23 @@ public interface IStaffCommunicationService
         CancellationToken cancellationToken = default);
     Task DismissAsync(ClaimsPrincipal principal, Guid announcementId, int version,
         CancellationToken cancellationToken = default);
+}
+
+public interface ILeaveRequestService
+{
+    Task<IReadOnlyList<LeaveRequestView>> GetMineAsync(ClaimsPrincipal principal,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<LeaveRequestView>> GetForDecisionAsync(ClaimsPrincipal actor,
+        LeaveRequestStatus? status = LeaveRequestStatus.Pending, CancellationToken cancellationToken = default);
+    Task<Guid> SubmitAsync(ClaimsPrincipal principal, IReadOnlyCollection<DateOnly> requestedDates,
+        string? leaveType, string? privateMessage, CancellationToken cancellationToken = default);
+    Task UpdateAsync(ClaimsPrincipal principal, Guid requestId, long expectedVersion,
+        IReadOnlyCollection<DateOnly> requestedDates, string? leaveType, string? privateMessage,
+        CancellationToken cancellationToken = default);
+    Task CancelAsync(ClaimsPrincipal principal, Guid requestId, long expectedVersion,
+        CancellationToken cancellationToken = default);
+    Task DecideAsync(ClaimsPrincipal actor, Guid requestId, long expectedVersion, bool approve,
+        string? reason, CancellationToken cancellationToken = default);
 }
 
 public interface IOrderService

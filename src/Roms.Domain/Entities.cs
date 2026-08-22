@@ -10,6 +10,7 @@ public enum WorkflowTimerKind { OrderEntry, KitchenAcceptance, Preparation }
 public enum AttendanceClosureKind { Manual, AutomaticScheduledLimit, AutomaticUnscheduledLimit }
 public enum StaffProfileLifecycle { Draft, Approved, Archived }
 public enum StaffAnnouncementPriority { Normal, Important, Urgent }
+public enum LeaveRequestStatus { Pending, Approved, Declined, Cancelled }
 
 public sealed class WorkflowSettings
 {
@@ -119,6 +120,83 @@ public sealed class StaffAnnouncementReceipt
     }
 }
 
+public sealed class LeaveRequest
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string UserId { get; set; } = "";
+    public string? LeaveType { get; private set; }
+    public string? PrivateMessage { get; private set; }
+    public LeaveRequestStatus Status { get; private set; } = LeaveRequestStatus.Pending;
+    public DateTime SubmittedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? ChangedUtc { get; private set; }
+    public string? DecidedBy { get; private set; }
+    public DateTime? DecisionUtc { get; private set; }
+    public string? DecisionReason { get; private set; }
+    public DateTime? CancelledUtc { get; private set; }
+    public long Version { get; private set; } = 1;
+    public List<LeaveRequestDate> Dates { get; set; } = [];
+
+    public void SetDetails(IEnumerable<DateOnly> requestedDates, string? leaveType, string? privateMessage,
+        DateOnly restaurantDate, DateTime utcNow, bool isEdit = false)
+    {
+        if (isEdit && Status != LeaveRequestStatus.Pending)
+            throw new DomainException("Only pending leave requests can be edited.");
+
+        var dates = requestedDates?.Distinct().Order().ToArray() ?? [];
+        if (dates.Length is < 1 or > 31)
+            throw new DomainException("A leave request must contain between 1 and 31 unique dates.");
+        if (dates.Any(x => x <= restaurantDate))
+            throw new DomainException("Leave can be requested only for future restaurant dates.");
+
+        leaveType = string.IsNullOrWhiteSpace(leaveType) ? null : leaveType.Trim();
+        privateMessage = string.IsNullOrWhiteSpace(privateMessage) ? null : privateMessage.Trim();
+        if (leaveType?.Length > 80) throw new DomainException("Leave type cannot exceed 80 characters.");
+        if (privateMessage?.Length > 1000) throw new DomainException("Leave request message cannot exceed 1000 characters.");
+
+        Dates.Clear();
+        foreach (var date in dates) Dates.Add(new LeaveRequestDate { LeaveRequestId = Id, RequestedDate = date });
+        LeaveType = leaveType;
+        PrivateMessage = privateMessage;
+        if (isEdit)
+        {
+            ChangedUtc = utcNow;
+            Version++;
+        }
+    }
+
+    public void Decide(bool approve, string reviewerId, string? reason, DateTime utcNow)
+    {
+        if (Status != LeaveRequestStatus.Pending) throw new DomainException("Only pending leave requests can be decided.");
+        if (string.IsNullOrWhiteSpace(reviewerId)) throw new DomainException("A deciding manager or administrator is required.");
+        reason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+        if (!approve && reason is null) throw new DomainException("A reason is required when declining leave.");
+        if (reason?.Length > 500) throw new DomainException("Leave decision reason cannot exceed 500 characters.");
+        Status = approve ? LeaveRequestStatus.Approved : LeaveRequestStatus.Declined;
+        DecidedBy = reviewerId.Trim();
+        DecisionUtc = utcNow;
+        DecisionReason = reason;
+        Version++;
+    }
+
+    public void Cancel(DateOnly restaurantDate, DateTime utcNow)
+    {
+        if (Status != LeaveRequestStatus.Pending) throw new DomainException("Only pending leave requests can be cancelled.");
+        if (Dates.Count == 0 || Dates.Any(x => x.RequestedDate <= restaurantDate))
+            throw new DomainException("A leave request can be cancelled only while all requested dates are still in the future.");
+        Status = LeaveRequestStatus.Cancelled;
+        CancelledUtc = utcNow;
+        Version++;
+    }
+}
+
+public sealed class LeaveRequestDate
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid LeaveRequestId { get; set; }
+    public LeaveRequest LeaveRequest { get; set; } = null!;
+    public DateOnly RequestedDate { get; set; }
+}
+
 public sealed class AttendanceRecord
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -138,7 +216,7 @@ public sealed class AttendanceRecord
     public long Version { get; private set; }
 
     public static AttendanceRecord ClockIn(string userId, Guid? scheduleId, DateTime utcNow) => new()
-        { UserId = userId, StaffScheduleId = scheduleId, ClockInUtc = utcNow };
+    { UserId = userId, StaffScheduleId = scheduleId, ClockInUtc = utcNow };
 
     public void ClockOut(DateTime utcNow)
     {
@@ -453,8 +531,12 @@ public sealed class Order
     {
         StatusHistory.Add(new OrderStatusHistory
         {
-            OrderId = Id, FromStatus = from, ToStatus = to, ActorId = actorId,
-            Reason = reason?.Trim(), OccurredUtc = utcNow
+            OrderId = Id,
+            FromStatus = from,
+            ToStatus = to,
+            ActorId = actorId,
+            Reason = reason?.Trim(),
+            OccurredUtc = utcNow
         });
         Touch(utcNow);
     }
