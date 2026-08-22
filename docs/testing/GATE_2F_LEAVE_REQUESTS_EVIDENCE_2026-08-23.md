@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-23
 **Branch:** `agent/gate2f-leave-requests`
-**Status:** implementation and local verification complete; pull-request CI and merge are the remaining repository closeout steps.
+**Status:** implementation and verification complete; pull-request merge is the final repository closeout step.
 
 ## Scope completed
 
@@ -71,6 +71,14 @@ Local results:
 
 The Release build continues to report the repository's pre-existing NU1903
 warning for SSH.NET 2025.1.0. Gate 2F does not introduce or modify that package.
+
+### Independent pull-request CI
+
+Pull request #23 completed both CI executions triggered by the initial branch
+push and pull request. GitHub Actions runs `32595822141` and `32595825559`
+passed on 2026-08-23. Each completed the committed-seed-password guard, Release
+restore and build, Playwright Chromium installation, full solution test suite,
+and Docker image build. GitGuardian and Snyk pull-request checks also passed.
 
 ## Preserved boundaries
 
