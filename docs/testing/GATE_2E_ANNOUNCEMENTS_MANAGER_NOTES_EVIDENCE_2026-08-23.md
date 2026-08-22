@@ -2,8 +2,8 @@
 
 **Date:** 2026-08-23
 **Branch:** `agent/gate2e-announcements-manager-notes`
-**Status:** implementation and focused verification complete; pull-request CI
-and merge are the repository closeout steps.
+**Status:** implementation and verification complete; pull-request merge is the
+final repository closeout step.
 
 ## Scope completed
 
@@ -76,6 +76,14 @@ long-running disposable-database process remained alive but emitted no result
 for a bounded ten-minute window, so it was stopped without touching the
 application or retained data. Pull-request CI remains the independent
 authoritative broad-suite check and is recorded during repository closeout.
+
+### Independent pull-request CI
+
+Pull request #22 completed both CI executions triggered by branch push and pull
+request. GitHub Actions runs `32592280232` and `32592282480` passed on
+2026-08-23. Each completed the committed-seed-password guard, Release restore
+and build, Playwright Chromium installation, full solution test suite, and
+Docker image build. GitGuardian and Snyk pull-request checks also passed.
 
 ## Preserved boundaries
 
