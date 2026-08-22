@@ -26,6 +26,8 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
     public DbSet<OrderTimerExtension> OrderTimerExtensions => Set<OrderTimerExtension>();
     public DbSet<StaffAnnouncement> StaffAnnouncements => Set<StaffAnnouncement>();
     public DbSet<StaffAnnouncementReceipt> StaffAnnouncementReceipts => Set<StaffAnnouncementReceipt>();
+    public DbSet<LeaveRequest> LeaveRequests => Set<LeaveRequest>();
+    public DbSet<LeaveRequestDate> LeaveRequestDates => Set<LeaveRequestDate>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -183,6 +185,33 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
             e.HasIndex(x => new { x.AnnouncementId, x.UserId, x.AnnouncementVersion }).IsUnique();
             e.HasOne(x => x.Announcement).WithMany().HasForeignKey(x => x.AnnouncementId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+        });
+        builder.Entity<LeaveRequest>(e =>
+        {
+            e.Property(x => x.UserId).HasMaxLength(255);
+            e.Property(x => x.LeaveType).HasMaxLength(80);
+            e.Property(x => x.PrivateMessage).HasMaxLength(1000);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.DecidedBy).HasMaxLength(256);
+            e.Property(x => x.DecisionReason).HasMaxLength(500);
+            if (Database.IsRelational()) e.Property(x => x.Version).IsConcurrencyToken();
+            e.HasIndex(x => new { x.UserId, x.Status, x.SubmittedUtc });
+            e.HasIndex(x => new { x.Status, x.SubmittedUtc });
+            e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(x => x.Dates).WithOne(x => x.LeaveRequest).HasForeignKey(x => x.LeaveRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+        builder.Entity<LeaveRequestDate>(e =>
+        {
+            // MySql.Data returns SQL DATE values as DateTime. Keep DateOnly in the
+            // domain while using an explicit provider conversion at the boundary.
+            e.Property(x => x.RequestedDate)
+                .HasConversion(
+                    date => date.ToDateTime(TimeOnly.MinValue),
+                    date => DateOnly.FromDateTime(date))
+                .HasColumnType("date");
+            e.HasIndex(x => new { x.LeaveRequestId, x.RequestedDate }).IsUnique();
+            e.HasIndex(x => x.RequestedDate);
         });
 
         // Domain entities create GUID keys client-side. Marking them non-generated ensures

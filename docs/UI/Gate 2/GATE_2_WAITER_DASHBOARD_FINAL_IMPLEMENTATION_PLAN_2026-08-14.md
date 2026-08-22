@@ -1,6 +1,6 @@
 # Gate 2 Waiter Dashboard — Final Implementation Plan
 
-**Status:** final owner-approved baseline; Gates 2A through 2E are implemented. Gate 2E repository closeout is recorded in `docs/testing/GATE_2E_ANNOUNCEMENTS_MANAGER_NOTES_EVIDENCE_2026-08-23.md`; Gate 2F is next after CI/merge confirmation.
+**Status:** final owner-approved baseline; Gates 2A through 2F are implemented. Gate 2F repository closeout is recorded in `docs/testing/GATE_2F_LEAVE_REQUESTS_EVIDENCE_2026-08-23.md`; Gate 2G is next after CI/merge confirmation.
 
 **Branch at plan freeze:** `design/gate2-waiter-dashboard-contract`
 
@@ -180,6 +180,14 @@ Implement employee-owned future-date leave requests with:
 Employees may see only their own requests and may edit/cancel only eligible pending future requests. Approval must not silently rewrite staff schedules during this gate.
 
 **Exit:** ownership, invalid/past dates, overlap, concurrency, state transition, Manager/Admin decision, and audit tests pass.
+
+**Implementation note (2026-08-23):** The employee-owned request lifecycle,
+future-date and overlap rules, private-message-safe audit snapshots,
+Manager/Admin decision boundary, self-decision prohibition, explicit version
+checks, schedule isolation, and real-MariaDB concurrent-decision protection are
+implemented. The final Leave Request and Manager inbox visual surfaces remain
+deferred to the accepted responsive dashboard UI gate; neither running
+instance was deployed or altered.
 
 ### Gate 2G — Private ARCWorks Journal
 
