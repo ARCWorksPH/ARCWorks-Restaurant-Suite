@@ -43,6 +43,7 @@ public static class DependencyInjection
         services.AddScoped<IAttendanceService, AttendanceService>();
         services.AddScoped<IAttendanceAutoClosureService, AttendanceAutoClosureService>();
         services.AddScoped<IWaiterDashboardService, WaiterDashboardService>();
+        services.AddScoped<IStaffCommunicationService, StaffCommunicationService>();
         return services;
     }
 }

@@ -303,3 +303,20 @@ the Release build, full solution suite, Playwright setup, seed-password guard,
 and Docker build successfully. Full evidence and asset-replacement rules are retained under
 `docs/testing/GATE_2D_PROFILES_TODAYS_TEAM_EVIDENCE_2026-08-20.md` and
 `docs/UI/Gate 2/MODULAR_RESTAURANT_ASSET_REGISTRY_2026-08-14.md`.
+
+# 2026-08-23 — Gate 2E: staff announcements and Manager notes
+
+Gate 2E established the server-side Staff Hub communication contract. Manager
+and Admin accounts can author versioned, role-targeted announcements with UTC
+publication/expiry and active-state controls. Active Waiters receive only live
+eligible notices; dismissal is employee-specific, and urgent notices require a
+server-recorded acknowledgment. Editing a notice creates a new version so an
+old acknowledgment cannot silently satisfy revised urgent content. Every
+authoring and employee receipt action is audited.
+
+The Waiter's current-day schedule Notes field remains the single Manager Note
+source. The gate adds persistence and read/write contracts only: final Staff Hub
+visuals, unread badges, and the urgent modal remain with the later dashboard UI
+gate. Focused tests passed 5/5, the solution built without errors, and EF Core
+confirmed the generated migration matches the model. No running instance was
+deployed or altered.

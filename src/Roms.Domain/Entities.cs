@@ -9,6 +9,7 @@ public enum InventoryLossStatus { Pending, Approved, Rejected }
 public enum WorkflowTimerKind { OrderEntry, KitchenAcceptance, Preparation }
 public enum AttendanceClosureKind { Manual, AutomaticScheduledLimit, AutomaticUnscheduledLimit }
 public enum StaffProfileLifecycle { Draft, Approved, Archived }
+public enum StaffAnnouncementPriority { Normal, Important, Urgent }
 
 public sealed class WorkflowSettings
 {
@@ -50,6 +51,71 @@ public sealed class StaffSchedule
         ScheduledEndUtc = endUtc;
         Notes = notes?.Trim() ?? "";
         UpdatedUtc = utcNow;
+    }
+}
+
+public sealed class StaffAnnouncement
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Version { get; private set; } = 1;
+    public string Title { get; private set; } = "";
+    public string Body { get; private set; } = "";
+    public StaffAnnouncementPriority Priority { get; private set; }
+    public string? AudienceRole { get; private set; }
+    public DateTime PublishUtc { get; private set; }
+    public DateTime? ExpiresUtc { get; private set; }
+    public bool IsActive { get; private set; } = true;
+    public string CreatedBy { get; set; } = "";
+    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public string UpdatedBy { get; private set; } = "";
+    public DateTime UpdatedUtc { get; private set; } = DateTime.UtcNow;
+
+    public void Configure(string title, string body, StaffAnnouncementPriority priority,
+        string? audienceRole, DateTime publishUtc, DateTime? expiresUtc, string actorId, DateTime utcNow,
+        bool isEdit = false)
+    {
+        title = title?.Trim() ?? "";
+        body = body?.Trim() ?? "";
+        audienceRole = string.IsNullOrWhiteSpace(audienceRole) ? null : audienceRole.Trim();
+        if (title.Length is < 1 or > 120) throw new DomainException("Announcement title must be between 1 and 120 characters.");
+        if (body.Length is < 1 or > 2000) throw new DomainException("Announcement body must be between 1 and 2000 characters.");
+        if (expiresUtc is not null && expiresUtc <= publishUtc) throw new DomainException("Announcement expiry must be after publication.");
+        if (string.IsNullOrWhiteSpace(actorId)) throw new DomainException("An announcement author is required.");
+        if (isEdit) Version++;
+        Title = title;
+        Body = body;
+        Priority = priority;
+        AudienceRole = audienceRole;
+        PublishUtc = publishUtc;
+        ExpiresUtc = expiresUtc;
+        UpdatedBy = actorId.Trim();
+        UpdatedUtc = utcNow;
+    }
+
+    public void SetActive(bool active, string actorId, DateTime utcNow)
+    {
+        if (string.IsNullOrWhiteSpace(actorId)) throw new DomainException("An announcement author is required.");
+        IsActive = active;
+        UpdatedBy = actorId.Trim();
+        UpdatedUtc = utcNow;
+    }
+}
+
+public sealed class StaffAnnouncementReceipt
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid AnnouncementId { get; set; }
+    public StaffAnnouncement Announcement { get; set; } = null!;
+    public string UserId { get; set; } = "";
+    public int AnnouncementVersion { get; set; }
+    public DateTime? AcknowledgedUtc { get; private set; }
+    public DateTime? DismissedUtc { get; private set; }
+
+    public void Acknowledge(DateTime utcNow) => AcknowledgedUtc ??= utcNow;
+
+    public void Dismiss(DateTime utcNow)
+    {
+        if (DismissedUtc is null) DismissedUtc = utcNow;
     }
 }
 
