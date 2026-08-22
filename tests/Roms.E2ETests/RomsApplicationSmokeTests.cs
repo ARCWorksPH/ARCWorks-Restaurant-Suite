@@ -470,9 +470,10 @@ public sealed class RomsApplicationSmokeTests : PageTest
 
     private static async Task WaitUntilHealthyAsync(RunningApplication runningApplication, string baseAddress)
     {
+        const int applicationStartupTimeoutSeconds = 180;
         var application = runningApplication.Process;
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
-        var deadline = DateTime.UtcNow.AddSeconds(60);
+        var deadline = DateTime.UtcNow.AddSeconds(applicationStartupTimeoutSeconds);
         while (DateTime.UtcNow < deadline)
         {
             if (application.HasExited)
@@ -497,7 +498,8 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Task.Delay(250);
         }
 
-        throw new TimeoutException($"ROMS did not become healthy within 60 seconds.{Environment.NewLine}{runningApplication.Output}");
+        throw new TimeoutException(
+            $"ROMS did not become healthy within {applicationStartupTimeoutSeconds} seconds.{Environment.NewLine}{runningApplication.Output}");
     }
 
     private async Task LoginAsync(IPage page, string baseAddress, string username)

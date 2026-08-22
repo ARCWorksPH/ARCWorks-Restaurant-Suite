@@ -1,6 +1,6 @@
 # Gate 2 Waiter Dashboard — Final Implementation Plan
 
-**Status:** final owner-approved baseline; Gates 2A through 2D are implemented. Gate 2D repository closeout is recorded in `docs/testing/GATE_2D_PROFILES_TODAYS_TEAM_EVIDENCE_2026-08-20.md`; Gate 2E is next after CI/merge confirmation.
+**Status:** final owner-approved baseline; Gates 2A through 2E are implemented. Gate 2E repository closeout is recorded in `docs/testing/GATE_2E_ANNOUNCEMENTS_MANAGER_NOTES_EVIDENCE_2026-08-23.md`; Gate 2F is next after CI/merge confirmation.
 
 **Branch at plan freeze:** `design/gate2-waiter-dashboard-contract`
 
@@ -158,6 +158,13 @@ Implement `StaffAnnouncement` and per-employee dismissal/acknowledgment records.
 - The existing schedule Notes field supplies the current shift's Manager Note in this stage.
 
 **Exit:** audience, publish/expiry, versioning, dismissal, acknowledgment, authorization, and audit tests pass.
+
+**Implementation note (2026-08-23):** The server-side announcement model,
+role-aware delivery window, per-employee versioned receipts, urgent
+acknowledgment rule, per-employee dismissal, Manager/Admin authoring boundary,
+and audited state changes are implemented. The existing current-day schedule
+note remains the sole Manager Note source. This checkpoint deliberately adds no
+final Staff Hub visual surface and was not deployed to either running instance.
 
 ### Gate 2F — Leave requests
 

@@ -112,6 +112,17 @@ public sealed record AttendanceReviewNotice(DateTime ClosedLocal, AttendanceClos
 // Intentionally contains no employee id, name, role, schedule time, or contact
 // information. The Waiter Dashboard carousel is a presence-only experience.
 public sealed record TodayTeamPortrait(string PortraitPath, bool UsesFallback);
+public sealed record StaffAnnouncementView(
+    Guid Id,
+    int Version,
+    string Title,
+    string Body,
+    StaffAnnouncementPriority Priority,
+    DateTime PublishLocal,
+    DateTime? ExpiresLocal,
+    bool RequiresAcknowledgment,
+    bool IsAcknowledged);
+public sealed record StaffHubView(string? ManagerNote, IReadOnlyList<StaffAnnouncementView> Announcements);
 public sealed record WaiterDashboardView(
     string DisplayName,
     DateTime RestaurantNowLocal,
@@ -135,6 +146,23 @@ public interface IWaiterDashboardService
 {
     Task<WaiterDashboardView> GetAsync(
         ClaimsPrincipal principal,
+        CancellationToken cancellationToken = default);
+}
+
+public interface IStaffCommunicationService
+{
+    Task<StaffHubView> GetStaffHubAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default);
+    Task<Guid> CreateAnnouncementAsync(ClaimsPrincipal actor, string title, string body,
+        StaffAnnouncementPriority priority, string? audienceRole, DateTime publishUtc, DateTime? expiresUtc,
+        CancellationToken cancellationToken = default);
+    Task UpdateAnnouncementAsync(ClaimsPrincipal actor, Guid announcementId, string title, string body,
+        StaffAnnouncementPriority priority, string? audienceRole, DateTime publishUtc, DateTime? expiresUtc,
+        CancellationToken cancellationToken = default);
+    Task SetAnnouncementActiveAsync(ClaimsPrincipal actor, Guid announcementId, bool active,
+        CancellationToken cancellationToken = default);
+    Task AcknowledgeAsync(ClaimsPrincipal principal, Guid announcementId, int version,
+        CancellationToken cancellationToken = default);
+    Task DismissAsync(ClaimsPrincipal principal, Guid announcementId, int version,
         CancellationToken cancellationToken = default);
 }
 

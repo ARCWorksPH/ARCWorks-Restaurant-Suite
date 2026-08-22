@@ -24,6 +24,8 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
     public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
     public DbSet<WorkflowSettings> WorkflowSettings => Set<WorkflowSettings>();
     public DbSet<OrderTimerExtension> OrderTimerExtensions => Set<OrderTimerExtension>();
+    public DbSet<StaffAnnouncement> StaffAnnouncements => Set<StaffAnnouncement>();
+    public DbSet<StaffAnnouncementReceipt> StaffAnnouncementReceipts => Set<StaffAnnouncementReceipt>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -164,6 +166,23 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
             e.HasIndex(x => new { x.ClockOutUtc, x.RequiresManagerReview });
             e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.StaffSchedule).WithMany().HasForeignKey(x => x.StaffScheduleId).OnDelete(DeleteBehavior.SetNull);
+        });
+        builder.Entity<StaffAnnouncement>(e =>
+        {
+            e.Property(x => x.Title).HasMaxLength(120);
+            e.Property(x => x.Body).HasMaxLength(2000);
+            e.Property(x => x.Priority).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.AudienceRole).HasMaxLength(20);
+            e.Property(x => x.CreatedBy).HasMaxLength(256);
+            e.Property(x => x.UpdatedBy).HasMaxLength(256);
+            e.HasIndex(x => new { x.IsActive, x.PublishUtc, x.ExpiresUtc });
+        });
+        builder.Entity<StaffAnnouncementReceipt>(e =>
+        {
+            e.Property(x => x.UserId).HasMaxLength(255);
+            e.HasIndex(x => new { x.AnnouncementId, x.UserId, x.AnnouncementVersion }).IsUnique();
+            e.HasOne(x => x.Announcement).WithMany().HasForeignKey(x => x.AnnouncementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // Domain entities create GUID keys client-side. Marking them non-generated ensures
