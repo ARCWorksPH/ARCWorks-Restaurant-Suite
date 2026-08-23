@@ -1,0 +1,32 @@
+@page "/journal"
+@attribute [Authorize]
+@using Roms.Web.Configuration
+@inject IJSRuntime JS
+@inject IRestaurantProfile Restaurant
+@implements IAsyncDisposable
+
+<PageTitle>My Private Journal</PageTitle>
+
+<div class="journal-page-shell">
+    <div id="arcworks-private-journal" class="journal-host" aria-live="polite"
+         data-time-zone="@Restaurant.Current.TimeZone" data-locale="@Restaurant.Current.Locale"></div>
+</div>
+
+@code {
+    private IJSObjectReference? module;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/arcworks-journal.js");
+        await module.InvokeVoidAsync("init", "arcworks-private-journal");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (module is null) return;
+        try { await module.InvokeVoidAsync("dispose"); }
+        catch (JSDisconnectedException) { }
+        await module.DisposeAsync();
+    }
+}

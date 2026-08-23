@@ -337,3 +337,18 @@ and command-gateway suites, EF migration checks, and a disposable real-MariaDB
 two-manager concurrency race passed. No deployed instance or retained database
 was changed. The final Leave Request and Manager inbox UI remains deferred to
 the accepted responsive Waiter Dashboard implementation gate.
+
+# 2026-08-23 — Gate 2G: private browser-encrypted journal
+
+Gate 2G established the original ARCWorks personal Markdown journal without
+copying or packaging SimpleMDE. Title, body, and tags are encrypted in the
+active browser before transmission; MariaDB, audits, reports, support tools,
+Manager, and Admin receive no plaintext and have no decryption bypass. Search
+and safe Markdown preview operate only on decrypted browser-memory values.
+
+The employee holds a separate journal passphrase and a one-time recovery key.
+Recovery rotates both wraps; loss of both secrets makes the journal permanently
+unrecoverable. Focused ownership, malformed/stale crypto, metadata-only audit,
+device-persistence scan, XSS, byte-for-byte logical restore, migration, and
+real-MariaDB concurrency checks passed. No deployed instance was changed, and
+the final Staff Hub UI remains Gate 2H work.

@@ -1,0 +1,24 @@
+.journal-page-shell { max-width: 1180px; margin: 0 auto; padding: 1rem; }
+.journal-host { min-height: 70vh; }
+.journal-host :deep(.journal-panel) { background: rgba(16, 25, 37, .92); border: 1px solid #405066; border-radius: 18px; padding: 1.25rem; color: #eef4ff; }
+.journal-host :deep(.journal-header) { display: flex; gap: 1rem; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.journal-host :deep(.journal-grid) { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(0, 2fr); gap: 1rem; }
+.journal-host :deep(.journal-list), .journal-host :deep(.journal-editor) { border: 1px solid #35465c; border-radius: 14px; padding: 1rem; background: rgba(4, 11, 20, .72); }
+.journal-host :deep(input), .journal-host :deep(textarea) { width: 100%; color: #eef4ff; background: #08111d; border: 1px solid #52647a; border-radius: 9px; padding: .7rem; margin: .25rem 0 .75rem; }
+.journal-host :deep(textarea) { min-height: 260px; resize: vertical; }
+.journal-host :deep(button) { border-radius: 9px; border: 1px solid #38cbd2; color: #eef4ff; background: #113347; padding: .55rem .8rem; margin: .15rem; }
+.journal-host :deep(button.danger) { border-color: #ed5f72; background: #471a25; }
+.journal-host :deep(.journal-entry-button) { display: block; width: 100%; text-align: left; margin-bottom: .5rem; }
+.journal-host :deep(.journal-entry-button strong), .journal-host :deep(.journal-entry-button time) { display: block; }
+.journal-host :deep(.journal-entry-button time), .journal-host :deep(.journal-entry-times) { color: #aab8ca; font-size: .82rem; margin-top: .2rem; }
+.journal-host :deep(.journal-toolbar) { display: flex; flex-wrap: wrap; gap: .25rem; margin-bottom: .5rem; }
+.journal-host :deep(.journal-preview) { min-height: 120px; border: 1px solid #35465c; border-radius: 9px; padding: .75rem; overflow-wrap: anywhere; }
+.journal-host :deep(.journal-recovery) { overflow-wrap: anywhere; background: #2b2413; border: 1px solid #d4a72c; padding: .8rem; border-radius: 9px; }
+.journal-host :deep(.journal-status) { min-height: 1.5rem; color: #9fdde1; }
+.journal-host :deep(.journal-status.error) { color: #ff9aa7; }
+@media (max-width: 720px) {
+    .journal-page-shell { padding: .5rem; }
+    .journal-host :deep(.journal-grid) { grid-template-columns: 1fr; }
+    .journal-host :deep(.journal-header) { align-items: flex-start; flex-direction: column; }
+    .journal-host :deep(textarea) { min-height: 210px; }
+}

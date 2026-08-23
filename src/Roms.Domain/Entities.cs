@@ -12,6 +12,36 @@ public enum StaffProfileLifecycle { Draft, Approved, Archived }
 public enum StaffAnnouncementPriority { Normal, Important, Urgent }
 public enum LeaveRequestStatus { Pending, Approved, Declined, Cancelled }
 
+// Journal payload fields are deliberately opaque to the server. The browser
+// owns all plaintext and cryptographic operations.
+public sealed class JournalKeyEnvelope
+{
+    public string UserId { get; set; } = "";
+    public byte[] PassphraseSalt { get; set; } = [];
+    public byte[] PassphraseNonce { get; set; } = [];
+    public byte[] PassphraseWrappedKey { get; set; } = [];
+    public byte[] RecoveryNonce { get; set; } = [];
+    public byte[] RecoveryWrappedKey { get; set; } = [];
+    public int KdfIterations { get; set; }
+    public int CryptoVersion { get; set; }
+    public DateTime CreatedUtc { get; set; }
+    public DateTime UpdatedUtc { get; set; }
+    public long Version { get; set; } = 1;
+}
+
+public sealed class JournalEntry
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string UserId { get; set; } = "";
+    public byte[] Ciphertext { get; set; } = [];
+    public byte[] Nonce { get; set; } = [];
+    public int CryptoVersion { get; set; }
+    public DateTime CreatedUtc { get; set; }
+    public DateTime UpdatedUtc { get; set; }
+    public DateTime? DeletedUtc { get; set; }
+    public long Version { get; set; } = 1;
+}
+
 public sealed class WorkflowSettings
 {
     public Guid Id { get; set; } = Guid.NewGuid();

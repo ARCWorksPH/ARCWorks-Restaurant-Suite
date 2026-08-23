@@ -138,6 +138,38 @@ public sealed record LeaveRequestView(
     string? DecisionReason,
     DateTime? CancelledLocal,
     long Version);
+public sealed record JournalKeyEnvelopeView(
+    string PassphraseSalt,
+    string PassphraseNonce,
+    string PassphraseWrappedKey,
+    string RecoveryNonce,
+    string RecoveryWrappedKey,
+    int KdfIterations,
+    int CryptoVersion,
+    long Version);
+public sealed record JournalKeyEnvelopeWrite(
+    string PassphraseSalt,
+    string PassphraseNonce,
+    string PassphraseWrappedKey,
+    string RecoveryNonce,
+    string RecoveryWrappedKey,
+    int KdfIterations,
+    int CryptoVersion,
+    long? ExpectedVersion);
+public sealed record JournalEntryView(
+    Guid Id,
+    string Ciphertext,
+    string Nonce,
+    int CryptoVersion,
+    DateTime CreatedUtc,
+    DateTime UpdatedUtc,
+    DateTime? DeletedUtc,
+    long Version);
+public sealed record JournalEntryWrite(
+    string Ciphertext,
+    string Nonce,
+    int CryptoVersion,
+    long? ExpectedVersion);
 public sealed record WaiterDashboardView(
     string DisplayName,
     DateTime RestaurantNowLocal,
@@ -196,6 +228,26 @@ public interface ILeaveRequestService
         CancellationToken cancellationToken = default);
     Task DecideAsync(ClaimsPrincipal actor, Guid requestId, long expectedVersion, bool approve,
         string? reason, CancellationToken cancellationToken = default);
+}
+
+public interface IJournalService
+{
+    Task<JournalKeyEnvelopeView?> GetKeyEnvelopeAsync(ClaimsPrincipal principal,
+        CancellationToken cancellationToken = default);
+    Task SaveKeyEnvelopeAsync(ClaimsPrincipal principal, JournalKeyEnvelopeWrite envelope,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<JournalEntryView>> GetMineAsync(ClaimsPrincipal principal, bool deleted,
+        CancellationToken cancellationToken = default);
+    Task<Guid> CreateAsync(ClaimsPrincipal principal, JournalEntryWrite entry,
+        CancellationToken cancellationToken = default);
+    Task UpdateAsync(ClaimsPrincipal principal, Guid id, JournalEntryWrite entry,
+        CancellationToken cancellationToken = default);
+    Task SoftDeleteAsync(ClaimsPrincipal principal, Guid id, long expectedVersion,
+        CancellationToken cancellationToken = default);
+    Task RestoreAsync(ClaimsPrincipal principal, Guid id, long expectedVersion,
+        CancellationToken cancellationToken = default);
+    Task PermanentlyDiscardAsync(ClaimsPrincipal principal, Guid id, long expectedVersion,
+        CancellationToken cancellationToken = default);
 }
 
 public interface IOrderService
