@@ -28,6 +28,8 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
     public DbSet<StaffAnnouncementReceipt> StaffAnnouncementReceipts => Set<StaffAnnouncementReceipt>();
     public DbSet<LeaveRequest> LeaveRequests => Set<LeaveRequest>();
     public DbSet<LeaveRequestDate> LeaveRequestDates => Set<LeaveRequestDate>();
+    public DbSet<JournalKeyEnvelope> JournalKeyEnvelopes => Set<JournalKeyEnvelope>();
+    public DbSet<JournalEntry> JournalEntries => Set<JournalEntry>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -212,6 +214,29 @@ public sealed class RomsDbContext(DbContextOptions<RomsDbContext> options) : Ide
                 .HasColumnType("date");
             e.HasIndex(x => new { x.LeaveRequestId, x.RequestedDate }).IsUnique();
             e.HasIndex(x => x.RequestedDate);
+        });
+        builder.Entity<JournalKeyEnvelope>(e =>
+        {
+            e.HasKey(x => x.UserId);
+            e.Property(x => x.UserId).HasMaxLength(255);
+            e.Property(x => x.PassphraseSalt).HasMaxLength(32);
+            e.Property(x => x.PassphraseNonce).HasMaxLength(12);
+            e.Property(x => x.PassphraseWrappedKey).HasMaxLength(64);
+            e.Property(x => x.RecoveryNonce).HasMaxLength(12);
+            e.Property(x => x.RecoveryWrappedKey).HasMaxLength(64);
+            if (Database.IsRelational()) e.Property(x => x.Version).IsConcurrencyToken();
+            e.HasOne<ApplicationUser>().WithOne().HasForeignKey<JournalKeyEnvelope>(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+        builder.Entity<JournalEntry>(e =>
+        {
+            e.Property(x => x.UserId).HasMaxLength(255);
+            e.Property(x => x.Ciphertext).HasColumnType("longblob");
+            e.Property(x => x.Nonce).HasMaxLength(12);
+            if (Database.IsRelational()) e.Property(x => x.Version).IsConcurrencyToken();
+            e.HasIndex(x => new { x.UserId, x.DeletedUtc, x.UpdatedUtc });
+            e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Domain entities create GUID keys client-side. Marking them non-generated ensures

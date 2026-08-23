@@ -1360,3 +1360,18 @@ the next screen phase.
 - Applied the Gate 2A `Asia/Manila` restaurant clock to today's shift and the Monday-based weekly attendance window.
 - Added focused authorization, field-boundary, timezone, identity-substitution, inactive-user, and empty-state tests.
 - No schema migration, final waiter UI, live deployment, or other-tab change was made.
+
+# 2026-08-23 — Gate 2G private ARCWorks Journal
+
+- Added an employee-owned encrypted journal with browser-side AES-GCM payload
+  encryption, PBKDF2 passphrase wrapping, and a separately held recovery key.
+- Added owner-bound opaque journal persistence, optimistic concurrency,
+  soft-delete/restore/permanent-discard lifecycle, and metadata-only audits.
+- Added an original restricted Markdown editor/preview; no SimpleMDE source,
+  package, external CDN, browser persistence, telemetry, raw HTML, images, or
+  unsafe links are used.
+- Added focused in-memory, Playwright XSS, logical restore, and disposable
+  real-MariaDB concurrency verification. Evidence:
+  `docs/testing/GATE_2G_PRIVATE_JOURNAL_EVIDENCE_2026-08-23.md`.
+- Preserved live/preview deployments and deferred final Staff Hub integration
+  and responsive visual acceptance to Gate 2H.

@@ -1,6 +1,6 @@
 # Gate 2 Waiter Dashboard — Final Implementation Plan
 
-**Status:** final owner-approved baseline; Gates 2A through 2F are implemented. Gate 2F repository closeout is recorded in `docs/testing/GATE_2F_LEAVE_REQUESTS_EVIDENCE_2026-08-23.md`; Gate 2G is next after CI/merge confirmation.
+**Status:** final owner-approved baseline; Gates 2A through 2G are implemented. Gate 2G evidence is recorded in `docs/testing/GATE_2G_PRIVATE_JOURNAL_EVIDENCE_2026-08-23.md`; Gate 2H is next after CI/merge confirmation.
 
 **Branch at plan freeze:** `design/gate2-waiter-dashboard-contract`
 
@@ -216,6 +216,13 @@ Privacy boundary:
 
 **Exit:** independent plaintext scans, XSS tests, ownership tests, logout/device-residue tests, encryption-version tests, backup/restore tests, and documented key-loss behavior pass.
 
+**Implemented 2026-08-23:** the original browser-encrypted journal, strict
+owner-only server contract, versioned key envelope, recovery rotation,
+restricted Markdown preview, encrypted lifecycle, migration, and focused
+in-memory/browser/real-MariaDB verification are complete. The final Staff Hub
+visual surface remains deferred to Gate 2H; neither running instance was
+deployed or altered.
+
 ### Gate 2H — Final UI implementation
 
 Implement the frozen landscape and portrait composition only after Gates 2A-2G expose stable tested contracts.
@@ -300,8 +307,11 @@ For every gate:
 9. merge, deploy locally, verify, then deploy publicly when authorized;
 10. capture milestone screenshots at approved visual checkpoints.
 
-## 8. Final readiness decision
+## 8. Current readiness decision
 
-The stage is feasible and its information architecture is approved. Gate 1 is complete. The Gate 2 runtime remains intentionally unimplemented until this plan is accepted.
-
-Recommended first implementation action: **Gate 2A — Restaurant identity and authoritative clock**, followed by the restricted dashboard read model. Journal work remains isolated until Gate 2G so its privacy risks cannot delay or weaken the core attendance dashboard.
+The stage is feasible, its information architecture is approved, and Gates 2A
+through 2G now provide the stable server, persistence, privacy, and browser
+contracts required by the accepted dashboard design. Gate 2H is the next gate:
+integrate those contracts into the frozen responsive landscape and portrait
+composition without reopening completed backend scope. Gate 2I remains the
+recovery, rollback, and deployment-acceptance gate.

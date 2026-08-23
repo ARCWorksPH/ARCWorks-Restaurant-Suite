@@ -201,6 +201,7 @@ app.MapPost("/security/session/touch/{instanceId}", async (
 app.MapHub<OrderHub>("/hubs/orders");
 app.MapHealthChecks("/health");
 app.MapAttendanceExport();
+app.MapJournalEndpoints();
 
 await DbInitializer.InitializeAsync(app.Services, app.Environment);
 await app.RunAsync();
