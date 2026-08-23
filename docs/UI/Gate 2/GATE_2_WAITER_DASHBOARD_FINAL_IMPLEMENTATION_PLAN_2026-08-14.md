@@ -1,6 +1,6 @@
 # Gate 2 Waiter Dashboard — Final Implementation Plan
 
-**Status:** final owner-approved baseline; Gates 2A through 2G are implemented. Gate 2G evidence is recorded in `docs/testing/GATE_2G_PRIVATE_JOURNAL_EVIDENCE_2026-08-23.md`; Gate 2H is next after CI/merge confirmation.
+**Status:** final owner-approved baseline; Gates 2A through 2G are implemented. Gate 2G evidence is recorded in `docs/testing/GATE_2G_PRIVATE_JOURNAL_EVIDENCE_2026-08-23.md`; Gate 2H is next after Gate 2G repository closeout.
 
 **Branch at plan freeze:** `design/gate2-waiter-dashboard-contract`
 

@@ -2,7 +2,8 @@
 
 **Date:** 2026-08-23
 **Branch:** `agent/gate2g-private-journal`
-**Status:** implementation and local verification complete; pull-request CI and merge are the remaining repository closeout steps.
+**Status:** implementation and local verification complete; PR #24 verification
+is green and the merge is the remaining repository closeout step.
 
 ## Scope completed
 
@@ -83,7 +84,9 @@ Focused local results:
 - release build — **passed, 0 errors**;
 - Gate 2G scoped formatter verification — **passed**;
 - EF pending-model check — **passed**;
-- idempotent migration generation and structural inspection — **passed**.
+- idempotent migration generation and structural inspection — **passed**;
+- PR #24 GitHub verification jobs — **2 passed**;
+- PR #24 GitGuardian and Snyk checks — **passed**.
 
 The focused tests prove encrypted lifecycle, ownership and no role bypass,
 malformed/stale crypto rejection, metadata-only auditing, lack of durable
