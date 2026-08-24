@@ -16,19 +16,13 @@ pilot enablement beyond documented human gates, or AI release from hold.
 | — | 2026-07-30 | [EXTERNAL_AUDIT_HANDOFF](../EXTERNAL_AUDIT_HANDOFF_2026-07-30.md) | Inventory preflight handoff | Decision requested |
 | 3 | 2026-08-02 | [2026-08-02 Inventory readiness](2026-08-02-inventory-readiness.md) | Pre-merge inventory-readiness (recipe-era) | Technical controls accepted; pilot gated |
 | 4 | 2026-08-03 | [2026-08-03 QA compliance post-merge](2026-08-03-qa-compliance-post-merge.md) | Recipe removal; manual ledger; security harden | Conditionally accepted; AI off |
-| 5 | 2026-08-08 | [2026-08-08 ARCWorks Suite rebrand and workflow freeze](2026-08-08-arcworks-suite-rebrand-workflow.md) | Org/repo rename; AI hold; four-role contract; backup; portable; UI; open PRs | Conditionally accepted for private-beta prep; staff acceptance + restore drill still open |
-
-## Next independent review
-
-Audit #6 has been requested against the Waiter account-security and Gate 0
-checkpoint branch. The request is documented in
-[`AUDIT_6_HANDOFF_2026-08-12.md`](AUDIT_6_HANDOFF_2026-08-12.md). It is not a
-completed audit and must not be added to the numbered table until the
-independent report is submitted and reviewed.
+| 5 | 2026-08-08 | [2026-08-08 ARCWorks Suite rebrand and workflow freeze](2026-08-08-arcworks-suite-rebrand-workflow.md) | Org/repo rename; AI hold; four-role contract; backup; portable | Conditionally accepted for private-beta prep |
+| 6 | 2026-08-12 | [2026-08-12 Landing page and ops progress](2026-08-12-landing-ops-progress.md) | Chef Doy's landing live; restore drill evidence; PR #13 waiter shell | Landing accepted; local restore closed; staff/workflow acceptance still open |
+| 7 | 2026-08-24 | [2026-08-24 Gate 1–2 waiter dashboard progress](2026-08-24-gate1-gate2-waiter-progress.md) | Gate 1 session security live; Gate 2A–2G merged; Gate 2H open | Conditionally accepted; waiter UI integration + Gate 2I deploy/recovery + four-role acceptance still open |
 
 ## How to use
 
-1. Read the newest audit first (Audit 5).
+1. Read the newest audit first (Audit 7).
 2. Treat **Mandatory remediation** items as private-beta / production blockers unless waived later.
 3. Keep `AI_HOLD=true` (cannot be bypassed by a stale `AI_ENABLED=true`).
 4. Inventory remains a **manual independent-item ledger**; recipes stay out of scope.
@@ -41,6 +35,7 @@ independent report is submitted and reviewed.
 - `docs/ROADMAP_2026-08-06.md`
 - `docs/WORKFLOW_CONTRACT_2026-08-06.md`
 - `docs/AI_HOLD.md`
-- `docs/SECURITY_HARDENING_2026-08-02.md`
-- `docs/OPERATIONS.md`
-- `deploy/portable/` (when present on the reviewed branch)
+- `docs/UI/LANDING_PAGE_ACCEPTANCE_2026-08-12.md`
+- `docs/UI/Gate 2/`
+- `docs/WAITER_PERSONAL_DASHBOARD_BACKEND_FIRST_PLAN_2026-08-12.md`
+- `docs/evidence/BACKUP_RECOVERY_DRILL_2026-08-08.md`
