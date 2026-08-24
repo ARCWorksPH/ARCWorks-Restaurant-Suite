@@ -4,8 +4,9 @@
 
 **Branch:** `agent/gate2h-final-waiter-ui`
 
-**Status:** implementation complete and audit-ready; owner visual acceptance,
-merge, and deployment remain pending.
+**Status:** implementation complete and audit-ready; isolated preview is live
+for owner visual acceptance, while merge and production deployment remain
+pending.
 
 ## Implemented surface
 
@@ -82,14 +83,37 @@ The build continues to report the pre-existing NU1903 warning for SSH.NET
 2025.1.0 through the test-container dependency path. Gate 2H does not introduce
 or modify that package.
 
+## Isolated visual-review runtime
+
+After the audit PR and automated checks were green, Gate 2H was built as
+`roms:gate2h-preview` and deployed only to `127.0.0.1:7171` for owner visual
+inspection. The preview's existing MariaDB and data-protection volumes were
+preserved, so its established test accounts and protected sessions were not
+reseeded or replaced.
+
+- Preview health endpoint: **HTTP 200**.
+- Preview login endpoint: **HTTP 200**.
+- Preview app container: **healthy**.
+- Preview database container: **healthy** and not recreated.
+- Previous preview image retained as
+  `roms:gate2h-preview-rollback-20260824`.
+- Production loopback health endpoint: **HTTP 200** and unchanged.
+- Public ROMS health endpoint: **HTTP 200** and unchanged.
+
+The personal Gate 2H surface is intentionally Waiter-only. Admin, Manager, and
+Kitchen accounts retain their established role surfaces; an Admin login is not
+a valid visual test for the Waiter dashboard.
+
 ## Preserved boundaries
 
-- No local runtime, public tunnel runtime, retained MariaDB data, staff account,
-  credential, or Cloudflare setting was changed.
+- Only the isolated `127.0.0.1:7171` preview app container was recreated. Its
+  retained database, keys, accounts, and credentials were not changed.
+- The production app, public tunnel, Cloudflare settings, and retained
+  production data were not changed.
 - No restaurant/customer asset was copied from an external URL.
 - No plaintext journal data is presented outside the journal's own browser
   memory boundary.
 - This document does not claim owner visual acceptance. The audit and owner's
   inspection of the review branch are required before merge.
-- Gate 2I remains responsible for disposable restore, rollback, local
-  deployment, public deployment, monitoring, and final runtime evidence.
+- Gate 2I remains responsible for disposable restore, rollback execution,
+  production deployment, monitoring, and final runtime evidence.

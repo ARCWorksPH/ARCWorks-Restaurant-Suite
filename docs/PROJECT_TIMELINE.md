@@ -213,6 +213,10 @@ that acceptance should workflow completion be claimed.
 - Completed the responsive landscape/portrait component system and keyboard
   overlay boundary, including inert background, focus trapping, Escape close,
   focus return, reduced-motion handling, and no-overflow automation.
-- Kept the work isolated from both running instances. Audit and explicit owner
-  visual acceptance remain required before merge; Gate 2I deployment and
-  recovery acceptance has not started.
+- Published the accepted branch only to the isolated `127.0.0.1:7171` visual
+  review runtime while preserving its MariaDB volume, data-protection keys,
+  logins, and previous image as `roms:gate2h-preview-rollback-20260824`.
+- Kept `127.0.0.1:7070`, the public tunnel runtime, and retained production
+  data unchanged. Audit and explicit owner visual acceptance remain required
+  before merge; Gate 2I production deployment and recovery acceptance has not
+  started.

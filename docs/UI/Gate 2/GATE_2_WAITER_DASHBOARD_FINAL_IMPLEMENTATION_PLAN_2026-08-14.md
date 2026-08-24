@@ -1,6 +1,6 @@
 # Gate 2 Waiter Dashboard — Final Implementation Plan
 
-**Status:** final owner-approved baseline; Gates 2A through 2G are accepted and Gate 2H implementation is complete on its isolated review branch. Gate 2H remains unmerged and undeployed until its audit and owner visual acceptance are recorded. Gate 2I has not started.
+**Status:** final owner-approved baseline; Gates 2A through 2G are accepted and Gate 2H implementation is complete on its isolated review branch. Gate 2H is deployed only to the isolated `127.0.0.1:7171` visual-review runtime; it remains unmerged and absent from production until its audit and owner visual acceptance are recorded. Gate 2I has not started.
 
 **Branch at plan freeze:** `design/gate2-waiter-dashboard-contract`
 
@@ -244,9 +244,11 @@ overlay boundary includes inert background content, trapped keyboard focus,
 Escape/visible-close behavior, and focus return. Responsive checks cover
 1920 x 1080, Android portrait, and Android landscape without page-level
 horizontal overflow. See
-`docs/testing/GATE_2H_FINAL_WAITER_UI_EVIDENCE_2026-08-24.md`. No running
-instance was changed; audit and explicit owner visual acceptance remain the
-merge/deployment boundary.
+`docs/testing/GATE_2H_FINAL_WAITER_UI_EVIDENCE_2026-08-24.md`. The isolated
+`127.0.0.1:7171` runtime was updated for owner visual review with its previous
+image retained as an explicit rollback point. Production and its tunnel were
+not changed; audit and explicit owner visual acceptance remain the merge and
+production-deployment boundary.
 
 ### Gate 2I — Recovery and deployment acceptance
 
@@ -326,6 +328,6 @@ For every gate:
 The stage is feasible, its information architecture is approved, and Gates 2A
 through 2G provide the stable server, persistence, privacy, and browser
 contracts used by the Gate 2H review implementation. Gate 2H is now the audit
-and owner-acceptance checkpoint; it is not merged or deployed merely because
-the implementation and automated checks exist. Gate 2I remains the recovery,
-rollback, and deployment-acceptance gate.
+and owner-acceptance checkpoint; its isolated visual-review deployment does not
+authorize a merge or production deployment. Gate 2I remains the recovery,
+rollback, and production-deployment-acceptance gate.
