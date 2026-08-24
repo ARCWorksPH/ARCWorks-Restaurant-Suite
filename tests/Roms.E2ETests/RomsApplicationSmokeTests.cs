@@ -425,6 +425,86 @@ public sealed class RomsApplicationSmokeTests : PageTest
         }
     }
 
+    [Test]
+    public async Task Waiter_dashboard_is_role_restricted_responsive_and_keyboard_accessible()
+    {
+        const string adminUsername = "gate2h-admin";
+        const string waiterUsername = "gate2h-waiter";
+        await using var database = new MariaDbBuilder("mariadb:11.4")
+            .WithDatabase("roms_gate2h")
+            .WithUsername("root")
+            .WithPassword($"roms-{Guid.NewGuid():N}")
+            .Build();
+        await database.StartAsync();
+
+        var port = ReservePort();
+        var baseAddress = $"http://127.0.0.1:{port}";
+        var keysPath = Path.Combine(Path.GetTempPath(), $"roms-gate2h-keys-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(keysPath);
+        var runningApplication = StartApplication(
+            baseAddress,
+            database.GetConnectionString(),
+            keysPath,
+            adminUsername,
+            E2ePassword);
+        using var application = runningApplication.Process;
+
+        try
+        {
+            await WaitUntilHealthyAsync(runningApplication, baseAddress);
+            await SeedStaffAsync(database.GetConnectionString(),
+                (waiterUsername, "Gate 2H Waiter", RomsRoles.Waiter));
+
+            await Page.SetViewportSizeAsync(1920, 1080);
+            await LoginAsync(Page, baseAddress, waiterUsername);
+            await Expect(Page.GetByRole(AriaRole.Heading, new()
+            {
+                NameRegex = new Regex("Good (morning|afternoon|evening), Gate 2H Waiter")
+            })).ToBeVisibleAsync();
+            await Expect(Page.Locator(".page")).ToHaveClassAsync(new Regex("\\bwaiter-dashboard-mode\\b"));
+            await Expect(Page.Locator(".page > .sidebar")).ToBeHiddenAsync();
+            await Expect(Page.Locator(".page > main > .top-row")).ToBeHiddenAsync();
+            await Expect(Page.GetByText("Server time · Asia/Manila")).ToBeVisibleAsync();
+            await Expect(Page.Locator(".wd-shell")).ToHaveAttributeAsync("data-interactive", "true",
+                new() { Timeout = 15_000 });
+
+            var floorLink = Page.Locator(".wd-floor");
+            await Expect(floorLink).ToHaveAttributeAsync("aria-disabled", "true");
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Staff Hub" }).ClickAsync();
+            await Expect(Page.GetByRole(AriaRole.Dialog)).ToBeVisibleAsync();
+            await Page.Keyboard.PressAsync("Escape");
+            await Expect(Page.GetByRole(AriaRole.Dialog)).ToHaveCountAsync(0);
+
+            await Page.GetByRole(AriaRole.Button, new() { Name = "Clock In" }).ClickAsync();
+            await Expect(floorLink).ToHaveAttributeAsync("aria-disabled", "false");
+
+            foreach (var viewport in new[]
+                     {
+                         (Width: 412, Height: 915),
+                         (Width: 915, Height: 412),
+                         (Width: 1920, Height: 1080)
+                     })
+            {
+                await Page.SetViewportSizeAsync(viewport.Width, viewport.Height);
+                await Page.WaitForTimeoutAsync(150);
+                var hasHorizontalOverflow = await Page.EvaluateAsync<bool>(
+                    "() => document.documentElement.scrollWidth > document.documentElement.clientWidth");
+                Assert.That(hasHorizontalOverflow, Is.False,
+                    $"Waiter dashboard overflowed at {viewport.Width}x{viewport.Height}.");
+                await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Today’s Shift" }))
+                    .ToBeVisibleAsync();
+                await Expect(floorLink).ToBeVisibleAsync();
+            }
+        }
+        finally
+        {
+            if (!application.HasExited)
+                application.Kill(entireProcessTree: true);
+            await application.WaitForExitAsync();
+            Directory.Delete(keysPath, recursive: true);
+        }
+    }
+
     private static RunningApplication StartApplication(
         string baseAddress,
         string connectionString,
@@ -508,8 +588,6 @@ public sealed class RomsApplicationSmokeTests : PageTest
         await page.GetByLabel("Username").FillAsync(username);
         await page.GetByLabel("Password").FillAsync(E2ePassword);
         await page.GetByRole(AriaRole.Button, new() { Name = "Log in" }).ClickAsync();
-        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Restaurant operations" }))
-            .ToBeVisibleAsync();
         await WaitForInteractiveAsync(page);
     }
 

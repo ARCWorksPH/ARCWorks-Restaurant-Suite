@@ -199,3 +199,20 @@ that acceptance should workflow completion be claimed.
   authorized until both mockups are explicitly accepted.
 - Deferred possible hotel/resort adaptation until near project completion so
   it cannot expand the current restaurant scope.
+
+## 2026-08-24 — Gate 2H Waiter dashboard review implementation
+
+- Integrated the accepted personal Waiter dashboard composition with the
+  completed Gate 2A-through-2G service contracts; no backend business rule was
+  recreated in the browser.
+- Removed legacy office navigation only from the Waiter root surface while
+  preserving the established Kitchen, Manager, and Admin layouts.
+- Added the server-time greeting, attendance and floor gate, current shift,
+  weekly hours, self-only timesheet, portrait-only Today's Team, profile,
+  announcements, Manager note, leave, and encrypted-journal destinations.
+- Completed the responsive landscape/portrait component system and keyboard
+  overlay boundary, including inert background, focus trapping, Escape close,
+  focus return, reduced-motion handling, and no-overflow automation.
+- Kept the work isolated from both running instances. Audit and explicit owner
+  visual acceptance remain required before merge; Gate 2I deployment and
+  recovery acceptance has not started.

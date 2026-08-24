@@ -40,9 +40,11 @@ public sealed class StaffCommunicationService(
             .ToListAsync(cancellationToken);
 
         var ids = announcements.Select(x => x.Id).ToList();
-        var receipts = await db.StaffAnnouncementReceipts.AsNoTracking()
-            .Where(x => x.UserId == waiter.Id && ids.Contains(x.AnnouncementId))
-            .ToListAsync(cancellationToken);
+        var receipts = ids.Count == 0
+            ? []
+            : await db.StaffAnnouncementReceipts.AsNoTracking()
+                .Where(x => x.UserId == waiter.Id && ids.Contains(x.AnnouncementId))
+                .ToListAsync(cancellationToken);
         var currentReceipts = receipts.ToDictionary(x => (x.AnnouncementId, x.AnnouncementVersion));
 
         var visible = announcements

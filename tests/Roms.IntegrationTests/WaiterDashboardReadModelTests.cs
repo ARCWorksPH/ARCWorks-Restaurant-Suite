@@ -98,6 +98,7 @@ public sealed class WaiterDashboardReadModelTests : IAsyncLifetime
         var view = await Service().GetAsync(Principal("waiter-id", "waiter"));
 
         Assert.Equal("Waiter Two", view.DisplayName);
+        Assert.Equal("/images/staff/neutral-avatar.svg", view.PortraitPath);
         Assert.Equal(new DateOnly(2026, 8, 17), view.RestaurantDate);
         Assert.Equal(new DateTime(2026, 8, 17, 0, 30, 0), view.RestaurantNowLocal);
         Assert.True(view.IsClockedIn);
@@ -113,7 +114,7 @@ public sealed class WaiterDashboardReadModelTests : IAsyncLifetime
         Assert.Equal(new[]
         {
             "AttendanceReviewNotice", "CanEnterFloor", "ClockInLocal", "DisplayName", "HoursThisWeek", "IsClockedIn",
-            "RecentAttendance", "RestaurantDate", "RestaurantNowLocal", "TodayShift", "TodayTeam"
+            "PortraitPath", "RecentAttendance", "RestaurantDate", "RestaurantNowLocal", "TodayShift", "TodayTeam"
         }, fields);
         Assert.Equal(4, view.TodayTeam.Count);
         Assert.All(view.TodayTeam, item => Assert.DoesNotContain("Name", item.GetType().GetProperties().Select(x => x.Name)));
@@ -206,7 +207,7 @@ public sealed class WaiterDashboardReadModelTests : IAsyncLifetime
     };
 
     private static IdentityUserRole<string> UserRole(string userId, string roleId) => new()
-        { UserId = userId, RoleId = roleId };
+    { UserId = userId, RoleId = roleId };
 
     private sealed class TestFactory(DbContextOptions<RomsDbContext> options) : IDbContextFactory<RomsDbContext>
     {

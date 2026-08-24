@@ -1,0 +1,82 @@
+@using System.Security.Claims
+@using Roms.Web.Configuration
+@attribute [Authorize(Roles = "Waiter")]
+@inject IWaiterDashboardService DashboardService
+@inject IStaffCommunicationService Communications
+@inject ILeaveRequestService LeaveRequests
+@inject IAttendanceService Attendance
+@inject AuthenticationStateProvider Authentication
+@inject IRestaurantProfile Restaurant
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="wd-shell" data-interactive="@(interactiveReady ? "true" : "false")" style="--wd-gold:@Restaurant.Current.AccentGold;--wd-cool:@Restaurant.Current.AccentCool">
+@if (loading) { <div class="wd-loading" role="status">Preparing your dashboard…</div> }
+else if (dashboard is null) { <div class="wd-error" role="alert"><h1>Dashboard unavailable</h1><p>@message</p><button @onclick="Load">Try again</button></div> }
+else
+{
+    <header class="wd-hero">
+        <img class="wd-logo" src="@Restaurant.Current.CompactLogo" alt="@Restaurant.Current.DisplayName" />
+        <div class="wd-greeting"><h1 tabindex="-1">@Greeting, @dashboard.DisplayName</h1><p>Ready to deliver an exceptional experience.</p></div>
+        <div class="wd-clock" aria-live="polite"><span>Server time · @Restaurant.Current.TimeZone</span><strong>@dashboard.RestaurantNowLocal.ToString("h:mm tt")</strong><time datetime="@dashboard.RestaurantDate.ToString("yyyy-MM-dd")">@dashboard.RestaurantNowLocal.ToString("dddd, MMMM d, yyyy")</time><small class="@(dashboard.IsClockedIn ? "is-present" : "")">● @(dashboard.IsClockedIn ? $"Clocked in at {dashboard.ClockInLocal:h:mm tt}" : "Not clocked in")</small><button class="wd-clock-action" disabled="@busy" @onclick="ToggleClock">@(dashboard.IsClockedIn ? "Clock Out" : "Clock In")</button></div>
+    </header>
+    @if (!string.IsNullOrWhiteSpace(message)) { <div class="wd-notice @(failed ? "is-error" : "")" role="status">@message</div> }
+    @if (dashboard.AttendanceReviewNotice is not null) { <div class="wd-notice is-warning" role="status">A previous shift was automatically closed and is waiting for manager review.</div> }
+    <main class="wd-grid">
+        <section class="wd-card wd-shift" aria-labelledby="shift-title">
+            <div class="wd-card-title"><span aria-hidden="true">▣</span><h2 id="shift-title">Today’s Shift</h2><span class="wd-pill">@(dashboard.TodayShift is null ? "Not scheduled" : dashboard.IsClockedIn ? "In progress" : "Scheduled")</span></div>
+            @if (dashboard.TodayShift is null) { <p class="wd-empty">No shift is scheduled for today.</p> }
+            else { <div class="wd-shift-facts"><div><small>Shift time</small><strong>@dashboard.TodayShift.ScheduledStartLocal.ToString("h:mm tt") – @dashboard.TodayShift.ScheduledEndLocal.ToString("h:mm tt")</strong></div><div><small>Restaurant date</small><strong>@dashboard.RestaurantDate.ToString("ddd, MMM d")</strong></div><div><small>Status</small><strong>@(dashboard.IsClockedIn ? "Clocked in" : "Clocked out")</strong></div></div>@if (!string.IsNullOrWhiteSpace(dashboard.TodayShift.ManagerNote)) { <button class="wd-row-link" @onclick="() => OpenHub(HubPanel.ManagerNote)">▤ 1 manager note <span>›</span></button> } }
+        </section>
+        <section class="wd-card wd-hours" aria-labelledby="hours-title">
+            <div class="wd-card-title"><span aria-hidden="true">◷</span><h2 id="hours-title">My Hours &amp; Attendance</h2><button class="wd-text-button" @onclick="OpenTimesheet">View full timesheet</button></div>
+            <div class="wd-hour-metrics"><div><small>Today</small><strong>@TodayHours</strong></div><div><small>This week</small><strong>@Hours(dashboard.HoursThisWeek)</strong></div></div><h3>Recent Attendance</h3>
+            <div class="wd-attendance-list">@foreach (var item in dashboard.RecentAttendance) { <div><span class="wd-check">✓</span><time>@item.ClockInLocal.ToString("ddd, MMM d, yyyy")</time><small>In @item.ClockInLocal.ToString("h:mm tt")</small><small>Out @(item.ClockOutLocal?.ToString("h:mm tt") ?? "—")</small><strong>@Hours(item.Hours)</strong></div> }</div>
+        </section>
+        <section class="wd-card wd-team" aria-labelledby="team-title"><div class="wd-card-title"><span aria-hidden="true">♧</span><h2 id="team-title">Today’s Team</h2><span class="wd-team-count">@dashboard.TodayTeam.Count on shift</span></div>@if (dashboard.TodayTeam.Count == 0) { <p class="wd-empty">No approved team portraits are scheduled today.</p> } else { <div class="wd-team-wheel" role="list" aria-label="Staff scheduled today">@foreach (var member in dashboard.TodayTeam) { <div class="wd-team-member" role="listitem"><img src="@member.PortraitPath" alt="Scheduled team member" /></div> }</div> }</section>
+    </main>
+    <footer class="wd-dock"><button class="wd-profile-launcher" @onclick="OpenProfile" aria-haspopup="dialog"><img src="@dashboard.PortraitPath" alt="" /><span>@dashboard.DisplayName</span><span>⌃</span></button><button class="wd-hub-launcher" @onclick="() => OpenHub(HubPanel.Announcements)" aria-haspopup="dialog"><span aria-hidden="true">◉</span><span>Staff Hub</span>@if (UnreadCount > 0) { <b>@UnreadCount</b> }</button><a class="wd-floor @(dashboard.CanEnterFloor ? "" : "is-disabled")" href="@(dashboard.CanEnterFloor ? "tables" : null)" aria-disabled="@(dashboard.CanEnterFloor ? "false" : "true")"><span aria-hidden="true">✦</span><span>Enter the Floor</span><span>→ Tables &amp; Orders</span></a></footer>
+}
+</div>
+
+@if (activeOverlay is not null)
+{
+<div class="wd-overlay" role="presentation" @onclick="CloseOverlay" @onkeydown="HandleOverlayKey"><section class="wd-modal @(activeOverlay == "hub" ? "wd-hub-modal" : "")" role="dialog" aria-modal="true" aria-labelledby="wd-modal-title" @onclick:stopPropagation><button class="wd-modal-close" aria-label="Close" @onclick="CloseOverlay">×</button>
+@if (activeOverlay == "profile") { <div class="wd-profile"><img src="@(dashboard?.PortraitPath ?? Restaurant.Current.DefaultPortrait)" alt="" /><h2 id="wd-modal-title">@dashboard?.DisplayName</h2><p>Waiter · @Restaurant.Current.DisplayName</p><a href="Account/Manage/ChangePassword">Change password</a><form action="Account/Logout" method="post"><AntiforgeryToken /><input type="hidden" name="ReturnUrl" value="Account/Login" /><button type="submit">Log out of the app</button></form></div> }
+else if (activeOverlay == "timesheet") { <h2 id="wd-modal-title">My timesheet</h2><p>Attendance records for your account only.</p><div class="wd-timesheet">@if (fullAttendance is null) { <p>Loading…</p> } else { @foreach (var item in fullAttendance.Records) { <div><time>@Local(item.ClockInUtc).ToString("MMM d, yyyy")</time><span>@Local(item.ClockInUtc).ToString("h:mm tt") – @(item.ClockOutUtc is null ? "Present" : Local(item.ClockOutUtc.Value).ToString("h:mm tt"))</span><strong>@Hours(item.Hours)</strong></div> } }</div> }
+else { <div class="wd-hub-layout"><nav aria-label="Staff Hub"><h2 id="wd-modal-title">Staff Hub</h2><button class="@(hubPanel == HubPanel.Announcements ? "active" : "")" @onclick="() => hubPanel = HubPanel.Announcements">Shift Announcements <b>@UnreadCount</b></button><button class="@(hubPanel == HubPanel.ManagerNote ? "active" : "")" @onclick="() => hubPanel = HubPanel.ManagerNote">Manager Notes</button><button class="@(hubPanel == HubPanel.Leave ? "active" : "")" @onclick="() => hubPanel = HubPanel.Leave">Leave Requests</button><a href="journal">My Journal <small>Private to you</small></a></nav><div class="wd-hub-content">
+@if (hubPanel == HubPanel.Announcements) { <h3>Shift Announcements</h3>@if (hub?.Announcements.Count == 0) { <p class="wd-empty">No active announcements.</p> } else { @foreach (var item in hub?.Announcements ?? []) { <article class="wd-announcement priority-@item.Priority.ToString().ToLowerInvariant()"><div><span>@item.Priority</span><time>@item.PublishLocal.ToString("MMM d, h:mm tt")</time></div><h4>@item.Title</h4><p>@item.Body</p><div>@if (item.RequiresAcknowledgment && !item.IsAcknowledged) { <button @onclick="() => Acknowledge(item)">Acknowledge</button> }<button disabled="@(item.RequiresAcknowledgment && !item.IsAcknowledged)" @onclick="() => Dismiss(item)">Dismiss</button></div></article> } } }
+else if (hubPanel == HubPanel.ManagerNote) { <h3>Manager Note</h3><div class="wd-manager-note">@(hub?.ManagerNote ?? "No manager note is attached to today’s shift.")</div> }
+else { <h3>Leave Requests</h3><div class="wd-leave-form"><label>Requested date<input type="date" @bind="leaveDate" /></label><label>Leave type<input maxlength="80" @bind="leaveType" placeholder="Optional" /></label><label>Private message<textarea maxlength="1000" @bind="leaveMessage" placeholder="Optional message for the manager"></textarea></label><button disabled="@busy" @onclick="SubmitLeave">Submit request</button></div><div class="wd-leave-list">@foreach (var request in leaveRequests) { <article><strong>@string.Join(", ", request.RequestedDates.Select(x => x.ToString("MMM d")))</strong><span class="wd-pill">@request.Status</span>@if (request.Status == LeaveRequestStatus.Pending) { <button @onclick="() => CancelLeave(request)">Cancel</button> }</article> }</div> }
+</div></div> }
+</section></div>
+}
+
+@code {
+    private WaiterDashboardView? dashboard; private StaffHubView? hub; private IReadOnlyList<LeaveRequestView> leaveRequests = []; private MyAttendanceView? fullAttendance; private DotNetObjectReference<WaiterDashboard>? overlayReference;
+    private ClaimsPrincipal principal = new(); private string username = ""; private bool loading = true, busy, failed, urgentOverlayPending, overlayOpenPending, interactiveReady; private string? message, activeOverlay; private HubPanel hubPanel;
+    private DateOnly leaveDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)); private string? leaveType, leaveMessage; private PeriodicTimer? timer; private CancellationTokenSource? timerCts;
+    private enum HubPanel { Announcements, ManagerNote, Leave }
+    private string Greeting => dashboard?.RestaurantNowLocal.Hour switch { < 12 => "Good morning", < 18 => "Good afternoon", _ => "Good evening" };
+    private int UnreadCount => hub?.Announcements.Count ?? 0;
+    private string TodayHours => dashboard?.RecentAttendance.FirstOrDefault(x => DateOnly.FromDateTime(x.ClockInLocal) == dashboard.RestaurantDate) is { } row ? Hours(row.Hours) : "0h 00m";
+    protected override async Task OnInitializedAsync() { overlayReference = DotNetObjectReference.Create(this); var state = await Authentication.GetAuthenticationStateAsync(); principal = state.User; username = principal.Identity?.Name ?? ""; await Load(); timer = new PeriodicTimer(TimeSpan.FromSeconds(30)); timerCts = new(); _ = RefreshLoop(timerCts.Token); }
+    private async Task Load() { loading = dashboard is null; try { dashboard = await DashboardService.GetAsync(principal); if (leaveDate <= dashboard.RestaurantDate) leaveDate = dashboard.RestaurantDate.AddDays(1); hub = await Communications.GetStaffHubAsync(principal); leaveRequests = await LeaveRequests.GetMineAsync(principal); if (activeOverlay is null && hub.Announcements.Any(x => x.Priority == StaffAnnouncementPriority.Urgent && x.RequiresAcknowledgment && !x.IsAcknowledged)) { hubPanel = HubPanel.Announcements; activeOverlay = "hub"; urgentOverlayPending = true; } failed = false; } catch (Exception ex) { message = ex.Message; failed = true; } finally { loading = false; } }
+    protected override async Task OnAfterRenderAsync(bool firstRender) { if (firstRender) { interactiveReady = true; await InvokeAsync(StateHasChanged); } if (urgentOverlayPending) { urgentOverlayPending = false; overlayOpenPending = true; } if (!overlayOpenPending) return; overlayOpenPending = false; await JS.InvokeVoidAsync("romsOverlay.open", ".wd-modal", overlayReference); }
+    private async Task RefreshLoop(CancellationToken token) { try { while (await timer!.WaitForNextTickAsync(token)) await InvokeAsync(Load); } catch (OperationCanceledException) { } }
+    private async Task ToggleClock() { if (busy) return; busy = true; try { if (dashboard!.IsClockedIn) { if (!await JS.InvokeAsync<bool>("confirm", "Clock out of your current duty?")) return; await Attendance.ClockOutAsync(username); message = "Clock-out recorded."; } else { await Attendance.ClockInAsync(username); message = "Clock-in recorded."; } await Load(); } catch (Exception ex) { message = ex.Message; failed = true; } finally { busy = false; } }
+    private async Task OpenProfile() { activeOverlay = "profile"; await FocusOverlay(); }
+    private async Task OpenHub(HubPanel panel) { hubPanel = panel; activeOverlay = "hub"; await FocusOverlay(); }
+    private async Task OpenTimesheet() { activeOverlay = "timesheet"; fullAttendance = await Attendance.GetMineAsync(username, DateTime.SpecifyKind(DateTime.UtcNow.AddDays(-45), DateTimeKind.Utc), DateTime.SpecifyKind(DateTime.UtcNow.AddDays(1), DateTimeKind.Utc)); await FocusOverlay(); }
+    private async Task FocusOverlay() { overlayOpenPending = true; await InvokeAsync(StateHasChanged); }
+    private async Task HandleOverlayKey(KeyboardEventArgs args) { if (args.Key == "Escape") await CloseOverlay(); }
+    [JSInvokable] public async Task CloseOverlayFromJs() => await CloseOverlay();
+    private async Task CloseOverlay() { activeOverlay = null; await InvokeAsync(StateHasChanged); await JS.InvokeVoidAsync("romsOverlay.close"); }
+    private async Task Acknowledge(StaffAnnouncementView item) { await Communications.AcknowledgeAsync(principal, item.Id, item.Version); await Load(); }
+    private async Task Dismiss(StaffAnnouncementView item) { await Communications.DismissAsync(principal, item.Id, item.Version); await Load(); }
+    private async Task SubmitLeave() { busy = true; try { await LeaveRequests.SubmitAsync(principal, [leaveDate], leaveType, leaveMessage); leaveType = leaveMessage = null; message = "Leave request submitted."; await Load(); } catch (Exception ex) { message = ex.Message; failed = true; } finally { busy = false; } }
+    private async Task CancelLeave(LeaveRequestView item) { if (!await JS.InvokeAsync<bool>("confirm", "Cancel this leave request?")) return; await LeaveRequests.CancelAsync(principal, item.Id, item.Version); await Load(); }
+    private static DateTime Local(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila"));
+    private static string Hours(decimal value) { var total = Math.Max(0, (int)Math.Round(value * 60)); return $"{total / 60}h {total % 60:00}m"; }
+    public async ValueTask DisposeAsync() { timerCts?.Cancel(); timer?.Dispose(); timerCts?.Dispose(); overlayReference?.Dispose(); try { await JS.InvokeVoidAsync("romsOverlay.close"); } catch (JSDisconnectedException) { } }
+}

@@ -14,6 +14,11 @@ main {
     background: transparent;
 }
 
+.page.waiter-dashboard-mode .sidebar,
+.page.waiter-dashboard-mode .top-row { display: none !important; }
+.page.waiter-dashboard-mode main,
+.page.waiter-dashboard-mode .content { width: 100% !important; max-width: none !important; padding: 0 !important; }
+
 .sidebar {
     background: rgba(17, 24, 34, 0.78);
     backdrop-filter: blur(20px) saturate(125%);

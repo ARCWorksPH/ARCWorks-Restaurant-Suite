@@ -2,6 +2,7 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject AuthenticationStateProvider Authentication
 
 <div id="session-timeout-warning" class="session-warning" role="alertdialog" aria-modal="true" aria-labelledby="session-warning-title" hidden>
     <div>
@@ -16,7 +17,7 @@
     <input id="session-timeout-return-url" type="hidden" name="ReturnUrl" value="Account/Login?reason=inactive" />
 </form>
 
-<div class="page @(isKitchenPage ? "kds-mode" : "standard-mode") @(isSidebarCollapsed ? "sidebar-collapsed" : "")">
+<div class="page @(isKitchenPage ? "kds-mode" : "standard-mode") @(isWaiterDashboard ? "waiter-dashboard-mode" : "") @(isSidebarCollapsed ? "sidebar-collapsed" : "")">
     <!-- Sidebar / Mobile Navigation -->
     <div class="sidebar mobile-sidebar-only">
         <NavMenu IsHorizontal="false" />
@@ -66,6 +67,8 @@
 
 @code {
     private bool isKitchenPage;
+    private bool isWaiterDashboard;
+    private bool isWaiter;
     private bool isSidebarCollapsed;
     private string connectionState = "Connected";
     private DotNetObjectReference<MainLayout>? dotNetRef;
@@ -74,6 +77,13 @@
     {
         UpdatePageType(Navigation.Uri);
         Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await Authentication.GetAuthenticationStateAsync();
+        isWaiter = state.User.IsInRole(RomsRoles.Waiter);
+        isWaiterDashboard = IsRoot(Navigation.Uri) && isWaiter;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -102,7 +112,10 @@
     {
         var relative = Navigation.ToBaseRelativePath(uri).Trim('/');
         isKitchenPage = string.Equals(relative, "kitchen", StringComparison.OrdinalIgnoreCase);
+        isWaiterDashboard = IsRoot(uri) && isWaiter;
     }
+
+    private bool IsRoot(string uri) => string.IsNullOrEmpty(Navigation.ToBaseRelativePath(uri).Trim('/'));
 
     private void ToggleSidebar() => isSidebarCollapsed = !isSidebarCollapsed;
 
