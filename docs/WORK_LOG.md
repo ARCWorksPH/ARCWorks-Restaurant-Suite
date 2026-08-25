@@ -1391,3 +1391,8 @@ the next screen phase.
 - Rebuilt and swapped only the isolated `127.0.0.1:7171` app. Its MariaDB,
   data-protection keys, and credentials were retained. Production remained
   untouched pending promotion.
+- After GitHub CI, GitGuardian, and Snyk passed, merged pull request #25 and
+  promoted the same corrected image to production. Preserved the former live
+  image as `roms:rollback-before-gate2h-final-20260825`; local and public health
+  and login endpoints returned HTTP 200 with zero post-replacement error-level
+  logs.

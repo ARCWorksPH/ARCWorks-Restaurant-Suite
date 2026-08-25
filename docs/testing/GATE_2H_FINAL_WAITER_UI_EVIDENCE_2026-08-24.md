@@ -4,10 +4,10 @@
 
 **Branch:** `agent/gate2h-final-waiter-ui`
 
-**Status:** corrected final candidate is live in the isolated preview. The
-first preview was rejected after owner inspection exposed runtime defects;
-the corrective build and its focused regressions now pass. Merge and
-production deployment remain pending until the corrected preview is promoted.
+**Status:** corrected final candidate is merged and deployed. The first preview
+was rejected after owner inspection exposed runtime defects; the corrective
+build, focused regressions, independent GitHub checks, and live health checks
+now pass.
 
 ## Owner-review correction, 2026-08-25
 
@@ -139,16 +139,36 @@ The personal Gate 2H surface is intentionally Waiter-only. Admin, Manager, and
 Kitchen accounts retain their established role surfaces; an Admin login is not
 a valid visual test for the Waiter dashboard.
 
-## Preserved boundaries
+## Preserved preview-stage boundaries
 
 - Only the isolated `127.0.0.1:7171` preview app container was recreated. Its
   retained database, keys, accounts, and credentials were not changed.
-- The production app, public tunnel, Cloudflare settings, and retained
-  production data were not changed.
+- During preview correction, the production app, public tunnel, Cloudflare
+  settings, and retained production data were not changed.
 - No restaurant/customer asset was copied from an external URL.
 - No plaintext journal data is presented outside the journal's own browser
   memory boundary.
 - This document does not claim owner visual acceptance. The audit and owner's
   inspection of the review branch are required before merge.
-- Gate 2I remains responsible for disposable restore, rollback execution,
-  production deployment, monitoring, and final runtime evidence.
+- Gate 2I subsequently performed the rollback-preserving production promotion
+  and runtime checks recorded below.
+
+## Gate 2I promotion closeout, 2026-08-25
+
+- Pull request #25 merged to `main` as `db12ebc` after both CI verify runs,
+  GitGuardian, and Snyk passed.
+- The former production image was preserved as
+  `roms:rollback-before-gate2h-final-20260825`.
+- Only `arcworks-resto-app-1` was recreated from the corrected image. MariaDB,
+  data-protection keys, Cloudflare Tunnel, and the other project containers
+  were not recreated.
+- Production app health: **healthy**.
+- `http://127.0.0.1:7070/health`: **HTTP 200**.
+- `http://127.0.0.1:7070/Account/Login`: **HTTP 200**.
+- `https://roms.arkworksph.online/health`: **HTTP 200**.
+- `https://roms.arkworksph.online/Account/Login`: **HTTP 200**.
+- Public approved restaurant wordmark asset: **HTTP 200**, 1,794,181 bytes.
+- Production error- and critical-level logs after replacement: **0**.
+
+This is automated and operational acceptance of the corrected UI. Owner
+inspection remains the final visual acceptance of the live rendered surface.
