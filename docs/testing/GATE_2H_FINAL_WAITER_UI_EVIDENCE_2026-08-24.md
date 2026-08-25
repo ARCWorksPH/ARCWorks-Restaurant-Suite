@@ -4,9 +4,33 @@
 
 **Branch:** `agent/gate2h-final-waiter-ui`
 
-**Status:** implementation complete and audit-ready; isolated preview is live
-for owner visual acceptance, while merge and production deployment remain
-pending.
+**Status:** corrected final candidate is live in the isolated preview. The
+first preview was rejected after owner inspection exposed runtime defects;
+the corrective build and its focused regressions now pass. Merge and
+production deployment remain pending until the corrected preview is promoted.
+
+## Owner-review correction, 2026-08-25
+
+The first Gate 2H preview was not accepted as final. Owner inspection found
+four material issues and one presentation defect:
+
+1. the Waiter dashboard failed while loading Staff Hub data because
+   MySQL.EntityFrameworkCore could not type-map a captured `List<Guid>`;
+2. a new encrypted journal received an empty successful response and the
+   browser attempted to parse it as JSON;
+3. the personal `/journal` route restored the legacy application sidebar and
+   top chrome;
+4. `/journal` was authenticated but not explicitly Waiter-role restricted;
+5. the dashboard used an old anniversary graphic instead of the configured
+   production restaurant wordmark.
+
+The correction keeps the database predicate scalar and performs the bounded
+receipt/version match in memory, emits literal JSON `null` for a missing key
+envelope, tolerates empty successful bodies in the browser client, treats the
+Waiter dashboard and journal as one chrome-free personal experience, restricts
+the route to Waiters, and points the compact restaurant identity to the
+approved production wordmark. No production database or live container was
+changed during correction.
 
 ## Implemented surface
 
@@ -69,19 +93,27 @@ container and a synthetic Waiter account. It verifies:
 5. no document-level horizontal overflow at 412 x 915 Android portrait,
    915 x 412 Android landscape, and 1920 x 1080 desktop;
 6. continued visibility of the shift and floor controls at every viewport.
+7. Staff Hub loads without the former MariaDB type-mapping exception;
+8. first-use journal setup renders the `Create private journal` action without
+   the former JSON parse exception;
+9. the journal retains the Waiter experience and does not expose legacy
+   sidebar or top chrome.
 
 Local verification completed:
 
-- solution build — **passed, 0 errors**;
-- focused Gate 2H MariaDB + Playwright test — **passed, 1/1**;
+- solution build after the correction — **passed, 0 warnings, 0 errors**;
+- full suite before the test-tool package pin — **passed, 118/118**;
+- focused real-MariaDB communication and journal regressions after the pin —
+  **passed, 12/12**;
+- corrected Gate 2H real-application Playwright scenario — **passed, 1/1**;
 - focused Gate 2A-through-2G service regressions — **passed, 32/32**
   (attendance, dashboard read model, staff communications, leave requests,
   demo staff fixtures, and private journal);
 - `git diff --check` — **passed**.
 
-The build continues to report the pre-existing NU1903 warning for SSH.NET
-2025.1.0 through the test-container dependency path. Gate 2H does not introduce
-or modify that package.
+The test projects now pin SSH.NET 2026.0.0 over the transitive Testcontainers
+dependency. `dotnet list package --vulnerable` reports no vulnerable packages,
+and the post-pin solution build reports zero warnings.
 
 ## Isolated visual-review runtime
 
@@ -97,6 +129,9 @@ reseeded or replaced.
 - Preview database container: **healthy** and not recreated.
 - Previous preview image retained as
   `roms:gate2h-preview-rollback-20260824`.
+- Corrected preview image: `roms:gate2h-final-correction-20260825`.
+- Rejected preview container retained for immediate rollback as
+  `arcworks-landing-preview-app-rollback-20260825-2015`.
 - Production loopback health endpoint: **HTTP 200** and unchanged.
 - Public ROMS health endpoint: **HTTP 200** and unchanged.
 

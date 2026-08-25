@@ -65,7 +65,9 @@ async function api(path, options = {}) {
         try { message = (await response.json()).detail ?? message; } catch { }
         throw new Error(message);
     }
-    return response.status === 204 ? null : response.json();
+    if (response.status === 204) return null;
+    const payload = await response.text();
+    return payload.trim() ? JSON.parse(payload) : null;
 }
 
 function element(tag, props = {}, ...children) {

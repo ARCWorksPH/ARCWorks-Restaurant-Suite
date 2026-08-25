@@ -17,7 +17,7 @@
     <input id="session-timeout-return-url" type="hidden" name="ReturnUrl" value="Account/Login?reason=inactive" />
 </form>
 
-<div class="page @(isKitchenPage ? "kds-mode" : "standard-mode") @(isWaiterDashboard ? "waiter-dashboard-mode" : "") @(isSidebarCollapsed ? "sidebar-collapsed" : "")">
+<div class="page @(isKitchenPage ? "kds-mode" : "standard-mode") @(isWaiterExperience ? "waiter-dashboard-mode" : "") @(isSidebarCollapsed ? "sidebar-collapsed" : "")">
     <!-- Sidebar / Mobile Navigation -->
     <div class="sidebar mobile-sidebar-only">
         <NavMenu IsHorizontal="false" />
@@ -67,7 +67,7 @@
 
 @code {
     private bool isKitchenPage;
-    private bool isWaiterDashboard;
+    private bool isWaiterExperience;
     private bool isWaiter;
     private bool isSidebarCollapsed;
     private string connectionState = "Connected";
@@ -83,7 +83,7 @@
     {
         var state = await Authentication.GetAuthenticationStateAsync();
         isWaiter = state.User.IsInRole(RomsRoles.Waiter);
-        isWaiterDashboard = IsRoot(Navigation.Uri) && isWaiter;
+        isWaiterExperience = IsWaiterPersonalRoute(Navigation.Uri) && isWaiter;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -112,10 +112,15 @@
     {
         var relative = Navigation.ToBaseRelativePath(uri).Trim('/');
         isKitchenPage = string.Equals(relative, "kitchen", StringComparison.OrdinalIgnoreCase);
-        isWaiterDashboard = IsRoot(uri) && isWaiter;
+        isWaiterExperience = IsWaiterPersonalRoute(uri) && isWaiter;
     }
 
-    private bool IsRoot(string uri) => string.IsNullOrEmpty(Navigation.ToBaseRelativePath(uri).Trim('/'));
+    private bool IsWaiterPersonalRoute(string uri)
+    {
+        var relative = Navigation.ToBaseRelativePath(uri).Trim('/');
+        return string.IsNullOrEmpty(relative) ||
+               string.Equals(relative, "journal", StringComparison.OrdinalIgnoreCase);
+    }
 
     private void ToggleSidebar() => isSidebarCollapsed = !isSidebarCollapsed;
 

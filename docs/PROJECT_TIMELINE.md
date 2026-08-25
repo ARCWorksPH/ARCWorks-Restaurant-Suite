@@ -220,3 +220,13 @@ that acceptance should workflow completion be claimed.
   data unchanged. Audit and explicit owner visual acceptance remain required
   before merge; Gate 2I production deployment and recovery acceptance has not
   started.
+## 2026-08-25 — Gate 2H owner-review defects corrected
+
+- Owner visual inspection correctly rejected the initial preview after finding
+  a MariaDB Staff Hub failure, first-use journal JSON failure, legacy chrome on
+  the journal, and an incorrect restaurant logo.
+- All reported defects were corrected with real MariaDB and Playwright
+  regressions rather than presentation-only workarounds.
+- The corrected isolated preview is healthy at `127.0.0.1:7171`; production is
+  deliberately unchanged until the verified branch is promoted through Gate
+  2I.

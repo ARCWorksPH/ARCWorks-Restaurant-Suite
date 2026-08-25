@@ -1,6 +1,6 @@
 # Gate 2 Waiter Dashboard — Final Implementation Plan
 
-**Status:** final owner-approved baseline; Gates 2A through 2G are accepted and Gate 2H implementation is complete on its isolated review branch. Gate 2H is deployed only to the isolated `127.0.0.1:7171` visual-review runtime; it remains unmerged and absent from production until its audit and owner visual acceptance are recorded. Gate 2I has not started.
+**Status:** final owner-approved baseline; Gates 2A through 2G are accepted and Gate 2H's owner-reported preview defects were corrected on its isolated review branch. The corrected candidate is deployed only to `127.0.0.1:7171`; merge and production promotion remain Gate 2I work. Gate 2I has begun with corrective verification but production remains unchanged.
 
 **Branch at plan freeze:** `design/gate2-waiter-dashboard-contract`
 

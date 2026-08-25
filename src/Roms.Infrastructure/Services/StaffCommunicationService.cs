@@ -39,12 +39,14 @@ public sealed class StaffCommunicationService(
             .ThenByDescending(x => x.PublishUtc)
             .ToListAsync(cancellationToken);
 
-        var ids = announcements.Select(x => x.Id).ToList();
-        var receipts = ids.Count == 0
-            ? []
-            : await db.StaffAnnouncementReceipts.AsNoTracking()
-                .Where(x => x.UserId == waiter.Id && ids.Contains(x.AnnouncementId))
-                .ToListAsync(cancellationToken);
+        // Keep the provider-facing predicate scalar. MySQL.EntityFrameworkCore
+        // cannot reliably type-map a captured List<Guid> used by Contains(),
+        // which previously broke the entire Waiter dashboard at runtime. A
+        // user's receipt set is already bounded and is filtered to the live
+        // announcement/version keys in memory below.
+        var receipts = await db.StaffAnnouncementReceipts.AsNoTracking()
+            .Where(x => x.UserId == waiter.Id)
+            .ToListAsync(cancellationToken);
         var currentReceipts = receipts.ToDictionary(x => (x.AnnouncementId, x.AnnouncementVersion));
 
         var visible = announcements

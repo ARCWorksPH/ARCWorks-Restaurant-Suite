@@ -472,6 +472,8 @@ public sealed class RomsApplicationSmokeTests : PageTest
             await Expect(floorLink).ToHaveAttributeAsync("aria-disabled", "true");
             await Page.GetByRole(AriaRole.Button, new() { Name = "Staff Hub" }).ClickAsync();
             await Expect(Page.GetByRole(AriaRole.Dialog)).ToBeVisibleAsync();
+            await Expect(Page.GetByText("Expression '@ids' in the SQL tree"))
+                .ToHaveCountAsync(0);
             await Page.Keyboard.PressAsync("Escape");
             await Expect(Page.GetByRole(AriaRole.Dialog)).ToHaveCountAsync(0);
 
@@ -495,6 +497,16 @@ public sealed class RomsApplicationSmokeTests : PageTest
                     .ToBeVisibleAsync();
                 await Expect(floorLink).ToBeVisibleAsync();
             }
+
+            await Page.GotoAsync($"{baseAddress}/journal");
+            await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "My Private Journal" }))
+                .ToBeVisibleAsync();
+            await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Create private journal" }))
+                .ToBeVisibleAsync();
+            await Expect(Page.Locator(".page")).ToHaveClassAsync(new Regex("\\bwaiter-dashboard-mode\\b"));
+            await Expect(Page.Locator(".page > .sidebar")).ToBeHiddenAsync();
+            await Expect(Page.Locator(".page > main > .top-row")).ToBeHiddenAsync();
+            await Expect(Page.GetByText("Unexpected end of JSON input")).ToHaveCountAsync(0);
         }
         finally
         {
