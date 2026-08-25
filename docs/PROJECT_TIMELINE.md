@@ -230,3 +230,7 @@ that acceptance should workflow completion be claimed.
 - The corrected isolated preview is healthy at `127.0.0.1:7171`; production is
   deliberately unchanged until the verified branch is promoted through Gate
   2I.
+- Pull request #25 passed independent GitHub verification and was merged. The
+  corrected Waiter UI was promoted to the live app with a retained rollback
+  image; local and public health/login checks passed without recreating the
+  database or tunnel.
