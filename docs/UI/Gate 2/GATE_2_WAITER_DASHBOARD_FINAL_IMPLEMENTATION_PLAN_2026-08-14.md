@@ -1,6 +1,6 @@
 # Gate 2 Waiter Dashboard — Final Implementation Plan
 
-**Status:** final owner-approved baseline; Gates 2A through 2G are implemented. Gate 2G evidence is recorded in `docs/testing/GATE_2G_PRIVATE_JOURNAL_EVIDENCE_2026-08-23.md`; Gate 2H is next after Gate 2G repository closeout.
+**Status:** final owner-approved baseline; Gates 2A through 2G are accepted and Gate 2H's owner-reported preview defects were corrected on its isolated review branch. The corrected candidate is deployed only to `127.0.0.1:7171`; merge and production promotion remain Gate 2I work. Gate 2I has begun with corrective verification but production remains unchanged.
 
 **Branch at plan freeze:** `design/gate2-waiter-dashboard-contract`
 
@@ -234,6 +234,22 @@ Implement the frozen landscape and portrait composition only after Gates 2A-2G e
 
 **Exit:** component tests, Playwright role tests, 1920 x 1080 inspection, Android portrait/landscape inspection, no-horizontal-overflow checks, and owner visual acceptance pass.
 
+**Implementation note (2026-08-24):** The frozen Waiter composition now uses
+the stable Gate 2A-through-2G contracts in one role-restricted dashboard. It
+removes the legacy application chrome only on the Waiter root route, preserves
+server-authoritative attendance and floor-entry decisions, and implements the
+accepted restaurant identity, shift, hours, portrait-only team, profile,
+Staff Hub, leave, announcement, manager-note, and journal destinations. The
+overlay boundary includes inert background content, trapped keyboard focus,
+Escape/visible-close behavior, and focus return. Responsive checks cover
+1920 x 1080, Android portrait, and Android landscape without page-level
+horizontal overflow. See
+`docs/testing/GATE_2H_FINAL_WAITER_UI_EVIDENCE_2026-08-24.md`. The isolated
+`127.0.0.1:7171` runtime was updated for owner visual review with its previous
+image retained as an explicit rollback point. Production and its tunnel were
+not changed; audit and explicit owner visual acceptance remain the merge and
+production-deployment boundary.
+
 ### Gate 2I — Recovery and deployment acceptance
 
 - Run database migration against a disposable restored instance first.
@@ -310,8 +326,8 @@ For every gate:
 ## 8. Current readiness decision
 
 The stage is feasible, its information architecture is approved, and Gates 2A
-through 2G now provide the stable server, persistence, privacy, and browser
-contracts required by the accepted dashboard design. Gate 2H is the next gate:
-integrate those contracts into the frozen responsive landscape and portrait
-composition without reopening completed backend scope. Gate 2I remains the
-recovery, rollback, and deployment-acceptance gate.
+through 2G provide the stable server, persistence, privacy, and browser
+contracts used by the Gate 2H review implementation. Gate 2H is now the audit
+and owner-acceptance checkpoint; its isolated visual-review deployment does not
+authorize a merge or production deployment. Gate 2I remains the recovery,
+rollback, and production-deployment-acceptance gate.

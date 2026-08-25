@@ -13,7 +13,10 @@ public static class JournalEndpoints
 
         group.MapGet("/key-envelope", async (HttpContext context, IJournalService service,
             CancellationToken cancellationToken) =>
-            Results.Ok(await service.GetKeyEnvelopeAsync(context.User, cancellationToken)));
+            // Results.Ok(null) can be emitted as an empty successful response.
+            // The browser contract requires a JSON literal (`null`) when a
+            // waiter has not created a journal envelope yet.
+            Results.Json(await service.GetKeyEnvelopeAsync(context.User, cancellationToken)));
 
         group.MapPut("/key-envelope", async (JournalKeyEnvelopeWrite value, HttpContext context,
             IJournalService service, CancellationToken cancellationToken) =>

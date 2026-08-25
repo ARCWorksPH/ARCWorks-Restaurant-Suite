@@ -172,6 +172,7 @@ public sealed record JournalEntryWrite(
     long? ExpectedVersion);
 public sealed record WaiterDashboardView(
     string DisplayName,
+    string PortraitPath,
     DateTime RestaurantNowLocal,
     DateOnly RestaurantDate,
     bool IsClockedIn,

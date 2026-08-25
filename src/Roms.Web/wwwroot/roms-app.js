@@ -130,6 +130,53 @@
         }
     };
 
+    let overlayReturnFocus = null;
+    let overlayKeyHandler = null;
+    window.romsOverlay = {
+        open: (selector, dotnetReference) => {
+            window.romsOverlay.close();
+            const modal = document.querySelector(selector);
+            if (!modal) return;
+            document.querySelector(".wd-shell")?.setAttribute("inert", "");
+            overlayReturnFocus = document.activeElement;
+            const focusableSelector = "button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex='-1'])";
+            overlayKeyHandler = event => {
+                if (event.key === "Escape") {
+                    event.preventDefault();
+                    void dotnetReference?.invokeMethodAsync("CloseOverlayFromJs");
+                    return;
+                }
+                if (event.key !== "Tab") return;
+                const focusable = Array.from(modal.querySelectorAll(focusableSelector))
+                    .filter(element => element.getClientRects().length > 0);
+                if (focusable.length === 0) {
+                    event.preventDefault();
+                    return;
+                }
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            };
+            document.addEventListener("keydown", overlayKeyHandler);
+            requestAnimationFrame(() => modal.querySelector(focusableSelector)?.focus());
+            document.body.style.overflow = "hidden";
+        },
+        close: () => {
+            document.body.style.overflow = "";
+            document.querySelector(".wd-shell")?.removeAttribute("inert");
+            if (overlayKeyHandler) document.removeEventListener("keydown", overlayKeyHandler);
+            overlayKeyHandler = null;
+            overlayReturnFocus?.focus?.();
+            overlayReturnFocus = null;
+        }
+    };
+
     const clearTimers = () => {
         clearTimeout(idleTimer);
         clearTimeout(warningTimer);

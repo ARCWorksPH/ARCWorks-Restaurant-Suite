@@ -199,3 +199,34 @@ that acceptance should workflow completion be claimed.
   authorized until both mockups are explicitly accepted.
 - Deferred possible hotel/resort adaptation until near project completion so
   it cannot expand the current restaurant scope.
+
+## 2026-08-24 — Gate 2H Waiter dashboard review implementation
+
+- Integrated the accepted personal Waiter dashboard composition with the
+  completed Gate 2A-through-2G service contracts; no backend business rule was
+  recreated in the browser.
+- Removed legacy office navigation only from the Waiter root surface while
+  preserving the established Kitchen, Manager, and Admin layouts.
+- Added the server-time greeting, attendance and floor gate, current shift,
+  weekly hours, self-only timesheet, portrait-only Today's Team, profile,
+  announcements, Manager note, leave, and encrypted-journal destinations.
+- Completed the responsive landscape/portrait component system and keyboard
+  overlay boundary, including inert background, focus trapping, Escape close,
+  focus return, reduced-motion handling, and no-overflow automation.
+- Published the accepted branch only to the isolated `127.0.0.1:7171` visual
+  review runtime while preserving its MariaDB volume, data-protection keys,
+  logins, and previous image as `roms:gate2h-preview-rollback-20260824`.
+- Kept `127.0.0.1:7070`, the public tunnel runtime, and retained production
+  data unchanged. Audit and explicit owner visual acceptance remain required
+  before merge; Gate 2I production deployment and recovery acceptance has not
+  started.
+## 2026-08-25 — Gate 2H owner-review defects corrected
+
+- Owner visual inspection correctly rejected the initial preview after finding
+  a MariaDB Staff Hub failure, first-use journal JSON failure, legacy chrome on
+  the journal, and an incorrect restaurant logo.
+- All reported defects were corrected with real MariaDB and Playwright
+  regressions rather than presentation-only workarounds.
+- The corrected isolated preview is healthy at `127.0.0.1:7171`; production is
+  deliberately unchanged until the verified branch is promoted through Gate
+  2I.

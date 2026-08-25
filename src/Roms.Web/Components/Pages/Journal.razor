@@ -1,5 +1,5 @@
 @page "/journal"
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Waiter")]
 @using Roms.Web.Configuration
 @inject IJSRuntime JS
 @inject IRestaurantProfile Restaurant

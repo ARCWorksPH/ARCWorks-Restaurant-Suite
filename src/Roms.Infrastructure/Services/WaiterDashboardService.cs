@@ -29,7 +29,7 @@ public sealed class WaiterDashboardService(
                             join userRole in db.UserRoles.AsNoTracking() on user.Id equals userRole.UserId
                             join role in db.Roles.AsNoTracking() on userRole.RoleId equals role.Id
                             where user.Id == userId && user.IsActive && role.Name == RomsRoles.Waiter
-                            select new { user.Id, user.DisplayName, user.UserName })
+                            select new { user.Id, user.DisplayName, user.UserName, user.ProfilePortraitPath })
             .SingleOrDefaultAsync(cancellationToken)
             ?? throw new DomainException("An active Waiter account is required.");
 
@@ -86,6 +86,9 @@ public sealed class WaiterDashboardService(
 
         return new WaiterDashboardView(
             DisplayName: string.IsNullOrWhiteSpace(waiter.DisplayName) ? waiter.UserName! : waiter.DisplayName,
+            PortraitPath: IsLocalPortrait(waiter.ProfilePortraitPath)
+                ? waiter.ProfilePortraitPath!
+                : DefaultPortraitPath,
             RestaurantNowLocal: restaurantClock.LocalNow,
             RestaurantDate: localDate,
             IsClockedIn: openAttendance is not null,

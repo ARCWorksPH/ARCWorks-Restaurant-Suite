@@ -1375,3 +1375,19 @@ the next screen phase.
   `docs/testing/GATE_2G_PRIVATE_JOURNAL_EVIDENCE_2026-08-23.md`.
 - Preserved live/preview deployments and deferred final Staff Hub integration
   and responsive visual acceptance to Gate 2H.
+# 2026-08-25 — Gate 2H owner-review correction
+
+- Reproduced and corrected the Waiter dashboard MariaDB `@ids` type-mapping
+  failure, first-use journal empty-JSON failure, returned legacy chrome on the
+  journal route, missing Waiter-only journal restriction, and wrong compact
+  restaurant logo.
+- Added a real-MariaDB communication regression and extended the real-browser
+  Gate 2H test through Staff Hub and first-use private journal rendering.
+- Pinned the test-only SSH.NET dependency to 2026.0.0; the solution builds with
+  zero warnings and the package vulnerability scan is clean.
+- Full suite passed 118/118 before the package pin; post-pin focused MariaDB
+  regressions passed 12/12 and the corrected Gate 2H Playwright scenario passed
+  1/1 at Android portrait, Android landscape, and desktop viewports.
+- Rebuilt and swapped only the isolated `127.0.0.1:7171` app. Its MariaDB,
+  data-protection keys, and credentials were retained. Production remained
+  untouched pending promotion.
