@@ -6,6 +6,11 @@ ARCWorks Restaurant Suite is a single-location, touch-first restaurant workflow 
 > management workflow is implemented and continuously tested. Public production
 > rollout, multi-restaurant tenancy, and AI features are intentionally gated.
 
+The authoritative human-readable decision and progress record is the
+[`Project Chronicle`](00_PROJECT_CONTROL/PROJECT_CHRONICLE.md). Add material
+decisions, milestones, failures, acceptance results, and external AI handoffs to
+that append-only record while retaining detailed evidence in its subject file.
+
 ## Collaboration and feedback
 
 ARCWorks Restaurant Suite is being prepared as a practical, auditable restaurant
