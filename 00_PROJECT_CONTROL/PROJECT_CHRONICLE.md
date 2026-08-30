@@ -461,6 +461,53 @@ count or deleting any worktree or branch.
 Add all future entries below this line. Use the template that follows and keep
 entries in date order.
 
+### 2026-08-30 — Approved-drive read-only audit completed
+
+**Context:** The project owner approved a read-only scan of the project-eligible
+`D:`, `F:`, `G:`, `H:`, and `I:` volumes before consolidating storage into one
+primary project drive and one backup drive. `C:` and `E:` remain restricted.
+
+**Decision:** Do not delete files or modify partitions yet. Preserve the current
+storage state while runtime dependencies, dirty worktrees, backup repositories,
+and non-ROMS ARCWorks projects are classified.
+
+**Reason:** The scan found active Docker storage on D:, production and preview
+Compose dependencies in dirty Git worktrees, live PostgreSQL data on G:, active
+backup staging on F:, separate healthy Restic repositories on G: and H:, and
+restore evidence plus other projects on I:. Similar folders are not reliable
+proof of redundancy.
+
+**Expected result:** Use the audit to obtain product-owner scope decisions,
+preserve unique data, create verified temporary copies, and execute a staged
+two-drive migration without losing runtime state or project history.
+
+**Actual result:** Approximately 246.1 GiB across 155,509 files was enumerated.
+Both Restic repositories contain 47 aligned snapshots through 2026-08-30 and
+passed structural checks. Two representative duplicate pairs were confirmed by
+SHA-256. No file, partition, service, task, container, or repository was
+modified. Detailed SMART and BitLocker state remain unverified.
+
+**Risks and boundaries:** `D:\ARCWorks_Restaurant_Suite` has 27 changes and
+supplies production Compose; the preview worktree has five untracked assets;
+the old inventory worktree has 343 changes. PostgreSQL runs from G:. The backup
+configuration hard-codes all approved drive letters, and the latest full,
+maintenance, and restore task records show terminated interactive runs even
+though database-only backups and both Restic repositories are healthy.
+
+**Reversal or revisit condition:** Cleanup may begin only after the product owner
+decides the scope of other ARCWorks projects and after dirty Git, Docker,
+PostgreSQL, backup, and restore evidence has a verified preservation plan.
+
+**Contributor:** Codex performed the read-only audit; the product owner retains
+all deletion, partition, and product-scope authority.
+
+**Evidence:**
+
+- `00_PROJECT_CONTROL/storage/DRIVE_AUDIT_2026-08-30.md`
+- `C:\ProgramData\ARCWorks\Backup` targeted task/configuration state
+- Restic checks of `G:\ARCWorks_Restic_Replication` and
+  `H:\ARCWorks_Restic_Local`
+
 ---
 
 ## Entry template
