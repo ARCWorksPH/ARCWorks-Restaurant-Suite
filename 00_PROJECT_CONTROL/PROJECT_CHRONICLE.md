@@ -510,6 +510,54 @@ all deletion, partition, and product-scope authority.
 
 ---
 
+### 2026-08-30 — Temporary preservation staged and Nextcloud retirement started
+
+**Context:** The project owner approved consolidation of Restaurant Suite data
+onto temporary D: storage and retirement of the unused Nextcloud project before
+the approved drives are repartitioned.
+
+**Decision:** Copy and verify before deleting. Keep live D: worktrees and Docker
+in their registered locations, stage the project/backup material from F:/G:/H:/I:
+under a restricted D: directory, and remove only components proven to be
+Nextcloud-specific. Do not classify the standalone PostgreSQL installation as
+Nextcloud because the deployed Nextcloud instance used SQLite.
+
+**Reason:** Moving active D: worktrees would break Git and Compose paths, while
+copying data before source-drive cleanup preserves rollback. Separating
+Nextcloud SQLite from standalone PostgreSQL prevents an unsupported deletion.
+
+**Expected result:** A verified temporary preservation set, no active Nextcloud
+runtime, and a bounded elevated step for operations unavailable to the current
+process.
+
+**Actual result:** The protected staging set contains a validated live ROMS
+MariaDB dump, exact verified copies of the F: backup/Docker/Codex sets, both
+healthy 47-snapshot Restic repositories, I: restore/Codex evidence, and the
+backup runtime configuration. The Nextcloud-only Ubuntu WSL distribution and
+its VHDX were removed without affecting `docker-desktop`. Windows denied
+scheduled-task, PostgreSQL-service, and G: recursive-delete operations, so a
+reviewable administrator script was created for those remaining bounded steps.
+
+**Risks and boundaries:** No partition may change yet. PostgreSQL must be
+stopped and copied consistently. G: Nextcloud data/proxy leftovers remain until
+the administrator script passes. The unrelated ARK server on I: still needs a
+product-owner disposition before I: can be rebuilt.
+
+**Reversal or revisit condition:** Source-drive cleanup may advance after the
+administrator script passes and its evidence log confirms preservation and
+Nextcloud residue checks.
+
+**Contributor:** The product owner approved the scope; Codex performed the
+preservation, verification, WSL retirement, and bounded admin handoff.
+
+**Evidence:**
+
+- `00_PROJECT_CONTROL/storage/MIGRATION_CHECKPOINT_2026-08-30.md`
+- `00_PROJECT_CONTROL/storage/Complete-ARCWorksMigrationAdminSteps.ps1`
+- `D:\ARCWorks_Migration_Staging_20260830`
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD — Short decision or milestone title
