@@ -558,6 +558,54 @@ preservation, verification, WSL retirement, and bounded admin handoff.
 
 ---
 
+### 2026-09-04 — Physical-disk repartition readiness established
+
+**Context:** The owner completed the elevated migration run, approved retirement
+of the standalone PostgreSQL stack as part of the abandoned Nextcloud work, and
+requested a definitive format-safety assessment.
+
+**Decision:** Evaluate whole physical disks rather than individual drive
+letters. Disk 3 (F:/H:) is the first reformat candidate. Disk 2 (G:/I:) remains
+blocked by PostgreSQL cleanup and the unrelated ARK server decision. D: remains
+the live temporary/runtime disk and E:/C: remain prohibited.
+
+**Reason:** F:/H: share one disk and G:/I: share another. Formatting one
+partition is not equivalent to safely rebuilding the physical disk. Docker and
+Portfolio mount inspection also proved the running Portfolio site still binds
+its files from restricted E:, while ROMS and monitoring depend on D:.
+
+**Expected result:** Rebuild Disk 3 into one verified backup volume first, then
+rebuild Disk 2 into the primary project volume only after an independent copy
+exists and all Disk 2 blockers are resolved.
+
+**Actual result:** The administrator run successfully disabled the backup tasks,
+stopped PostgreSQL/pgAgent, and verified a 24,877-file physical PostgreSQL copy.
+It stopped on an empty PostGIS directory before cleanup. The script was fixed,
+given an explicit `-RemovePostgreSQL` option, and paired with a physical-disk
+readiness matrix. No partition operation was executed.
+
+**Risks and boundaries:** D: cannot be formatted while it holds Docker, ROMS,
+monitoring, worktrees, and staging. E: cannot be touched because Portfolio has
+live bind mounts there. Disk 2 cannot be touched until the corrected elevated
+cleanup passes and the owner decides whether to preserve or delete I:'s ARK
+server.
+
+**Reversal or revisit condition:** Readiness must be rescanned immediately before
+each destructive disk operation. A new runtime dependency, failed copy check,
+or missing backup invalidates the relevant ready status.
+
+**Contributor:** The owner ran the elevated preservation step and approved
+PostgreSQL retirement; Codex verified state and prepared the corrected cleanup
+and repartition sequence.
+
+**Evidence:**
+
+- `00_PROJECT_CONTROL/storage/REPARTITION_READINESS_2026-09-04.md`
+- `00_PROJECT_CONTROL/storage/Complete-ARCWorksMigrationAdminSteps.ps1`
+- `C:\Users\GBServerPH\Desktop\Administrator PowerShell.txt`
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD — Short decision or milestone title

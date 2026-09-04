@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [switch]$Execute
+    [switch]$Execute,
+    [switch]$RemovePostgreSQL
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,11 +29,28 @@ New-Item -ItemType Directory -Path $evidenceRoot -Force | Out-Null
 Start-Transcript -LiteralPath $logPath -Append | Out-Null
 
 function Get-TreeMeasure([string]$Path) {
-    $measure = Get-ChildItem -LiteralPath $Path -File -Force -Recurse -ErrorAction Stop |
-        Measure-Object -Property Length -Sum
+    $files = @(Get-ChildItem -LiteralPath $Path -File -Force -Recurse -ErrorAction Stop)
+    $measure = $files | Measure-Object -Property Length -Sum
     [pscustomobject]@{
-        Files = [long]$measure.Count
-        Bytes = [long]$measure.Sum
+        Files = [long]$files.Count
+        Bytes = if ($null -eq $measure.Sum) { [long]0 } else { [long]$measure.Sum }
+    }
+}
+
+function Invoke-Uninstaller {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string[]]$Arguments
+    )
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        Write-Warning "Uninstaller is absent: $Path"
+        return
+    }
+
+    $process = Start-Process -FilePath $Path -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
+    if ($process.ExitCode -ne 0) {
+        throw "Uninstaller failed with exit code $($process.ExitCode): $Path"
     }
 }
 
@@ -116,7 +134,24 @@ try {
     Get-NetFirewallRule -DisplayName 'PostgreSQL - WSL2 only' -ErrorAction SilentlyContinue |
         Remove-NetFirewallRule
 
-    Write-Host '6. Verifying active Nextcloud residue...'
+    if ($RemovePostgreSQL) {
+        Write-Host '6. Uninstalling the retired standalone PostgreSQL toolchain...'
+        Invoke-Uninstaller 'G:\PostgreSQL\uninstall-postgis-bundle-pg18x64-3.6.2-1.exe' @('/S')
+        Invoke-Uninstaller 'G:\PostgreSQL\uninstall-pgagent.exe' @('--mode', 'unattended')
+        Invoke-Uninstaller 'G:\PostgreSQL\uninstall-postgresql.exe' @('--mode', 'unattended')
+
+        foreach ($target in @('G:\PostgreSQL', 'G:\PostGIS', 'G:\StackBuilder')) {
+            $absolute = [IO.Path]::GetFullPath($target)
+            if (-not $absolute.StartsWith('G:\', [StringComparison]::OrdinalIgnoreCase) -or $absolute -eq 'G:\') {
+                throw "Refusing unsafe PostgreSQL cleanup target: $absolute"
+            }
+            if (Test-Path -LiteralPath $absolute) {
+                Remove-Item -LiteralPath $absolute -Recurse -Force
+            }
+        }
+    }
+
+    Write-Host '7. Verifying active Nextcloud and PostgreSQL residue...'
     $remainingTargets = @($nextcloudTargets | Where-Object { Test-Path -LiteralPath $_ })
     $ubuntuRegistered = [bool]((wsl.exe --list --quiet 2>$null) -match '^Ubuntu$')
     $portProxy = @(netsh.exe interface portproxy show all | Select-String -Pattern 'nextcloud|80|443')
@@ -129,8 +164,30 @@ try {
         throw "Nextcloud cleanup verification failed. Remaining targets: $($remainingTargets -join ', ')"
     }
 
+    if ($RemovePostgreSQL) {
+        $remainingServices = @(Get-CimInstance Win32_Service | Where-Object {
+            $_.Name -in @('pgagent-pg18', 'postgresql-x64-18') -or $_.PathName -match 'G:\\PostgreSQL'
+        })
+        $uninstallRoots = @(
+            'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+            'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+            'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
+        )
+        $remainingPrograms = @(Get-ItemProperty $uninstallRoots -ErrorAction SilentlyContinue | Where-Object {
+            $_.DisplayName -match 'PostgreSQL 18|pgAgent_PG18|PostGIS Bundle 3\.6\.2'
+        })
+        if ($remainingServices.Count -gt 0 -or $remainingPrograms.Count -gt 0 -or
+            (Test-Path -LiteralPath 'G:\PostgreSQL')) {
+            throw 'PostgreSQL cleanup verification failed. Review the transcript before formatting G:.'
+        }
+    }
+
     Write-Host 'ADMIN MIGRATION STEPS: PASS'
-    Write-Host 'PostgreSQL remains installed but stopped. Do not repartition G: until the staged copy is independently reviewed.'
+    if ($RemovePostgreSQL) {
+        Write-Host 'The retired standalone PostgreSQL toolchain was removed after its staged copy was verified.'
+    } else {
+        Write-Host 'PostgreSQL remains installed but stopped. Do not repartition G: until the staged copy is independently reviewed.'
+    }
 } finally {
     Stop-Transcript | Out-Null
 }

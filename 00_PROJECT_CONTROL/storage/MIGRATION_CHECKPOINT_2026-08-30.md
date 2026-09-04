@@ -62,6 +62,21 @@ The script performs only the following bounded operations:
 PostgreSQL is intentionally not uninstalled by this script. Its staged copy and
 ownership must be reviewed before the later G: repartition action.
 
+### 2026-09-04 administrator-run result
+
+The first elevated run disabled all four backup tasks, stopped PostgreSQL and
+pgAgent, and copied `G:\PostgreSQL` successfully: 24,877 files and
+1,367,205,999 bytes matched the staging copy. The run then stopped while
+verifying the intentionally empty `G:\PostGIS` directory because strict mode
+encountered an empty-pipeline count edge case. No Nextcloud or PostgreSQL files
+were deleted by that interrupted run.
+
+The script was corrected to handle empty directories. At the project owner's
+request it now accepts `-RemovePostgreSQL`; this invokes the registered PostGIS,
+pgAgent, and PostgreSQL uninstallers in unattended mode, removes their verified
+G: leftovers, and fails unless their services and installed-program records are
+gone.
+
 ## Prohibited next actions
 
 Do not delete the original F:/G:/H:/I: preservation sources and do not alter any
