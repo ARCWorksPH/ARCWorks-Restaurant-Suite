@@ -606,6 +606,90 @@ and repartition sequence.
 
 ---
 
+### 2026-09-26 — D: and E: retained as backup drives; ROMS rebuild archive consolidated
+
+**Context:** The owner plans a clean Windows installation and new projects. D:
+and E: are designated backup drives and will not be formatted. Historical ROMS
+source/worktree copies on D: are consuming workbench space and should be
+documented before verified duplicates are removed.
+
+**Decision:** Keep the canonical development checkout at
+`D:\ARCWorks_Restaurant_Suite_Gate1_Deploy`, the active ROMS Compose/config
+root at `D:\ARCWorks_Restaurant_Suite`, and the owner-added Docker backup tree
+at `D:\ARCWorks_Restaurant Suite\Docker\storage`. Keep the tagged Docker
+image archive, current production and preview logical dumps, Git bundle,
+Portfolio source snapshot, and separate production/preview Data Protection key
+exports. Document historical decisions in this chronicle and the D: rebuild
+diary. Stage only source/worktree copies that pass archive comparison and
+content-hash verification; do not empty the Recycle Bin before recovery checks.
+
+**Reason:** A clean working environment must not remove the only copy of source,
+deployment secrets, database contents, Docker recovery data, or required keys.
+The canonical chronicle was already established on 2026-08-30 as the
+append-only decision diary, so the history should continue there instead of
+being recreated from scratch.
+
+**Alternatives considered:** Keep every raw historical worktree indefinitely;
+rejected as unnecessary duplication once verified archive copies and Git
+history remain. Permanently delete all historical trees before a restore
+rehearsal; rejected because Docker VHDX identity and complete restoreability
+remain unverified.
+
+**Expected result:** A compact and reviewable D: recovery set, with documented
+history and reversible removal of exact duplicate working copies.
+
+**Actual result:** The active stack was observed healthy; 21 Docker images with
+23 tag references were saved to a tagged tar and hashed; current production and
+preview SQL dumps are present and hashed; the 56-ref Git bundle verified
+against the canonical checkout; both named Data Protection key volumes were
+exported read-only, tar-listed, and hashed. Three modified Git index files were
+preserved in a separate checkpoint and synchronized into the archived old
+worktree copy. The tagged Docker image archive loaded successfully. Both SQL
+dumps restored into disposable MariaDB containers; the production dump then
+restored into a separate Compose database with the production keys and app
+image, and the isolated app returned `/health` HTTP 200. Both key archives were
+round-trip compared against their source volumes. A SHA-256 comparison matched
+3,581 Portfolio non-log files between E: and D:; six active/locked logs were
+excluded. A live Docker label check then found that the preview database
+uses `D:\ARCWorks_Restaurant_Suite_Codex_Landing_Final\compose.yaml`; that
+folder was removed from cleanup candidates pending a verified configuration
+relocation. The saved cleanup script now completes preview and lists only the
+remaining historical candidates plus the explicitly incomplete Docker copy. A
+full content-hash audit of all old trees was stopped after about 9.3 GB was
+read; no complete report was produced. Five smaller historical roots have
+confirmed Recycle Bin entries. Windows refused to stage the staff-side root
+because of an open file. The two large OLD roots and marked-incomplete VHDX
+source are absent but have no matching Recycle Bin records; their D: archive
+snapshots remain. D: subsequently reported 268.54 GiB used and 197.22 GiB free.
+
+**Risks and boundaries:** No clean-Windows-machine restore rehearsal has yet
+been completed. The Docker disk backups still need content-hash and cold-restore
+validation. The user-added six-file VHDX tree must remain untouched. The full
+content-hash audit did not complete, and the remaining staff-side root is
+locked. The remainder's separately stored full VHDX was presumed duplicate by
+metadata but not hash-verified; its archived counterpart is not retained under
+the remainder snapshot. The primary archived VHDX, user-added Docker backups,
+and tested logical rebuild assets remain available.
+Drive-letter format decisions remain separate and out of scope for this
+cleanup operation; D: and E: are explicitly protected.
+
+**Reversal or revisit condition:** If any candidate file hash differs, retain
+the source and reconcile the archive. If the restore rehearsal fails, preserve
+or recover the candidate from D: Recycle Bin and update the recovery plan
+before proceeding.
+
+**Contributor:** The owner set D:/E: as protected backup drives and requested
+the cleanup; Codex checked current Docker, Compose, Git, and archive state,
+exported key volumes, and prepared the reversible preflight.
+
+**Evidence:**
+
+- `00_PROJECT_CONTROL/PROJECT_CHRONICLE.md`
+- `D:\ARCWorks_Restaurant_Project_Archive_20260925\ROMS_REBUILD_AND_CLEANUP_DIARY_20260926.md`
+- `D:\ARCWorks_Restaurant_Project_Archive_20260925\docker-recovery\docker-images-tagged-20260926.tar`
+- `D:\ARCWorks_Restaurant_Project_Archive_20260925\database-checkpoint\`
+- `D:\ARCWorks_Restaurant_Project_Archive_20260925\git\ROMS-all-refs.bundle`
+
 ## Entry template
 
 ### YYYY-MM-DD — Short decision or milestone title
@@ -632,3 +716,80 @@ decision?
 **Evidence:** Exact commits, branches, files, screenshots, tests, audits, or
 deployment records. Do not include secrets.
 
+
+### 2026-09-26 — D: recovery archive and cleanup checkpoint
+
+**Context:** The owner wants a clean Windows and internal-drive setup for new
+projects while preserving the restaurant project and Portfolio on D: and E:.
+
+**Decision:** Retain a documented logical rebuild set and historical project
+chronicle on D:. Move only audited redundant worktrees to the Recycle Bin. Keep
+D: and E: outside the reformat scope.
+
+**Actual result:** Tagged Docker images, production/preview SQL and Data
+Protection keys were archived and hashed. The Git bundle verified with 56
+refs. An isolated production Compose rebuild returned `/health` HTTP 200 and
+the preview SQL restored in an isolated MariaDB. Portfolio source SHA-256
+comparison matched 3,581 non-log files to E:. Final container scan showed the
+ROMS, database, Portfolio, tunnel, and monitor containers running; healthy
+status was reported for app/database and Portfolio containers. D: reported
+268.54 GiB used and 197.22 GiB free.
+
+During cleanup, removed linked-worktree metadata temporarily broke the three
+live Git pointer files. Their original contents were checkpointed and all
+three pointers were repaired to the preserved shared Git database inside the
+archive snapshot. Git HEAD/status now resolve for canonical, production, and
+preview trees. That archived `.git` database is a required recovery asset.
+Five small worktree directories have confirmed Recycle Bin entries. The
+locked staff-side checkout remains. The removed OLD source paths and incomplete
+VHDX lack Recycle Bin metadata; archive snapshots remain but those originals
+may be permanently deleted.
+
+**Risks and boundaries:** Fresh-Windows setup, restaurant workflow acceptance,
+and cold Docker VHDX restoration are unverified. Preserve all Docker disk
+backups until verified. Do not empty Recycle Bin before reviewing its entries.
+D: and E: remain excluded from formatting.
+
+**Evidence:** `D:\ARCWorks_Restaurant_Project_Archive_20260925\ROMS_REBUILD_AND_CLEANUP_DIARY_20260926.md`, recovery artifacts under `D:\ARCWorks_Restaurant_Project_Archive_20260925`, and final Git/runtime checks on 2026-09-26.
+
+**Contributor:** Codex with owner-directed recovery scope.
+
+### 2026-09-27 — Fresh Docker rebuild rehearsal on H:
+
+**Context:** Owner requested a practical rebuild rehearsal before formatting
+other internal drives.
+
+**Decision:** Preserve H:'s existing Restic repository on D:, install a fresh
+Docker Desktop engine with its WSL data root on H:, then restore ROMS from the
+D: logical backups to an isolated local Compose project.
+
+**Actual result:** The Restic repository was copied from H: to D: (829 files,
+11,782,072,559 bytes); Robocopy metadata verification found no differences,
+and the `config` file hashes match. A full per-file hash/Restic verification
+is still pending, so keep the original H: copy.
+
+A cold copy of the stopped 24,249,368,576-byte Docker VHDX was also saved on
+D:; source and copy SHA-256 match
+`BC289F365315DEBA714A85FFD91B544AEE5276429E023CF6D10F3B95A77EFA73`.
+The archived image tar loaded to a new Docker Desktop 4.91.0 engine whose WSL
+data root is `H:\DockerDesktopData`. The source package was copied to
+`H:\ROMS-Rebuild-Test-20260927\project`; a fresh database volume restored
+from the D: production SQL (30 tables, 17 migrations), and the production key
+archive restored to a new volume. The H: app and DB are healthy; local `/` and
+`/health` returned HTTP 200 on port 17070. No public tunnel was started.
+
+**Risks and boundaries:** The test ran on the present Windows installation;
+a future Windows reformat, user workflows, Portfolio runtime, preview
+Compose restart, and external tunnel remain unverified. The production
+services are stopped; the local H: rebuild instance is running. Preserve the
+cold VHDX, logical backups, and original H: Restic repository.
+
+**Evidence:** `D:\ARCWorks_Restaurant_Project_Archive_20260925\ROMS_REBUILD_AND_CLEANUP_DIARY_20260926.md`, `recovery-test\docker_data-active-coldcopy-20260927.vhdx`, and H: project at `H:\ROMS-Rebuild-Test-20260927\project`.
+
+**Contributor:** Codex with owner-directed rebuild test.
+
+Portfolio static production was also copied from E: (production files and
+Media) to an H: test package and started on the fresh H: Docker engine. The
+container was healthy; `/` and `/healthz` both returned HTTP 200 at
+`127.0.0.1:18081`. The test used a unique local-only Compose project and did
+not start a public tunnel.
